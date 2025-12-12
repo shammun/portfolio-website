@@ -27,16 +27,16 @@ export default function HomePage() {
             </p>
 
             <p className="mt-4 text-lg text-muted-foreground leading-relaxed max-w-2xl">
-              I combine{" "}
+              I am studying{" "}
               <strong className="text-foreground">
-                machine learning
+                Climate Science
               </strong>{" "}
-              with{" "}
+              and exploring how{" "}
               <strong className="text-foreground">
-                satellite data
+                AI
               </strong>{" "}
-              to understand how cities heat up. Author of two books on geospatial
-              analysis, now researching high-resolution urban heat island prediction.
+              can be used to build better climate models and solutions. Author of
+              2 books on geospatial analysis, now researching urban climate.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
