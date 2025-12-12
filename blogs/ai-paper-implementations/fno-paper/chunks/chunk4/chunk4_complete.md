@@ -630,12 +630,11 @@ For when your domain looks like a mesh of connected nodes (finite elements, mole
 - ✗ **O(N × neighbors)** — scales with connectivity, not just grid size
 
 > **💡 Decision Framework:**
-> | Your Data Looks Like... | Use This |
-> |------------------------|----------|
-> | Regular rectangular grid (satellite imagery, weather data, simulation output) | **FNO** |
-> | Need to query arbitrary continuous points | **DeepONet** |
-> | Unstructured mesh or complex geometry (CFD meshes, molecular graphs) | **GNO** |
-> | Very large scale with flexible architecture | **Transformer** variants |
+>
+> - **Regular rectangular grid** (satellite imagery, weather data, simulation output) → Use **FNO**
+> - **Need to query arbitrary continuous points** → Use **DeepONet**
+> - **Unstructured mesh or complex geometry** (CFD meshes, molecular graphs) → Use **GNO**
+> - **Very large scale with flexible architecture** → Use **Transformer** variants
 
 ### 5.1 FNO vs. DeepONet
 

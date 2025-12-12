@@ -494,12 +494,10 @@ Same shape as input! Fourier layers preserve spatial dimensions.
 
 ## 6.2 What Each Component Contributes
 
-| Component | What it does | Frequency response |
-|-----------|--------------|-------------------|
-| Spectral R | Learns frequency-specific transformations | Fine control of low freq |
-| Local W | Channel mixing at each point | Flat (all frequencies) |
-| Bias b | Shifts activation threshold | DC offset |
-| GELU | Introduces nonlinearity | Couples frequencies |
+- **Spectral R**: Learns frequency-specific transformations → Fine control of low frequencies
+- **Local W**: Channel mixing at each point → Flat response (all frequencies)
+- **Bias b**: Shifts activation threshold → DC offset
+- **GELU**: Introduces nonlinearity → Couples frequencies
 
 ## 6.3 Information Flow Through the Layer
 
@@ -613,14 +611,12 @@ This is a technical detail, but important for correct implementation.
 
 ## 8.3 Computational Cost per Layer
 
-| Operation | Complexity | Notes |
-|-----------|------------|-------|
-| RFFT2 | O(N log N) | N = N_x × N_y |
-| Mode truncation | O(k_max²) | Just indexing |
-| R multiplication | O(k_max² × d² ) | d = d_v |
-| IRFFT2 | O(N log N) | |
-| W multiplication | O(N × d²) | Pointwise |
-| Addition + GELU | O(N × d) | Elementwise |
+- **RFFT2**: O(N log N) — where N = N_x × N_y
+- **Mode truncation**: O(k_max²) — just indexing
+- **R multiplication**: O(k_max² × d²) — where d = d_v
+- **IRFFT2**: O(N log N)
+- **W multiplication**: O(N × d²) — pointwise
+- **Addition + GELU**: O(N × d) — elementwise
 
 **Total:** O(N log N + N × d²)
 
