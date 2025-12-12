@@ -108,20 +108,16 @@ Before diving in, here are resources to deepen your understanding:
 
 ### Video Tutorials
 
-| Resource | Duration | Description |
-|----------|----------|-------------|
-| [Yannic Kilcher: FNO Paper](https://www.youtube.com/watch?v=IaS72aHrJKE) | 66 min | Deep dive into the original paper |
-| [ML Street Talk: Neural Operators](https://www.youtube.com/watch?v=Bd4KvlmGbY4) | 90 min | Interview with Anima Anandkumar |
-| [Steve Brunton: Data-Driven Science](https://www.youtube.com/c/Eigensteve) | Various | Scientific ML fundamentals |
-| [DeepMind: GraphCast](https://www.youtube.com/watch?v=PtWYfVRQ3hY) | 15 min | Weather prediction with neural operators |
+- **[Yannic Kilcher: FNO Paper](https://www.youtube.com/watch?v=IaS72aHrJKE)** (66 min): Deep dive into the original paper
+- **[ML Street Talk: Neural Operators](https://www.youtube.com/watch?v=Bd4KvlmGbY4)** (90 min): Interview with Anima Anandkumar
+- **[Steve Brunton: Data-Driven Science](https://www.youtube.com/c/Eigensteve)** (Various): Scientific ML fundamentals
+- **[DeepMind: GraphCast](https://www.youtube.com/watch?v=PtWYfVRQ3hY)** (15 min): Weather prediction with neural operators
 
 ### Implementation Resources
 
-| Resource | Description |
-|----------|-------------|
-| [neuraloperator](https://github.com/neuraloperator/neuraloperator) | Official PyTorch library (MIT License) |
-| [NVIDIA Modulus](https://developer.nvidia.com/modulus) | Industrial-strength physics-ML platform |
-| [PDEBench](https://github.com/pdebench/PDEBench) | Benchmark datasets (MIT License) |
+- **[neuraloperator](https://github.com/neuraloperator/neuraloperator)**: Official PyTorch library (MIT License)
+- **[NVIDIA Modulus](https://developer.nvidia.com/modulus)**: Industrial-strength physics-ML platform
+- **[PDEBench](https://github.com/pdebench/PDEBench)**: Benchmark datasets (MIT License)
 
 ---
 
@@ -178,15 +174,33 @@ Scientific datasets come with challenges that don't exist in typical ML benchmar
 
 A well-organized feature set makes your model easier to debug and interpret. Here's how to think about organizing 42 features for a typical environmental prediction task:
 
-| Group | Features | Channels | Why Include |
-|-------|----------|----------|-------------|
-| **Vegetation** | NDVI, EVI, LAI | 0-2 | Vegetation affects local temperature via evapotranspiration |
-| **Surface Type** | Impervious fraction, building density | 3-6 | Surface properties determine heat absorption |
-| **Morphology** | Sky view factor, surface roughness | 7-9 | 3D structure affects heat trapping and airflow |
-| **Meteorology** | Air temperature, humidity, wind, radiation | 10-14 | Atmospheric forcing drives the system |
-| **Land Cover** | Categorical (one-hot encoded) | 15-24 | Land use categories have distinct thermal properties |
-| **Distance** | To water, parks, major roads | 25-28 | Proximity effects (water cools, roads heat) |
-| **Interactions** | NDVI×Temperature, etc. | 29-41 | Non-linear effects the model might miss |
+**Vegetation (Channels 0-2):**
+- Features: NDVI, EVI, LAI
+- Why Include: Vegetation affects local temperature via evapotranspiration
+
+**Surface Type (Channels 3-6):**
+- Features: Impervious fraction, building density
+- Why Include: Surface properties determine heat absorption
+
+**Morphology (Channels 7-9):**
+- Features: Sky view factor, surface roughness
+- Why Include: 3D structure affects heat trapping and airflow
+
+**Meteorology (Channels 10-14):**
+- Features: Air temperature, humidity, wind, radiation
+- Why Include: Atmospheric forcing drives the system
+
+**Land Cover (Channels 15-24):**
+- Features: Categorical (one-hot encoded)
+- Why Include: Land use categories have distinct thermal properties
+
+**Distance (Channels 25-28):**
+- Features: To water, parks, major roads
+- Why Include: Proximity effects (water cools, roads heat)
+
+**Interactions (Channels 29-41):**
+- Features: NDVI×Temperature, etc.
+- Why Include: Non-linear effects the model might miss
 
 ### Implementation: Data Configuration and Simulation
 
@@ -423,12 +437,17 @@ Both models must use:
 
 The key difference is the **problem formulation**:
 
-| Aspect | Random Forest | FNO |
-|--------|---------------|-----|
-| **Input** | Point features (42 values) | Feature field (Nx×Ny×42) |
-| **Output** | Single temperature value | Temperature field (Nx×Ny) |
-| **Training** | Millions of pixels | Hundreds of scenes |
-| **Prediction** | One pixel at a time | Entire field at once |
+**Random Forest:**
+- Input: Point features (42 values)
+- Output: Single temperature value
+- Training: Millions of pixels
+- Prediction: One pixel at a time
+
+**FNO:**
+- Input: Feature field (Nx×Ny×42)
+- Output: Temperature field (Nx×Ny)
+- Training: Hundreds of scenes
+- Prediction: Entire field at once
 
 ### Train/Validation/Test Split Strategy
 
@@ -557,13 +576,30 @@ def compute_ssim(pred: np.ndarray, target: np.ndarray) -> float:
 
 Here's what you should expect when comparing FNO to pixel-wise methods:
 
-| Metric | Random Forest | FNO | Why |
-|--------|---------------|-----|-----|
-| Pooled R² | **0.98-0.99** | 0.92-0.97 | RF has more data points |
-| RMSE | **Lower** | Higher | RF optimizes per-pixel |
-| **Spatial Anomaly R²** | 0.48-0.75 | **0.65-0.85** | FNO captures patterns! |
-| Spectral coherence (low-k) | Weak | **Strong** | FNO has global context |
-| Physical consistency | Variable | **Verified** | Physics constraints help |
+**Pooled R²:**
+- Random Forest: **0.98-0.99**
+- FNO: 0.92-0.97
+- Why: RF has more data points
+
+**RMSE:**
+- Random Forest: **Lower**
+- FNO: Higher
+- Why: RF optimizes per-pixel
+
+**Spatial Anomaly R²:**
+- Random Forest: 0.48-0.75
+- FNO: **0.65-0.85**
+- Why: FNO captures patterns!
+
+**Spectral coherence (low-k):**
+- Random Forest: Weak
+- FNO: **Strong**
+- Why: FNO has global context
+
+**Physical consistency:**
+- Random Forest: Variable
+- FNO: **Verified**
+- Why: Physics constraints help
 
 **Key Insight:** FNO may have worse pixel-level metrics but better pattern metrics. This is the scientifically important result!
 
@@ -699,12 +735,21 @@ print(f"Model: {fno_model}")
 
 For a dataset with ~230 scenes and smooth output fields:
 
-| Configuration | Parameters | Risk |
-|---------------|------------|------|
-| d_v=16, k_max=8 | ~70K | Underfitting |
-| **d_v=32, k_max=12** | **~1.2M** | **Good balance** |
-| d_v=64, k_max=12 | ~4.7M | Overfitting risk |
-| d_v=64, k_max=16 | ~8.4M | High overfitting risk |
+**Configuration: d_v=16, k_max=8**
+- Parameters: ~70K
+- Risk: Underfitting
+
+**Configuration: d_v=32, k_max=12 (Recommended)**
+- Parameters: ~1.2M
+- Risk: Good balance
+
+**Configuration: d_v=64, k_max=12**
+- Parameters: ~4.7M
+- Risk: Overfitting risk
+
+**Configuration: d_v=64, k_max=16**
+- Parameters: ~8.4M
+- Risk: High overfitting risk
 
 ---
 
@@ -1165,12 +1210,25 @@ $$v_{l+1}(x) = \sigma\left(W_l v_l(x) + (\mathcal{K}_l v_l)(x) + b_l\right)$$
 
 ## Part 10: Success Stories
 
-| Application | Model | Speedup | Reference |
-|-------------|-------|---------|-----------|
-| Weather (6hr) | FourCastNet | 10,000× | Pathak et al. 2022 |
-| Weather (10-day) | GraphCast | 1,000× | Lam et al. 2023 |
-| Weather | Pangu-Weather | 10,000× | Bi et al. 2023 |
-| Turbulence | FNO | 1,000× | Li et al. 2021 |
+**Weather (6hr):**
+- Model: FourCastNet
+- Speedup: 10,000×
+- Reference: Pathak et al. 2022
+
+**Weather (10-day):**
+- Model: GraphCast
+- Speedup: 1,000×
+- Reference: Lam et al. 2023
+
+**Weather:**
+- Model: Pangu-Weather
+- Speedup: 10,000×
+- Reference: Bi et al. 2023
+
+**Turbulence:**
+- Model: FNO
+- Speedup: 1,000×
+- Reference: Li et al. 2021
 
 ---
 
@@ -1202,13 +1260,11 @@ $$v_{l+1}(x) = \sigma\left(W_l v_l(x) + (\mathcal{K}_l v_l)(x) + b_l\right)$$
 
 ## Series Navigation
 
-| Part | Title | What You Learned |
-|------|-------|------------------|
-| [Part 1](../chunk1/chunk1_complete.md) | **Fourier Foundations** | DFT, convolution theorem |
-| [Part 2](../chunk2/chunk2_complete.md) | **Core Innovation** | Spectral convolution |
-| [Part 3](../chunk3/chunk3_complete.md) | **Complete Architecture** | Lifting, Fourier layers, projection |
-| [Part 4](../chunk4/chunk4_complete.md) | **Advanced Topics** | PINO, variants, interpretation |
-| **Part 5** | **Practical Applications** | *(You are here)* |
+- **[Part 1: Fourier Foundations](../chunk1/chunk1_complete.md)** - What You Learned: DFT, convolution theorem
+- **[Part 2: Core Innovation](../chunk2/chunk2_complete.md)** - What You Learned: Spectral convolution
+- **[Part 3: Complete Architecture](../chunk3/chunk3_complete.md)** - What You Learned: Lifting, Fourier layers, projection
+- **[Part 4: Advanced Topics](../chunk4/chunk4_complete.md)** - What You Learned: PINO, variants, interpretation
+- **Part 5: Practical Applications** - *(You are here)*
 
 ---
 

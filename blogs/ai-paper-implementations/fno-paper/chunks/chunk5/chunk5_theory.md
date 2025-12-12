@@ -61,16 +61,29 @@ Tensor construction (N, Nx, Ny, 42)
 
 Organize your 42 features into semantic groups:
 
-| Group | Features | Channels |
-|-------|----------|----------|
-| **Vegetation** | NDVI, EVI, LAI | 0-2 |
-| **Urban** | NDBI, ISA, building height, building density | 3-6 |
-| **Morphology** | SVF, aspect ratio, roughness | 7-9 |
-| **Meteorology** | ERA5: T, RH, U, V, radiation | 10-14 |
-| **Land Cover** | One-hot encoded classes | 15-24 |
-| **Distance** | To water, parks, highways, coast | 25-28 |
-| **Interactions** | NDVI×T_air, NDBI×radiation, etc. | 29-41 |
-| **Solar** | Zenith angle, azimuth (optional) | 42-43 |
+**Vegetation (Channels 0-2):**
+- Features: NDVI, EVI, LAI
+
+**Urban (Channels 3-6):**
+- Features: NDBI, ISA, building height, building density
+
+**Morphology (Channels 7-9):**
+- Features: SVF, aspect ratio, roughness
+
+**Meteorology (Channels 10-14):**
+- Features: ERA5: T, RH, U, V, radiation
+
+**Land Cover (Channels 15-24):**
+- Features: One-hot encoded classes
+
+**Distance (Channels 25-28):**
+- Features: To water, parks, highways, coast
+
+**Interactions (Channels 29-41):**
+- Features: NDVI×T_air, NDBI×radiation, etc.
+
+**Solar (Channels 42-43):**
+- Features: Zenith angle, azimuth (optional)
 
 ### Step 3: Temporal Encoding
 
@@ -250,12 +263,21 @@ lambda_veg ∈ {0.01, 0.1, 1.0}
 
 ### Expected Parameter Counts
 
-| Configuration | Parameters | Risk |
-|---------------|------------|------|
-| d_v=16, k_max=8 | ~70K | Underfitting |
-| **d_v=32, k_max=12** | **~1.2M** | **Good balance** |
-| d_v=64, k_max=12 | ~4.7M | Overfitting risk |
-| d_v=64, k_max=16 | ~8.4M | High overfitting risk |
+**Configuration: d_v=16, k_max=8**
+- Parameters: ~70K
+- Risk: Underfitting
+
+**Configuration: d_v=32, k_max=12 (Recommended)**
+- Parameters: ~1.2M
+- Risk: Good balance
+
+**Configuration: d_v=64, k_max=12**
+- Parameters: ~4.7M
+- Risk: Overfitting risk
+
+**Configuration: d_v=64, k_max=16**
+- Parameters: ~8.4M
+- Risk: High overfitting risk
 
 ---
 
@@ -291,12 +313,17 @@ Both models evaluated on:
 
 ### Clear Problem Distinction
 
-| Aspect | Random Forest | FNO |
-|--------|---------------|-----|
-| **Input** | Point features (42) | Feature field (Nx×Ny×42) |
-| **Output** | Point temperature | Temperature field (Nx×Ny) |
-| **Training** | 31M observations | 230 scenes |
-| **Prediction** | Pixel-by-pixel | Full field at once |
+**Random Forest:**
+- Input: Point features (42)
+- Output: Point temperature
+- Training: 31M observations
+- Prediction: Pixel-by-pixel
+
+**FNO:**
+- Input: Feature field (Nx×Ny×42)
+- Output: Temperature field (Nx×Ny)
+- Training: 230 scenes
+- Prediction: Full field at once
 
 ## 2.3 Metrics for Comparison
 
@@ -340,14 +367,35 @@ Both models evaluated on:
 
 ### Hypothesis
 
-| Metric | Random Forest | FNO | Why |
-|--------|---------------|-----|-----|
-| Pooled R² | **0.98-0.99** | 0.92-0.97 | RF has 130× more data |
-| RMSE | **1.5-2.0 K** | 2.0-3.0 K | RF pixel-level fitting |
-| Spatial Anomaly R² | 0.48-0.75 | **0.65-0.85** | FNO captures patterns |
-| Spectral (low-k) | Similar | **Better** | FNO global context |
-| Spectral (high-k) | **Better** | Worse | RF local fitting |
-| Physical consistency | Variable | **Better** | Physics constraints |
+**Pooled R²:**
+- Random Forest: **0.98-0.99**
+- FNO: 0.92-0.97
+- Why: RF has 130× more data
+
+**RMSE:**
+- Random Forest: **1.5-2.0 K**
+- FNO: 2.0-3.0 K
+- Why: RF pixel-level fitting
+
+**Spatial Anomaly R²:**
+- Random Forest: 0.48-0.75
+- FNO: **0.65-0.85**
+- Why: FNO captures patterns
+
+**Spectral (low-k):**
+- Random Forest: Similar
+- FNO: **Better**
+- Why: FNO global context
+
+**Spectral (high-k):**
+- Random Forest: **Better**
+- FNO: Worse
+- Why: RF local fitting
+
+**Physical consistency:**
+- Random Forest: Variable
+- FNO: **Better**
+- Why: Physics constraints
 
 ### Key Insight
 
@@ -357,30 +405,24 @@ FNO may have worse pixel-level metrics (RMSE, pooled R²) but better pattern met
 
 ### Architecture Ablations
 
-| Ablation | What It Tests |
-|----------|---------------|
-| k_max = 4 vs 12 vs 20 | Frequency resolution importance |
-| n_layers = 2 vs 4 vs 6 | Depth importance |
-| d_v = 16 vs 32 vs 64 | Capacity importance |
-| No local path (W=0) | Spectral-only vs hybrid |
+- **k_max = 4 vs 12 vs 20**: Tests frequency resolution importance
+- **n_layers = 2 vs 4 vs 6**: Tests depth importance
+- **d_v = 16 vs 32 vs 64**: Tests capacity importance
+- **No local path (W=0)**: Tests spectral-only vs hybrid
 
 ### Physics Ablations
 
-| Ablation | What It Tests |
-|----------|---------------|
-| No physics (λ=0) | Benefit of physics constraints |
-| Smooth only | Smoothness vs data |
-| Veg+Urban | Domain-specific constraints |
-| All physics | Full PINO |
+- **No physics (λ=0)**: Tests benefit of physics constraints
+- **Smooth only**: Tests smoothness vs data
+- **Veg+Urban**: Tests domain-specific constraints
+- **All physics**: Tests full PINO
 
 ### Feature Ablations
 
-| Ablation | What It Tests |
-|----------|---------------|
-| Remove NDVI | Vegetation importance |
-| Remove ERA5 | Meteorology importance |
-| Remove morphology | Urban structure importance |
-| Only vegetation + ERA5 | Minimal feature set |
+- **Remove NDVI**: Tests vegetation importance
+- **Remove ERA5**: Tests meteorology importance
+- **Remove morphology**: Tests urban structure importance
+- **Only vegetation + ERA5**: Tests minimal feature set
 
 ---
 
@@ -406,13 +448,25 @@ FNO may have worse pixel-level metrics (RMSE, pooled R²) but better pattern met
 
 ### Warning Signs
 
-| Sign | Diagnosis | Fix |
-|------|-----------|-----|
-| Train loss flat | Not learning | Increase LR, check data |
-| Val >> Train | Overfitting | Reduce model, add dropout |
-| Both losses high | Underfitting | Increase model capacity |
-| NaN loss | Numerical issues | Check normalization, reduce LR |
-| Oscillating | LR too high | Reduce learning rate |
+**Train loss flat:**
+- Diagnosis: Not learning
+- Fix: Increase LR, check data
+
+**Val >> Train:**
+- Diagnosis: Overfitting
+- Fix: Reduce model, add dropout
+
+**Both losses high:**
+- Diagnosis: Underfitting
+- Fix: Increase model capacity
+
+**NaN loss:**
+- Diagnosis: Numerical issues
+- Fix: Check normalization, reduce LR
+
+**Oscillating:**
+- Diagnosis: LR too high
+- Fix: Reduce learning rate
 
 ## 3.2 Spatial Error Analysis
 
@@ -437,12 +491,10 @@ Error(x,y) = Prediction(x,y) - Target(x,y)
 
 Stratify errors by land cover type:
 
-| Land Cover | Expected Error Pattern |
-|------------|----------------------|
-| Water | Low error (stable temperature) |
-| Forest | Should be cooler than mean |
-| Urban dense | Should be warmer than mean |
-| Suburban | Intermediate |
+- **Water**: Low error (stable temperature)
+- **Forest**: Should be cooler than mean
+- **Urban dense**: Should be warmer than mean
+- **Suburban**: Intermediate
 
 ### Error vs. Feature Values
 
@@ -517,11 +569,17 @@ Report:
 
 ### Expected Results
 
-| Resolution | Spatial Anomaly R² | Notes |
-|------------|-------------------|-------|
-| 64×64 | 0.75 | Training resolution |
-| 128×128 | 0.73-0.76 | Should be similar |
-| 256×256 | 0.72-0.76 | Should be similar |
+**Resolution: 64×64**
+- Spatial Anomaly R²: 0.75
+- Notes: Training resolution
+
+**Resolution: 128×128**
+- Spatial Anomaly R²: 0.73-0.76
+- Notes: Should be similar
+
+**Resolution: 256×256**
+- Spatial Anomaly R²: 0.72-0.76
+- Notes: Should be similar
 
 **Key result:** Same weights work at all resolutions!
 
@@ -617,10 +675,13 @@ Side-by-side:
 
 ### Figure 4: RF vs FNO Comparison
 
-| | Random Forest | FNO |
-|-|---------------|-----|
-| Spatial Anomaly R² | 0.52 | **0.71** |
-| Visual | Noisy | Smooth |
+**Random Forest:**
+- Spatial Anomaly R²: 0.52
+- Visual: Noisy
+
+**FNO:**
+- Spatial Anomaly R²: **0.71**
+- Visual: Smooth
 
 ### Figure 5: Resolution Invariance
 
@@ -987,12 +1048,21 @@ def spectral_conv(v, R, k_max):
 
 ## 7.2 Key Results to Remember
 
-| Metric | Random Forest | FNO (Expected) |
-|--------|---------------|----------------|
-| Pooled R² | 0.98-0.99 | 0.92-0.97 |
-| Spatial Anomaly R² | 0.48-0.75 | **0.65-0.85** |
-| Physics consistency | Variable | **Verified** |
-| Resolution invariance | No | **Yes** |
+**Pooled R²:**
+- Random Forest: 0.98-0.99
+- FNO (Expected): 0.92-0.97
+
+**Spatial Anomaly R²:**
+- Random Forest: 0.48-0.75
+- FNO (Expected): **0.65-0.85**
+
+**Physics consistency:**
+- Random Forest: Variable
+- FNO (Expected): **Verified**
+
+**Resolution invariance:**
+- Random Forest: No
+- FNO (Expected): **Yes**
 
 ## 7.3 Phrases for PhD Applications
 

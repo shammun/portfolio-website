@@ -763,18 +763,47 @@ $$(\mathcal{K}v)(x) = \sum_{y \in \mathcal{N}(x)} \kappa(x, y) v(y)$$
 - Point clouds
 - Non-uniform sampling
 
-## 5.8 Comparison Table
+## 5.8 Comparison of Neural Operator Variants
 
-| Variant | Key Feature | Best For | Complexity |
-|---------|-------------|----------|------------|
-| FNO | Standard spectral | Regular grids, smooth | O(N log N) |
-| AFNO | Attention on modes | Multi-scale, weather | O(N log N) |
-| Geo-FNO | Coordinate transform | Irregular domains | O(N log N) |
-| U-NO | Multi-scale U-Net | Sharp + smooth features | O(N log N) |
-| F-FNO | Factorized weights | High-resolution | O(N log N) |
-| CNO | Learned convolutions | Non-periodic | O(N²) or O(Nk) |
-| WNO | Wavelets | Localized features | O(N log N) |
-| GNO | Graph-based | Unstructured | O(N × neighbors) |
+**FNO (Standard Fourier Neural Operator):**
+- Key Feature: Standard spectral convolution
+- Best For: Regular grids, smooth functions
+- Complexity: O(N log N)
+
+**AFNO (Adaptive FNO):**
+- Key Feature: Attention mechanism on Fourier modes
+- Best For: Multi-scale problems, weather prediction
+- Complexity: O(N log N)
+
+**Geo-FNO (Geometry-Adaptive FNO):**
+- Key Feature: Learnable coordinate transformation
+- Best For: Irregular domains
+- Complexity: O(N log N)
+
+**U-NO (U-shaped Neural Operator):**
+- Key Feature: Multi-scale U-Net architecture
+- Best For: Problems with both sharp and smooth features
+- Complexity: O(N log N)
+
+**F-FNO (Factorized FNO):**
+- Key Feature: Factorized spectral weights
+- Best For: High-resolution applications
+- Complexity: O(N log N)
+
+**CNO (Convolutional Neural Operator):**
+- Key Feature: Learned convolutions instead of FFT
+- Best For: Non-periodic domains
+- Complexity: O(N²) or O(Nk)
+
+**WNO (Wavelet Neural Operator):**
+- Key Feature: Wavelet-based spectral decomposition
+- Best For: Localized features and discontinuities
+- Complexity: O(N log N)
+
+**GNO (Graph Neural Operator):**
+- Key Feature: Graph-based message passing
+- Best For: Unstructured meshes and adaptive grids
+- Complexity: O(N × neighbors)
 
 ---
 
@@ -895,23 +924,47 @@ Fine-tune on: Urban ECOSTRESS + high-res features
 
 ### Data Sources for Pre-training
 
-| Source | Resolution | Coverage | Variables |
-|--------|------------|----------|-----------|
-| ERA5 | 25 km | Global, 1940-now | All atmospheric |
-| CMIP6 | Variable | Global, simulations | All |
-| MODIS | 1 km | Global, 2000-now | LST, vegetation |
-| Landsat | 30-100 m | Global, 1972-now | Surface properties |
-| ECOSTRESS | 70 m | ISS orbit, 2018-now | LST |
+**ERA5:**
+- Resolution: 25 km
+- Coverage: Global, 1940-present
+- Variables: All atmospheric variables
+
+**CMIP6:**
+- Resolution: Variable
+- Coverage: Global climate model simulations
+- Variables: All climate variables
+
+**MODIS:**
+- Resolution: 1 km
+- Coverage: Global, 2000-present
+- Variables: Land surface temperature (LST), vegetation indices
+
+**Landsat:**
+- Resolution: 30-100 m
+- Coverage: Global, 1972-present
+- Variables: Surface properties and land cover
+
+**ECOSTRESS:**
+- Resolution: 70 m
+- Coverage: ISS orbit coverage, 2018-present
+- Variables: Land surface temperature (LST)
 
 ### Architecture Choices
 
-| Component | Options |
-|-----------|---------|
-| Backbone | FNO, Transformer, GNN |
-| Tokenization | Patches, spectral modes, graph nodes |
-| Position encoding | Absolute, relative, rotary |
-| Attention | Full, sparse, linear |
-| Normalization | LayerNorm, RMSNorm |
+**Backbone:**
+- Options: FNO, Transformer, Graph Neural Network (GNN)
+
+**Tokenization:**
+- Options: Image patches, spectral modes, graph nodes
+
+**Position Encoding:**
+- Options: Absolute positional encoding, relative positional encoding, rotary embeddings
+
+**Attention Mechanism:**
+- Options: Full attention, sparse attention, linear attention
+
+**Normalization:**
+- Options: LayerNorm, RMSNorm
 
 ## 6.5 Future: Urban Climate Foundation Model
 
@@ -1233,14 +1286,23 @@ $$\mathcal{L} = \mathcal{L}_{data} + \lambda \mathcal{L}_{physics}$$
 
 ## 9.1 Complete FNO Mastery Achieved
 
-| Chunk | Topic | Key Concepts |
-|-------|-------|--------------|
-| 1 | Foundations | Fourier transform, convolution theorem, spectral methods |
-| 2 | Fourier Layer | Spectral convolution, mode truncation, resolution invariance |
-| 3 | Architecture | Lifting, stacking, projection, parameter counting |
-| 4 | Training | PINO, physics constraints, diagnostics, advanced variants |
-| 5 | Application | Real data, comparison, scientific communication |
-| **6** | **Extensions** | **Temporal, transfer, uncertainty, deployment, frontiers** |
+**Chunk 1 - Foundations:**
+- Key Concepts: Fourier transform, convolution theorem, spectral methods
+
+**Chunk 2 - Fourier Layer:**
+- Key Concepts: Spectral convolution, mode truncation, resolution invariance
+
+**Chunk 3 - Architecture:**
+- Key Concepts: Lifting, stacking layers, projection, parameter counting
+
+**Chunk 4 - Training:**
+- Key Concepts: PINO (Physics-Informed Neural Operators), physics constraints, training diagnostics, advanced variants
+
+**Chunk 5 - Application:**
+- Key Concepts: Real data processing, comparison with traditional methods, scientific communication
+
+**Chunk 6 - Extensions (Current):**
+- Key Concepts: Temporal prediction, transfer learning, uncertainty quantification, deployment strategies, research frontiers
 
 ## 9.2 Key Takeaways from Chunk 6
 

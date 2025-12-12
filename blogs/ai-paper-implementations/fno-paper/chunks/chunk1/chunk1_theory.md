@@ -26,11 +26,21 @@ $$f_\theta: \mathbb{R}^n \rightarrow \mathbb{R}^m$$
 This maps a finite-dimensional input to a finite-dimensional output.
 
 **Examples:**
-| Task | Input | Output | Mapping |
-|------|-------|--------|---------|
-| Image classification | 224×224×3 image | 1000 class probabilities | $\mathbb{R}^{150528} \rightarrow \mathbb{R}^{1000}$ |
-| House price prediction | 10 features | 1 price | $\mathbb{R}^{10} \rightarrow \mathbb{R}$ |
-| Your Random Forest LST model | 42 features at one pixel | 1 temperature | $\mathbb{R}^{42} \rightarrow \mathbb{R}$ |
+
+- **Image classification**
+  - Input: 224×224×3 image
+  - Output: 1000 class probabilities
+  - Mapping: $\mathbb{R}^{150528} \rightarrow \mathbb{R}^{1000}$
+
+- **House price prediction**
+  - Input: 10 features
+  - Output: 1 price
+  - Mapping: $\mathbb{R}^{10} \rightarrow \mathbb{R}$
+
+- **Random Forest LST model**
+  - Input: 42 features at one pixel
+  - Output: 1 temperature
+  - Mapping: $\mathbb{R}^{42} \rightarrow \mathbb{R}$
 
 **The critical limitation:** The dimensions are **fixed**. If you train on 64×64 grids, you cannot directly use the model on 128×128 grids.
 
@@ -120,13 +130,19 @@ A true neural operator should be **discretization invariant**:
 
 ## 1.7 Summary: Functions vs Operators
 
-| Aspect | Function | Operator |
-|--------|----------|----------|
-| Input | Vector $\mathbf{x} \in \mathbb{R}^n$ | Function $a: \Omega \rightarrow \mathbb{R}$ |
-| Output | Vector $\mathbf{y} \in \mathbb{R}^m$ | Function $u: \Omega \rightarrow \mathbb{R}$ |
-| Dimensions | Fixed at training time | Resolution-independent |
-| What it learns | Pattern in specific discretization | Underlying continuous mapping |
-| Example | CNN classifier | PDE solution operator |
+**Function:**
+- Input: Vector $\mathbf{x} \in \mathbb{R}^n$
+- Output: Vector $\mathbf{y} \in \mathbb{R}^m$
+- Dimensions: Fixed at training time
+- What it learns: Pattern in specific discretization
+- Example: CNN classifier
+
+**Operator:**
+- Input: Function $a: \Omega \rightarrow \mathbb{R}$
+- Output: Function $u: \Omega \rightarrow \mathbb{R}$
+- Dimensions: Resolution-independent
+- What it learns: Underlying continuous mapping
+- Example: PDE solution operator
 
 ---
 
@@ -223,14 +239,14 @@ The term $e^{-2\pi i \frac{kn}{N}}$ is a complex sinusoid that completes exactly
 
 For a signal of length $N$ with sampling interval $\Delta x$:
 
-| Index $k$ | Frequency | Physical meaning |
-|-----------|-----------|------------------|
-| 0 | 0 | DC (mean value) |
-| 1 | $\frac{1}{N\Delta x}$ | Lowest frequency, wavelength = domain size |
-| 2 | $\frac{2}{N\Delta x}$ | Second harmonic |
-| ... | ... | ... |
-| $N/2$ | $\frac{1}{2\Delta x}$ | Nyquist frequency (highest) |
-| $N/2+1$ to $N-1$ | Negative frequencies | Aliased with positive |
+**Frequency indices and their meaning:**
+
+- **k = 0**: Frequency 0 — DC (mean value)
+- **k = 1**: Frequency $\frac{1}{N\Delta x}$ — Lowest frequency, wavelength = domain size
+- **k = 2**: Frequency $\frac{2}{N\Delta x}$ — Second harmonic
+- **...**
+- **k = N/2**: Frequency $\frac{1}{2\Delta x}$ — Nyquist frequency (highest)
+- **k = N/2+1 to N-1**: Negative frequencies — Aliased with positive
 
 **Nyquist theorem:** You can only accurately represent frequencies up to half the sampling rate.
 
@@ -358,11 +374,9 @@ Where $\mathcal{L}$ is a differential operator.
 
 **Examples:**
 
-| PDE | Operator $\mathcal{L}$ |
-|-----|------------------------|
-| Heat equation | $\frac{\partial}{\partial t} - \alpha \nabla^2$ |
-| Wave equation | $\frac{\partial^2}{\partial t^2} - c^2 \nabla^2$ |
-| Poisson equation | $-\nabla^2$ |
+- **Heat equation**: Operator $\mathcal{L} = \frac{\partial}{\partial t} - \alpha \nabla^2$
+- **Wave equation**: Operator $\mathcal{L} = \frac{\partial^2}{\partial t^2} - c^2 \nabla^2$
+- **Poisson equation**: Operator $\mathcal{L} = -\nabla^2$
 
 ## 4.2 Solving PDEs in Fourier Space
 
@@ -443,11 +457,11 @@ It's not a different transform—just a clever algorithm exploiting symmetries.
 
 Different libraries use different normalizations:
 
-| Convention | Forward | Inverse |
-|------------|---------|---------|
-| NumPy default | No factor | Divide by $N$ |
-| Symmetric | Divide by $\sqrt{N}$ | Divide by $\sqrt{N}$ |
-| Physics | Include $2\pi$ factors | Include $2\pi$ factors |
+**Normalization options:**
+
+- **NumPy default**: Forward has no factor, Inverse divides by $N$
+- **Symmetric**: Both Forward and Inverse divide by $\sqrt{N}$
+- **Physics convention**: Both include $2\pi$ factors
 
 **For FNO:** Consistency matters more than convention. NumPy/PyTorch defaults work fine.
 

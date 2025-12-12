@@ -207,12 +207,10 @@ Stacking layers enables:
 
 Think of the layers as progressive refinement:
 
-| Layer | What It Learns |
-|-------|---------------|
-| Layer 1 | Basic spatial patterns, initial feature combinations |
-| Layer 2 | Interactions between Layer 1 patterns |
-| Layer 3 | Higher-order relationships, complex spatial dependencies |
-| Layer 4 | Final refinement, output-ready representation |
+- **Layer 1**: Basic spatial patterns, initial feature combinations
+- **Layer 2**: Interactions between Layer 1 patterns
+- **Layer 3**: Higher-order relationships, complex spatial dependencies
+- **Layer 4**: Final refinement, output-ready representation
 
 ## 3.3 How Many Layers?
 
@@ -337,16 +335,16 @@ $$u = h \cdot Q_2 + b_{Q2}$$
 
 Let's trace shapes through the network for your problem:
 
-| Stage | Output Shape | Notes |
-|-------|--------------|-------|
-| Input $a$ | (64, 64, 42) | Your features at each pixel |
-| After Lifting | (64, 64, 64) | Hidden representation |
-| After Fourier L1 | (64, 64, 64) | Same shape |
-| After Fourier L2 | (64, 64, 64) | Same shape |
-| After Fourier L3 | (64, 64, 64) | Same shape |
-| After Fourier L4 | (64, 64, 64) | Same shape |
-| After Q₁ + GELU | (64, 64, 128) | Intermediate |
-| After Q₂ (Output) | (64, 64, 1) | Temperature prediction |
+**Shape progression:**
+
+- **Input $a$**: (64, 64, 42) — Your features at each pixel
+- **After Lifting**: (64, 64, 64) — Hidden representation
+- **After Fourier L1**: (64, 64, 64) — Same shape
+- **After Fourier L2**: (64, 64, 64) — Same shape
+- **After Fourier L3**: (64, 64, 64) — Same shape
+- **After Fourier L4**: (64, 64, 64) — Same shape
+- **After Q₁ + GELU**: (64, 64, 128) — Intermediate
+- **After Q₂ (Output)**: (64, 64, 1) — Temperature prediction
 
 **Key insight:** Spatial dimensions (64, 64) never change. Only channel dimension changes at lifting and projection.
 
@@ -596,12 +594,12 @@ For your single-time temperature prediction, this isn't needed.
 
 **Configuration:** $d_a=42$, $d_v=64$, $d_{mid}=128$, $d_u=1$, $k_{max}=12$, 4 layers
 
-| Component | Parameters |
-|-----------|------------|
-| Lifting | 42×64 + 64 = 2,752 |
-| Fourier Layer ×4 | 4 × (2×144×4096 + 4096 + 64) = 4,737,280 |
-| Projection | 64×128 + 128 + 128×1 + 1 = 8,449 |
-| **Total** | **~4.75M parameters** |
+**Parameter breakdown:**
+
+- **Lifting**: 42×64 + 64 = 2,752
+- **Fourier Layer ×4**: 4 × (2×144×4096 + 4096 + 64) = 4,737,280
+- **Projection**: 64×128 + 128 + 128×1 + 1 = 8,449
+- **Total**: ~4.75M parameters
 
 **Note:** The spectral weights R dominate! They scale as $O(k_{max}^2 \times d_v^2)$.
 
@@ -611,12 +609,12 @@ If you have limited training data, reduce model size:
 
 **Small configuration:** $d_v=32$, $k_{max}=8$
 
-| Component | Parameters |
-|-----------|------------|
-| Lifting | 42×32 + 32 = 1,376 |
-| Fourier Layer ×4 | 4 × (2×64×1024 + 1024 + 32) = 528,640 |
-| Projection | 32×64 + 64 + 64×1 + 1 = 2,177 |
-| **Total** | **~530K parameters** |
+**Parameter breakdown (small):**
+
+- **Lifting**: 42×32 + 32 = 1,376
+- **Fourier Layer ×4**: 4 × (2×64×1024 + 1024 + 32) = 528,640
+- **Projection**: 32×64 + 64 + 64×1 + 1 = 2,177
+- **Total**: ~530K parameters
 
 ## 8.4 Model Size vs. Data Size
 
@@ -636,14 +634,17 @@ If you have limited training data, reduce model size:
 
 ## 9.1 Key Hyperparameters
 
-| Hyperparameter | Typical Range | Your Problem |
-|----------------|---------------|--------------|
-| Hidden dim ($d_v$) | 32, 64, 128 | Start with 32-64 |
-| Modes ($k_{max}$) | 8, 12, 16, 20 | 12 for 64×64 grid |
-| Num layers | 2, 4, 6 | 4 (standard) |
-| Learning rate | 1e-4 to 1e-3 | 1e-3 initially |
-| Batch size | 4, 8, 16, 32 | 8-16 |
-| Weight decay | 0, 1e-4, 1e-3 | 1e-4 |
+**Hidden dim ($d_v$)**: Typical 32, 64, 128 — For your problem: Start with 32-64
+
+**Modes ($k_{max}$)**: Typical 8, 12, 16, 20 — For your problem: 12 for 64×64 grid
+
+**Num layers**: Typical 2, 4, 6 — For your problem: 4 (standard)
+
+**Learning rate**: Typical 1e-4 to 1e-3 — For your problem: 1e-3 initially
+
+**Batch size**: Typical 4, 8, 16, 32 — For your problem: 8-16
+
+**Weight decay**: Typical 0, 1e-4, 1e-3 — For your problem: 1e-4
 
 ## 9.2 How to Choose $d_v$
 
@@ -726,11 +727,9 @@ arXiv:2010.08895 (NeurIPS 2020)
 
 The paper tests several variants:
 
-| Variant | Description | Performance |
-|---------|-------------|-------------|
-| FNO-2D | Spatial dimensions only | Best for steady-state |
-| FNO-3D | Space + time as 3D | Best for time-dependent |
-| FNO-2D+time | 2D spatial, time as parameter | Alternative for time |
+- **FNO-2D**: Spatial dimensions only — Best for steady-state
+- **FNO-3D**: Space + time as 3D — Best for time-dependent
+- **FNO-2D+time**: 2D spatial, time as parameter — Alternative for time
 
 **For your problem:** FNO-2D is appropriate (single-time temperature field)
 
@@ -747,12 +746,10 @@ The paper tests several variants:
 
 ## 11.1 Problem Mapping
 
-| FNO Component | Your Problem |
-|---------------|--------------|
-| Input $a(x)$ | 42 features (NDVI, building height, ERA5, etc.) |
-| Output $u(x)$ | Land surface temperature (1 channel) |
-| Domain | NYC area at 70m resolution |
-| Training data | 230 ECOSTRESS scenes |
+- **Input $a(x)$**: 42 features (NDVI, building height, ERA5, etc.)
+- **Output $u(x)$**: Land surface temperature (1 channel)
+- **Domain**: NYC area at 70m resolution
+- **Training data**: 230 ECOSTRESS scenes
 
 ## 11.2 Why FNO is Appropriate
 
@@ -766,12 +763,17 @@ The paper tests several variants:
 
 ## 11.3 Expected Improvements Over Random Forest
 
-| Aspect | Random Forest | FNO |
-|--------|---------------|-----|
-| Spatial context | None (pixel-independent) | Global (full domain) |
-| Feature engineering | Manual distance features | Learned spatial features |
-| Generalization | To similar pixels | To similar fields |
-| Resolution | Fixed | Flexible |
+**Random Forest:**
+- Spatial context: None (pixel-independent)
+- Feature engineering: Manual distance features
+- Generalization: To similar pixels
+- Resolution: Fixed
+
+**FNO:**
+- Spatial context: Global (full domain)
+- Feature engineering: Learned spatial features
+- Generalization: To similar fields
+- Resolution: Flexible
 
 ## 11.4 Potential Challenges
 

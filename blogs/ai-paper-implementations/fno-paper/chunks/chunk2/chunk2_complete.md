@@ -257,12 +257,10 @@ This figure demonstrates the **core FNO operation** (FFT → Multiply by R → I
 
 ### Key Lessons
 
-| Observation | Lesson |
-|-------------|--------|
-| k=15 disappears in all outputs | Mode truncation automatically filters high frequencies |
-| Different R → different outputs | The network **learns** which frequencies matter for your task |
-| Identity R ≠ identity function | Truncation alone changes the signal (k≥k_max zeroed) |
-| One multiplication per frequency | O(N log N) complexity via FFT, not O(N²) |
+- **k=15 disappears in all outputs**: Mode truncation automatically filters high frequencies
+- **Different R → different outputs**: The network **learns** which frequencies matter for your task
+- **Identity R ≠ identity function**: Truncation alone changes the signal (k≥k_max zeroed)
+- **One multiplication per frequency**: O(N log N) complexity via FFT, not O(N²)
 
 **For Urban Temperature:** FNO will learn R weights that preserve city-wide heat patterns (low k) while filtering sensor noise (high k).
 
@@ -272,11 +270,9 @@ This figure demonstrates the **core FNO operation** (FFT → Multiply by R → I
 
 **The comparison that matters:**
 
-| Approach | Receptive Field | Complexity | Parameters |
-|----------|----------------|------------|------------|
-| 3×3 CNN | 3 pixels (local) | O(N) | 9 per filter |
-| Global CNN (N×N kernel) | N pixels (global) | O(N²) | N² per filter |
-| FNO Spectral Conv | **Entire domain** (global) | **O(N log N)** | k_max per filter |
+- **3×3 CNN**: Receptive Field = 3 pixels (local), Complexity = O(N), Parameters = 9 per filter
+- **Global CNN (N×N kernel)**: Receptive Field = N pixels (global), Complexity = O(N²), Parameters = N² per filter
+- **FNO Spectral Conv**: Receptive Field = **Entire domain** (global), Complexity = **O(N log N)**, Parameters = k_max per filter
 
 From the FNO paper: *"The majority of the computational cost lies in computing the Fourier transform... the FFT has complexity O(n log n)."*
 
@@ -300,13 +296,13 @@ This visualization shows how the same signal appears in time domain (left) versu
 
 What does each Fourier mode represent physically?
 
-| Mode k | Meaning | Wavelength | For Urban Temperature |
-|--------|---------|------------|----------------------|
-| k=0 | Mean (DC) | ∞ | City-wide average |
-| k=1 | 1 oscillation | Domain size | Large-scale gradient |
-| k=2-4 | Low frequency | ~1-5 km | Park/water body effects |
-| k=5-12 | Medium frequency | ~100m-1km | Neighborhood patterns |
-| k\>12 | High frequency | \<100m | Building-scale (often noise) |
+**Mode interpretation for urban temperature:**
+
+- **k=0 (Mean/DC)**: Wavelength = ∞ — City-wide average
+- **k=1 (1 oscillation)**: Wavelength = Domain size — Large-scale gradient
+- **k=2-4 (Low frequency)**: Wavelength = ~1-5 km — Park/water body effects
+- **k=5-12 (Medium frequency)**: Wavelength = ~100m-1km — Neighborhood patterns
+- **k>12 (High frequency)**: Wavelength = <100m — Building-scale (often noise)
 
 When FNO multiplies $\hat{v}(k)$ by $R(k)$:
 - **$|R(k)|$** controls how much of frequency $k$ passes through
@@ -442,11 +438,9 @@ This figure shows how mode truncation affects 2D spatial fields — directly rel
 
 ### Key Lessons
 
-| k_max | MSE | What's Captured |
-|-------|-----|-----------------|
-| 4 | 0.0325 | Only largest patterns (like city-wide UHI gradient) |
-| 8 | 0.0100 | Adds neighborhood-scale features |
-| 16 | ~0 | Full reconstruction for this signal |
+- **k_max=4** (MSE=0.0325): Only largest patterns captured (like city-wide UHI gradient)
+- **k_max=8** (MSE=0.0100): Adds neighborhood-scale features
+- **k_max=16** (MSE≈0): Full reconstruction for this signal
 
 **Critical Insight:** The MSE drops rapidly with increasing k_max, then plateaus. This means:
 - Most energy is in low frequencies (smooth physics!)
@@ -462,11 +456,10 @@ This figure shows how mode truncation affects 2D spatial fields — directly rel
 From the FNO paper: *"In practice, we have found that choosing $k_{max,j} = 12$ which yields $k_{max} = 12^d$ parameters per channel to be sufficient for all the tasks that we consider."*
 
 **Rule of thumb:**
-| Grid Size | Recommended k_max | Reasoning |
-|-----------|------------------|-----------|
-| 64×64 | 12-16 | Captures ~90% of smooth fields |
-| 128×128 | 16-20 | Same physical scales |
-| 256×256 | 20-24 | More resolution, same physics |
+
+- **64×64 grid**: Recommended k_max = 12-16 — Captures ~90% of smooth fields
+- **128×128 grid**: Recommended k_max = 16-20 — Same physical scales
+- **256×256 grid**: Recommended k_max = 20-24 — More resolution, same physics
 
 **For your urban LST work:**
 - 70m resolution over NYC
@@ -726,11 +719,9 @@ This figure is **crucial** for understanding FNO architecture. It shows what hap
 
 ### Key Lessons
 
-| Path | Strengths | Weaknesses |
-|------|-----------|------------|
-| **Spectral** | Global receptive field, learnable per-frequency | Loses sharp features (high freq) |
-| **Local** | Preserves all frequencies | No global information |
-| **Both together** | ✅ Global + local, smooth + sharp | Complete solution! |
+- **Spectral path**: Strengths = Global receptive field, learnable per-frequency | Weaknesses = Loses sharp features (high freq)
+- **Local path**: Strengths = Preserves all frequencies | Weaknesses = No global information
+- **Both together**: Global + local, smooth + sharp — Complete solution!
 
 **The Architecture Insight:** FNO adds both paths together. The spectral path handles large-scale physics (urban heat island gradient), while the local path preserves sharp features (building edges, park boundaries).
 
@@ -858,12 +849,17 @@ This figure compares ReLU and GELU activation functions — the nonlinear "switc
 
 ### Key Lessons
 
-| Property | ReLU | GELU |
-|----------|------|------|
-| **At x=0** | Sharp corner | Smooth |
-| **Negative inputs** | Gradient = 0 (dead) | Gradient > 0 (alive) |
-| **Smoothness** | C⁰ (continuous) | C^∞ (infinitely differentiable) |
-| **Best for** | General deep learning | Smooth function approximation |
+**ReLU:**
+- At x=0: Sharp corner
+- Negative inputs: Gradient = 0 (dead neurons)
+- Smoothness: C⁰ (continuous only)
+- Best for: General deep learning
+
+**GELU:**
+- At x=0: Smooth transition
+- Negative inputs: Gradient > 0 (neurons stay alive)
+- Smoothness: C^∞ (infinitely differentiable)
+- Best for: Smooth function approximation (like PDEs)
 
 **Why This Matters for PDEs:**
 
@@ -1121,11 +1117,9 @@ The results of applying **THE EXACT SAME Fourier layer weights** to each input:
 
 ### Key Lessons
 
-| Observation | Implication |
-|-------------|-------------|
-| Same weights, 4 resolutions | Weights are resolution-independent |
-| Pattern is consistent | Fourier modes represent physical frequencies, not pixel indices |
-| Higher res = more detail | Not new information, just finer sampling |
+- **Same weights, 4 resolutions**: Weights are resolution-independent
+- **Pattern is consistent**: Fourier modes represent physical frequencies, not pixel indices
+- **Higher res = more detail**: Not new information, just finer sampling
 
 **Why This Works Mathematically:**
 
@@ -1264,12 +1258,10 @@ Each panel shows the log spectrum (Fourier magnitude) of the corresponding spati
 
 ### Key Lessons
 
-| Layer | Observation | Interpretation |
-|-------|-------------|----------------|
-| Input | Flat spectrum (noise) | Random initialization |
-| After L1 | DC grows, high-freq suppressed | First layer extracts mean |
-| After L2-3 | Low-freq structure emerges | Learning spatial correlations |
-| After L4 | Strong low-freq, weak high-freq | Physical smoothness emerges |
+- **Input**: Flat spectrum (noise) — Random initialization
+- **After L1**: DC grows, high-freq suppressed — First layer extracts mean
+- **After L2-3**: Low-freq structure emerges — Learning spatial correlations
+- **After L4**: Strong low-freq, weak high-freq — Physical smoothness emerges
 
 **What This Means:**
 
@@ -1375,24 +1367,32 @@ $$v_{t+1}(x) = \sigma\left( W v_t(x) + \mathcal{K}v_t(x) + b \right)$$
 
 ## What You've Learned
 
-| Concept | Key Insight |
-|---------|-------------|
-| Spectral Convolution | FFT → multiply by R → IFFT = O(N log N) global convolution |
-| Mode Truncation | Keep only k_max modes; physics is smooth; regularization for free |
-| Weight Tensor R | Complex-valued, per-frequency channel mixing matrices |
-| Local Path W | 1×1 conv recovers high-frequency capability |
-| Resolution Invariance | Same R works at any grid size → zero-shot super-resolution |
+- **Spectral Convolution**: FFT → multiply by R → IFFT = O(N log N) global convolution
+- **Mode Truncation**: Keep only k_max modes; physics is smooth; regularization for free
+- **Weight Tensor R**: Complex-valued, per-frequency channel mixing matrices
+- **Local Path W**: 1×1 conv recovers high-frequency capability
+- **Resolution Invariance**: Same R works at any grid size → zero-shot super-resolution
 
 ## Hyperparameter Guidelines
 
 From the FNO paper experiments:
 
-| Parameter | 1D Problems | 2D Problems | Your LST Work |
-|-----------|-------------|-------------|---------------|
-| k_max | 16 | 12 | 12-16 |
-| d_v (hidden) | 64 | 32 | 32 |
-| n_layers | 4 | 4 | 4 |
-| Activation | ReLU | ReLU | GELU |
+**k_max (Fourier modes):**
+- 1D Problems: 16
+- 2D Problems: 12
+- For LST Work: 12-16
+
+**d_v (hidden dimension):**
+- 1D Problems: 64
+- 2D Problems: 32
+- For LST Work: 32
+
+**n_layers:**
+- All cases: 4
+
+**Activation:**
+- Original paper: ReLU
+- Recommended for PDEs: GELU
 
 ---
 
@@ -1400,36 +1400,28 @@ From the FNO paper experiments:
 
 ## Essential Reading
 
-| Resource | Type | Description |
-|----------|------|-------------|
-| [Original FNO Paper](https://arxiv.org/abs/2010.08895) | Paper | The foundational reference (Li et al., 2021) |
-| [Zongyi Li's Blog](https://zongyi-li.github.io/blog/2020/fourier-pde/) | Blog | Author's accessible explanation with visualizations |
-| [Neural Operator Survey](https://arxiv.org/abs/2108.08481) | Paper | Comprehensive theory (Kovachki et al., 2023) |
+- **[Original FNO Paper](https://arxiv.org/abs/2010.08895)** — Paper: The foundational reference (Li et al., 2021)
+- **[Zongyi Li's Blog](https://zongyi-li.github.io/blog/2020/fourier-pde/)** — Blog: Author's accessible explanation with visualizations
+- **[Neural Operator Survey](https://arxiv.org/abs/2108.08481)** — Paper: Comprehensive theory (Kovachki et al., 2023)
 
 ## Video Tutorials
 
-| Resource | Duration | Description |
-|----------|----------|-------------|
-| [Yannic Kilcher: FNO Explained](https://www.youtube.com/watch?v=IaS72aHrJKE) | 66 min | Comprehensive paper walkthrough |
-| [3Blue1Brown: Fourier Transform](https://www.youtube.com/watch?v=spUNpyF58BY) | 21 min | Beautiful visual introduction to Fourier |
-| [Steve Brunton: FFT for PDEs](https://www.youtube.com/c/Eigensteve) | Multiple | University lectures on spectral methods |
+- **[Yannic Kilcher: FNO Explained](https://www.youtube.com/watch?v=IaS72aHrJKE)** — 66 min: Comprehensive paper walkthrough
+- **[3Blue1Brown: Fourier Transform](https://www.youtube.com/watch?v=spUNpyF58BY)** — 21 min: Beautiful visual introduction to Fourier
+- **[Steve Brunton: FFT for PDEs](https://www.youtube.com/c/Eigensteve)** — Multiple: University lectures on spectral methods
 
 ## Implementation Resources
 
-| Resource | Framework | Description |
-|----------|-----------|-------------|
-| [NeuralOperator Library](https://github.com/neuraloperator/neuraloperator) | PyTorch | Official implementation, actively maintained |
-| [UvA DL Notebooks](https://uvadlc-notebooks.readthedocs.io/) | PyTorch | Educational implementation from scratch |
-| [NVIDIA Modulus](https://docs.nvidia.com/deeplearning/modulus/) | PyTorch | Production-grade, enterprise-ready |
+- **[NeuralOperator Library](https://github.com/neuraloperator/neuraloperator)** — PyTorch: Official implementation, actively maintained
+- **[UvA DL Notebooks](https://uvadlc-notebooks.readthedocs.io/)** — PyTorch: Educational implementation from scratch
+- **[NVIDIA Modulus](https://docs.nvidia.com/deeplearning/modulus/)** — PyTorch: Production-grade, enterprise-ready
 
 ## Related Architectures
 
-| Model | Paper | Key Innovation |
-|-------|-------|----------------|
-| DeepONet | [arXiv:1910.03193](https://arxiv.org/abs/1910.03193) | Branch-trunk architecture |
-| U-FNO | [arXiv:2109.03697](https://arxiv.org/abs/2109.03697) | U-Net + FNO hybrid |
-| Geo-FNO | [arXiv:2207.05209](https://arxiv.org/abs/2207.05209) | Irregular geometries |
-| FourCastNet | [GitHub](https://github.com/NVlabs/FourCastNet) | Global weather prediction |
+- **DeepONet** — [arXiv:1910.03193](https://arxiv.org/abs/1910.03193): Branch-trunk architecture
+- **U-FNO** — [arXiv:2109.03697](https://arxiv.org/abs/2109.03697): U-Net + FNO hybrid
+- **Geo-FNO** — [arXiv:2207.05209](https://arxiv.org/abs/2207.05209): Irregular geometries
+- **FourCastNet** — [GitHub](https://github.com/NVlabs/FourCastNet): Global weather prediction
 
 ---
 
@@ -1437,14 +1429,12 @@ From the FNO paper experiments:
 
 All figures generated from the code in this tutorial:
 
-| Figure | Filename | Key Concept |
-|--------|----------|-------------|
-| 1 | `01_spectral_conv_1d_basic.png` | Core operation: FFT → R → IFFT |
-| 2 | `02_mode_truncation_2d.png` | Why truncation works for smooth fields |
-| 3 | `03_why_both_paths.png` | Spectral vs local paths |
-| 4 | `04_activation_functions.png` | GELU vs ReLU for PDEs |
-| 5 | `05_resolution_invariance.png` | Same weights work at any resolution |
-| 6 | `06_stacked_layers.png` | Progressive transformation through layers |
+- **Figure 1** (`01_spectral_conv_1d_basic.png`): Core operation: FFT → R → IFFT
+- **Figure 2** (`02_mode_truncation_2d.png`): Why truncation works for smooth fields
+- **Figure 3** (`03_why_both_paths.png`): Spectral vs local paths
+- **Figure 4** (`04_activation_functions.png`): GELU vs ReLU for PDEs
+- **Figure 5** (`05_resolution_invariance.png`): Same weights work at any resolution
+- **Figure 6** (`06_stacked_layers.png`): Progressive transformation through layers
 
 ---
 
@@ -1452,17 +1442,15 @@ All figures generated from the code in this tutorial:
 
 All external images used in this tutorial are from freely-licensed sources:
 
-| Image | Source | License |
-|-------|--------|---------|
-| Fourier Transform Animation | Wikimedia Commons | Public Domain |
-| Fourier Series Approximation | Wikimedia Commons | CC BY-SA 3.0 |
-| Time vs Frequency Domain | Wikimedia Commons | CC BY-SA 3.0 |
-| 2D FFT Visualization | Wikimedia Commons | Public Domain |
-| Complex Number Illustration | Wikimedia Commons | Public Domain |
-| Filter Response Curves | Wikimedia Commons | CC BY-SA 3.0 |
-| Activation Functions | Wikimedia Commons | CC BY-SA 4.0 |
-| Aliasing/Sampling | Wikimedia Commons | Public Domain |
-| FNO Architecture (Fig. 1) | arXiv:2010.08895 | arXiv non-exclusive license |
+- **Fourier Transform Animation**: Wikimedia Commons (Public Domain)
+- **Fourier Series Approximation**: Wikimedia Commons (CC BY-SA 3.0)
+- **Time vs Frequency Domain**: Wikimedia Commons (CC BY-SA 3.0)
+- **2D FFT Visualization**: Wikimedia Commons (Public Domain)
+- **Complex Number Illustration**: Wikimedia Commons (Public Domain)
+- **Filter Response Curves**: Wikimedia Commons (CC BY-SA 3.0)
+- **Activation Functions**: Wikimedia Commons (CC BY-SA 4.0)
+- **Aliasing/Sampling**: Wikimedia Commons (Public Domain)
+- **FNO Architecture (Fig. 1)**: arXiv:2010.08895 (arXiv non-exclusive license)
 
 **Note on arXiv figures:** arXiv grants a non-exclusive license to distribute articles, and figures from arXiv papers are commonly used in educational materials with proper citation. The FNO architecture diagram is from Li et al. (2021) and is cited appropriately.
 
@@ -1478,11 +1466,11 @@ You now have complete understanding of the Fourier Layer!
 - Complete forward pass
 - Training with PyTorch
 
-| Part | Title | What You'll Learn |
-|------|-------|-------------------|
-| [← Part 1](../chunk1/chunk1_complete.md) | **Fourier Foundations** | DFT, convolution theorem |
-| **Part 2** | **Core Innovation** | *(You are here)* Spectral convolution |
-| [Part 3 →](../chunk3/chunk3_complete.md) | **Complete Architecture** | Lifting, Fourier layers, projection |
+**Tutorial Navigation:**
+
+- **[← Part 1](../chunk1/chunk1_complete.md)** — Fourier Foundations: DFT, convolution theorem
+- **Part 2** — Core Innovation: *(You are here)* Spectral convolution
+- **[Part 3 →](../chunk3/chunk3_complete.md)** — Complete Architecture: Lifting, Fourier layers, projection
 
 
 

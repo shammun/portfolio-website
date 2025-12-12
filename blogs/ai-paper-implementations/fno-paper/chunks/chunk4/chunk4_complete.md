@@ -34,31 +34,25 @@ Before diving into advanced topics, here are authoritative resources to suppleme
 
 ### Video Tutorials
 
-| Resource | Duration | Description |
-|----------|----------|-------------|
-| [Yannic Kilcher: FNO Paper Explained](https://www.youtube.com/watch?v=IaS72aHrJKE) | 66 min | Comprehensive walkthrough of the original FNO paper with mathematical details |
-| [ICML 2024: Neural Operators Tutorial](https://slideslive.com/icml-2024) | ~2 hours | Academic foundations covering FNO, DeepONet, and PINO |
-| [Steve Brunton: Fourier Series](https://www.youtube.com/watch?v=r6sGWTCMz2k) | 15 min | Excellent prerequisite on Fourier fundamentals |
+- **[Yannic Kilcher: FNO Paper Explained](https://www.youtube.com/watch?v=IaS72aHrJKE)** (66 min): Comprehensive walkthrough of the original FNO paper with mathematical details
+- **[ICML 2024: Neural Operators Tutorial](https://slideslive.com/icml-2024)** (~2 hours): Academic foundations covering FNO, DeepONet, and PINO
+- **[Steve Brunton: Fourier Series](https://www.youtube.com/watch?v=r6sGWTCMz2k)** (15 min): Excellent prerequisite on Fourier fundamentals
 
 ### Key Papers
 
-| Paper | Year | arXiv | Focus |
-|-------|------|-------|-------|
-| Physics-Informed Neural Operator (PINO) | 2021 | [arXiv:2111.03794](https://arxiv.org/abs/2111.03794) | Adding physics constraints to FNO |
-| Adaptive Fourier Neural Operator (AFNO) | 2022 | [arXiv:2111.13587](https://arxiv.org/abs/2111.13587) | Attention-weighted frequency selection |
-| Factorized Fourier Neural Operators | 2023 | [arXiv:2111.13802](https://arxiv.org/abs/2111.13802) | Parameter-efficient FNO variants |
-| U-FNO for Multiphase Flow | 2022 | [arXiv:2109.03697](https://arxiv.org/abs/2109.03697) | U-Net style skip connections |
-| FourCastNet | 2022 | [arXiv:2202.11214](https://arxiv.org/abs/2202.11214) | Global weather prediction with AFNO |
-| Neural Operator Survey | 2024 | [arXiv:2309.15325](https://arxiv.org/abs/2309.15325) | Comprehensive review in Nature Reviews Physics |
+- **Physics-Informed Neural Operator (PINO)** (2021): [arXiv:2111.03794](https://arxiv.org/abs/2111.03794) - Adding physics constraints to FNO
+- **Adaptive Fourier Neural Operator (AFNO)** (2022): [arXiv:2111.13587](https://arxiv.org/abs/2111.13587) - Attention-weighted frequency selection
+- **Factorized Fourier Neural Operators** (2023): [arXiv:2111.13802](https://arxiv.org/abs/2111.13802) - Parameter-efficient FNO variants
+- **U-FNO for Multiphase Flow** (2022): [arXiv:2109.03697](https://arxiv.org/abs/2109.03697) - U-Net style skip connections
+- **FourCastNet** (2022): [arXiv:2202.11214](https://arxiv.org/abs/2202.11214) - Global weather prediction with AFNO
+- **Neural Operator Survey** (2024): [arXiv:2309.15325](https://arxiv.org/abs/2309.15325) - Comprehensive review in Nature Reviews Physics
 
 ### Code Repositories
 
-| Repository | Stars | Description |
-|------------|-------|-------------|
-| [neuraloperator/neuraloperator](https://github.com/neuraloperator/neuraloperator) | 3.1k+ | Official PyTorch library for FNO, PINO, TFNO |
-| [neuraloperator/physics_informed](https://github.com/neuraloperator/physics_informed) | 500+ | PINO implementation for Burgers, Darcy, Navier-Stokes |
-| [NVlabs/FourCastNet](https://github.com/NVlabs/FourCastNet) | 640+ | NVIDIA's weather prediction model |
-| [google-deepmind/graphcast](https://github.com/google-deepmind/graphcast) | 6.4k+ | DeepMind's graph-based weather model |
+- **[neuraloperator/neuraloperator](https://github.com/neuraloperator/neuraloperator)** (3.1k+ stars): Official PyTorch library for FNO, PINO, TFNO
+- **[neuraloperator/physics_informed](https://github.com/neuraloperator/physics_informed)** (500+ stars): PINO implementation for Burgers, Darcy, Navier-Stokes
+- **[NVlabs/FourCastNet](https://github.com/NVlabs/FourCastNet)** (640+ stars): NVIDIA's weather prediction model
+- **[google-deepmind/graphcast](https://github.com/google-deepmind/graphcast)** (6.4k+ stars): DeepMind's graph-based weather model
 
 ### Authoritative Blogs
 
@@ -125,11 +119,17 @@ Store μ_y and σ_y for denormalization at inference.
 
 For spatial data, consider different splitting strategies:
 
-| Split Strategy | Pros | Cons |
-|---------------|------|------|
-| Random samples | Simple, more data per split | May overfit to specific conditions |
-| Temporal split | Tests generalization to new times | May miss seasonal patterns |
-| Spatial split | Tests generalization to new regions | Harder to implement |
+**Random samples:**
+- Pros: Simple, more data per split
+- Cons: May overfit to specific conditions
+
+**Temporal split:**
+- Pros: Tests generalization to new times
+- Cons: May miss seasonal patterns
+
+**Spatial split:**
+- Pros: Tests generalization to new regions
+- Cons: Harder to implement
 
 **Recommended:** 70% training, 15% validation (for hyperparameter tuning), 15% test (held out until final evaluation).
 
@@ -355,13 +355,11 @@ Or use automatic balancing based on loss magnitudes (GradNorm or similar).
 
 ### 2.4 Benefits of Physics-Informed Training
 
-| Benefit | Explanation |
-|---------|-------------|
-| Better generalization | Physics constraints guide extrapolation beyond training data |
-| Data efficiency | Learn more from fewer samples |
-| Physical consistency | Predictions obey known laws |
-| Reduced overfitting | Physics acts as regularization |
-| Interpretability | Can verify predictions satisfy physics |
+- **Better generalization**: Physics constraints guide extrapolation beyond training data
+- **Data efficiency**: Learn more from fewer samples
+- **Physical consistency**: Predictions obey known laws
+- **Reduced overfitting**: Physics acts as regularization
+- **Interpretability**: Can verify predictions satisfy physics
 
 > **💡 When PINO Shines:** Physics constraints are particularly valuable with limited training data. If you have abundant data, pure data-driven FNO may suffice. If data is scarce, PINO can dramatically improve generalization.
 
@@ -441,10 +439,15 @@ $$R(k_x, k_y) = U \cdot \text{diag}(R_x(k_x)) \cdot V \cdot \text{diag}(R_y(k_y)
 
 #### Parameter Reduction
 
-| Configuration | Standard FNO | Factorized FNO | Reduction |
-|--------------|--------------|----------------|-----------|
-| k_max=12, d_v=64 | 2.4M | 0.2M | 12× |
-| k_max=20, d_v=128 | 26M | 1.3M | 20× |
+**k_max=12, d_v=64:**
+- Standard FNO: 2.4M parameters
+- Factorized FNO: 0.2M parameters
+- Reduction: 12×
+
+**k_max=20, d_v=128:**
+- Standard FNO: 26M parameters
+- Factorized FNO: 1.3M parameters
+- Reduction: 20×
 
 **Trade-off:** Fewer parameters means reduced expressivity, but F-FNO often matches standard FNO performance while enabling much deeper networks.
 
@@ -641,13 +644,25 @@ For when your domain looks like a mesh of connected nodes (finite elements, mole
 - Trunk network encodes output location
 - Output: $u(x) = \sum_k b_k(a) \cdot t_k(x)$
 
-| Aspect | FNO | DeepONet |
-|--------|-----|----------|
-| Architecture | FFT-based spectral | Basis function expansion |
-| Resolution invariance | Yes | Yes |
-| Global receptive field | Yes (FFT) | Depends on branch design |
-| Domain flexibility | Regular grids | Any domain shape |
-| Implementation | Moderate complexity | Simpler |
+**Architecture:**
+- FNO: FFT-based spectral
+- DeepONet: Basis function expansion
+
+**Resolution invariance:**
+- FNO: Yes
+- DeepONet: Yes
+
+**Global receptive field:**
+- FNO: Yes (FFT)
+- DeepONet: Depends on branch design
+
+**Domain flexibility:**
+- FNO: Regular grids
+- DeepONet: Any domain shape
+
+**Implementation:**
+- FNO: Moderate complexity
+- DeepONet: Simpler
 
 **When to prefer DeepONet:**
 - Irregular domains where FFT doesn't apply
@@ -663,12 +678,21 @@ For when your domain looks like a mesh of connected nodes (finite elements, mole
 - Message passing between nodes
 - Natural for complex geometries
 
-| Aspect | FNO | GNO |
-|--------|-----|-----|
-| Domain | Regular grids | Any mesh |
-| Complexity | O(N log N) | O(N × neighbors) |
-| Resolution | Must be grid-based | Adaptive mesh refinement |
-| Implementation | FFT libraries | Graph neural network libraries |
+**Domain:**
+- FNO: Regular grids
+- GNO: Any mesh
+
+**Complexity:**
+- FNO: O(N log N)
+- GNO: O(N × neighbors)
+
+**Resolution:**
+- FNO: Must be grid-based
+- GNO: Adaptive mesh refinement
+
+**Implementation:**
+- FNO: FFT libraries
+- GNO: Graph neural network libraries
 
 **When to prefer GNO:**
 - Complex domain geometries (aircraft, turbines)
@@ -681,12 +705,21 @@ For when your domain looks like a mesh of connected nodes (finite elements, mole
 - Self-attention over spatial patches
 - Can model long-range dependencies
 
-| Aspect | FNO | Transformer |
-|--------|-----|-------------|
-| Global context | Yes (FFT) | Yes (attention) |
-| Complexity | O(N log N) | O(N²) or O(N log N) with optimizations |
-| Inductive bias | Smoothness (spectral) | None (fully data-driven) |
-| Data efficiency | Better | Needs more data |
+**Global context:**
+- FNO: Yes (FFT)
+- Transformer: Yes (attention)
+
+**Complexity:**
+- FNO: O(N log N)
+- Transformer: O(N²) or O(N log N) with optimizations
+
+**Inductive bias:**
+- FNO: Smoothness (spectral)
+- Transformer: None (fully data-driven)
+
+**Data efficiency:**
+- FNO: Better
+- Transformer: Needs more data
 
 **When to prefer Transformers:**
 - Very large datasets available
@@ -695,12 +728,21 @@ For when your domain looks like a mesh of connected nodes (finite elements, mole
 
 ### 5.4 FNO vs. CNNs
 
-| Aspect | FNO | CNN |
-|--------|-----|-----|
-| Receptive field | Global (immediately) | Local (grows with depth) |
-| Resolution | Invariant | Fixed |
-| Parameters for global | O(k_max² d²) | O(N² d²) for equivalent kernel |
-| Inductive bias | Spectral/smooth | Translation equivariance |
+**Receptive field:**
+- FNO: Global (immediately)
+- CNN: Local (grows with depth)
+
+**Resolution:**
+- FNO: Invariant
+- CNN: Fixed
+
+**Parameters for global:**
+- FNO: O(k_max² d²)
+- CNN: O(N² d²) for equivalent kernel
+
+**Inductive bias:**
+- FNO: Spectral/smooth
+- CNN: Translation equivariance
 
 **For PDE problems:** FNO is more natural—many PDEs have spectral structure that FNO captures directly.
 
@@ -1078,14 +1120,12 @@ Extending beyond regular grids:
 
 Here's a quick reference to all figures in this tutorial:
 
-| Figure | Title | Key Lesson |
-|--------|-------|------------|
-| **Fig. 1** | PINO Concept | Combine data loss + physics loss. Physics constraints improve generalization with limited data. |
-| **Fig. 2** | Advanced Architectures | U-FNO for multi-scale, F-FNO for efficiency, AFNO for attention. Choose based on your problem. |
-| **Fig. 3** | Weather Foundation Models | AI weather models achieve 1000-10,000× speedup. Active research area with multiple competing approaches. |
-| **Fig. 4** | Operator Comparison | FNO for grids, DeepONet for point queries, GNO for irregular meshes. Match method to data structure. |
-| **Fig. 5** | Interpretation Methods | Spectral weights, frequency importance, channel importance, saliency maps. Verify physics is learned. |
-| **Fig. 6** | Common Pitfalls | Normalization, overfitting, mode count, boundaries, metrics, leakage. Most failures are data issues. |
+- **Fig. 1 - PINO Concept**: Combine data loss + physics loss. Physics constraints improve generalization with limited data.
+- **Fig. 2 - Advanced Architectures**: U-FNO for multi-scale, F-FNO for efficiency, AFNO for attention. Choose based on your problem.
+- **Fig. 3 - Weather Foundation Models**: AI weather models achieve 1000-10,000× speedup. Active research area with multiple competing approaches.
+- **Fig. 4 - Operator Comparison**: FNO for grids, DeepONet for point queries, GNO for irregular meshes. Match method to data structure.
+- **Fig. 5 - Interpretation Methods**: Spectral weights, frequency importance, channel importance, saliency maps. Verify physics is learned.
+- **Fig. 6 - Common Pitfalls**: Normalization, overfitting, mode count, boundaries, metrics, leakage. Most failures are data issues.
 
 ---
 
@@ -1137,11 +1177,9 @@ Congratulations! You've now covered the advanced topics that separate FNO beginn
 
 ## Continue Your Learning
 
-| Part | Title | What You'll Learn |
-|------|-------|-------------------|
-| [← Part 3](../chunk3/chunk3_final.md) | **Complete Architecture** | Full FNO implementation from lifting to projection |
-| **Part 4** | **Advanced Topics** | *(You are here)* Physics-informed learning, variants, interpretation |
-| [Part 5 →](../chunk5/chunk5_final.md) | **Practical Implementation** | Complete training code, real datasets, production tips |
+- **[← Part 3: Complete Architecture](../chunk3/chunk3_final.md)**: Full FNO implementation from lifting to projection
+- **Part 4: Advanced Topics** *(You are here)*: Physics-informed learning, variants, interpretation
+- **[Part 5 →: Practical Implementation](../chunk5/chunk5_final.md)**: Complete training code, real datasets, production tips
 
 **What's Next?**
 

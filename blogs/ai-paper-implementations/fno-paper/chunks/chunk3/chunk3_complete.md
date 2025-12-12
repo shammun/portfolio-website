@@ -21,36 +21,28 @@ Before diving in, here are high-quality resources to supplement this tutorial:
 
 ### Video Tutorials
 
-| Resource | Duration | Description |
-|----------|----------|-------------|
-| [**Yannic Kilcher: FNO Paper Explained**](https://www.youtube.com/watch?v=IaS72aHrJKE) | 66 min | Comprehensive walkthrough of the original paper with code discussion |
-| [**Steve Brunton: Fourier Analysis**](https://www.youtube.com/playlist?list=PLMrJAkhIeNNT_Xh3Oy0Y4LTj0Oxo8GqsC) | Series | Excellent foundation on Fourier transforms for scientific computing |
-| [**MATLAB: Solve PDE Using FNO**](https://www.mathworks.com/videos/solve-pde-using-fourier-neural-operator-1678273498061.html) | 15 min | Step-by-step implementation with clear visualizations |
+- **[Yannic Kilcher: FNO Paper Explained](https://www.youtube.com/watch?v=IaS72aHrJKE)** — 66 min: Comprehensive walkthrough of the original paper with code discussion
+- **[Steve Brunton: Fourier Analysis](https://www.youtube.com/playlist?list=PLMrJAkhIeNNT_Xh3Oy0Y4LTj0Oxo8GqsC)** — Series: Excellent foundation on Fourier transforms for scientific computing
+- **[MATLAB: Solve PDE Using FNO](https://www.mathworks.com/videos/solve-pde-using-fourier-neural-operator-1678273498061.html)** — 15 min: Step-by-step implementation with clear visualizations
 
 ### Written Tutorials and Blog Posts
 
-| Resource | Author | Description |
-|----------|--------|-------------|
-| [**Fourier Neural Operator**](https://zongyi-li.github.io/blog/2020/fourier-pde/) | Zongyi Li | Authoritative explanation from the paper's first author |
-| [**Neural Operator Documentation**](https://neuraloperator.github.io/dev/index.html) | NeuralOperator Team | Official library documentation with theory guide |
-| [**MATLAB FNO Tutorial**](https://www.mathworks.com/help/deeplearning/ug/solve-pde-using-fourier-neural-operator.html) | MathWorks | Complete tutorial with exceptionally clear diagrams |
+- **[Fourier Neural Operator](https://zongyi-li.github.io/blog/2020/fourier-pde/)** — Zongyi Li: Authoritative explanation from the paper's first author
+- **[Neural Operator Documentation](https://neuraloperator.github.io/dev/index.html)** — NeuralOperator Team: Official library documentation with theory guide
+- **[MATLAB FNO Tutorial](https://www.mathworks.com/help/deeplearning/ug/solve-pde-using-fourier-neural-operator.html)** — MathWorks: Complete tutorial with exceptionally clear diagrams
 
 ### Key Papers
 
-| Paper | Year | Link | Focus |
-|-------|------|------|-------|
-| **Fourier Neural Operator for Parametric PDEs** | 2021 | [arXiv:2010.08895](https://arxiv.org/abs/2010.08895) | Original FNO paper (ICLR 2021) |
-| **Neural Operator: Learning Maps Between Function Spaces** | 2023 | [arXiv:2108.08481](https://arxiv.org/abs/2108.08481) | Mathematical foundations (JMLR) |
-| **Physics-Informed Neural Operator (PINO)** | 2021 | [arXiv:2111.03794](https://arxiv.org/abs/2111.03794) | Adding physics constraints |
-| **Geo-FNO** | 2023 | [arXiv:2207.05209](https://arxiv.org/abs/2207.05209) | Extension to irregular geometries |
+- **Fourier Neural Operator for Parametric PDEs** (2021) — [arXiv:2010.08895](https://arxiv.org/abs/2010.08895): Original FNO paper (ICLR 2021)
+- **Neural Operator: Learning Maps Between Function Spaces** (2023) — [arXiv:2108.08481](https://arxiv.org/abs/2108.08481): Mathematical foundations (JMLR)
+- **Physics-Informed Neural Operator (PINO)** (2021) — [arXiv:2111.03794](https://arxiv.org/abs/2111.03794): Adding physics constraints
+- **Geo-FNO** (2023) — [arXiv:2207.05209](https://arxiv.org/abs/2207.05209): Extension to irregular geometries
 
 ### Code Repositories
 
-| Repository | Stars | Description |
-|------------|-------|-------------|
-| [**neuraloperator/neuraloperator**](https://github.com/neuraloperator/neuraloperator) | 3.1k+ | Official PyTorch library (pip install neuraloperator) |
-| [**zongyi-li/fourier_neural_operator**](https://github.com/zongyi-li/fourier_neural_operator) | 1.5k+ | Original paper implementation - cleanest educational code |
-| [**NVIDIA/physicsnemo**](https://github.com/NVIDIA/physicsnemo) | 2.1k+ | Production-ready implementation with distributed training |
+- **[neuraloperator/neuraloperator](https://github.com/neuraloperator/neuraloperator)** — 3.1k+ stars: Official PyTorch library (pip install neuraloperator)
+- **[zongyi-li/fourier_neural_operator](https://github.com/zongyi-li/fourier_neural_operator)** — 1.5k+ stars: Original paper implementation - cleanest educational code
+- **[NVIDIA/physicsnemo](https://github.com/NVIDIA/physicsnemo)** — 2.1k+ stars: Production-ready implementation with distributed training
 
 ### Interactive Notebooks
 
@@ -1057,12 +1049,12 @@ Let's trace where the parameters come from:
 
 **Example calculation** for $d_a=10$, $d_v=64$, $d_{mid}=128$, $d_u=1$, $k_{max}=12$, 4 layers:
 
-| Component | Parameters |
-|-----------|------------|
-| Lifting | 10×64 + 64 = 704 |
-| Fourier Layer ×4 | 4 × (2×144×4096 + 4096 + 64) = 4,737,280 |
-| Projection | 64×128 + 128 + 128×1 + 1 = 8,449 |
-| **Total** | **~4.75M parameters** |
+**Parameter breakdown:**
+
+- **Lifting**: 10×64 + 64 = 704
+- **Fourier Layer ×4**: 4 × (2×144×4096 + 4096 + 64) = 4,737,280
+- **Projection**: 64×128 + 128 + 128×1 + 1 = 8,449
+- **Total**: ~4.75M parameters
 
 The spectral weights $R$ dominate the parameter count, scaling as $O(k_{max}^2 \times d_v^2)$.
 
@@ -1177,12 +1169,12 @@ This two-panel figure helps you choose the right model size for your data:
 
 Based on these scaling properties and empirical results from the literature:
 
-| Dataset Size | $d_v$ | $k_{max}$ | Layers | Approx. Parameters |
-|--------------|-------|-----------|--------|-------------------|
-| ~100 samples | 16 | 8 | 3-4 | 50-100K |
-| ~500 samples | 32 | 12 | 4 | 300-500K |
-| ~1000 samples | 64 | 12 | 4 | 1-2M |
-| ~5000+ samples | 128 | 16 | 4-6 | 5-20M |
+**Recommended configurations by dataset size:**
+
+- **~100 samples**: $d_v$=16, $k_{max}$=8, Layers=3-4, ~50-100K parameters
+- **~500 samples**: $d_v$=32, $k_{max}$=12, Layers=4, ~300-500K parameters
+- **~1000 samples**: $d_v$=64, $k_{max}$=12, Layers=4, ~1-2M parameters
+- **~5000+ samples**: $d_v$=128, $k_{max}$=16, Layers=4-6, ~5-20M parameters
 
 The general strategy is to start conservative and increase capacity only if the model underfits:
 
@@ -1336,11 +1328,11 @@ These numbers represent the relative L2 error between FNO predictions and ground
 
 The paper tests several FNO variants for different problem types:
 
-| Variant | Description | Best For |
-|---------|-------------|----------|
-| **FNO-2D** | Spatial dimensions only | Steady-state problems |
-| **FNO-3D** | Space + time as 3D tensor | Time-dependent PDEs |
-| **FNO-2D+time** | 2D spatial with time as input parameter | Alternative for temporal problems |
+**FNO Variants:**
+
+- **FNO-2D**: Spatial dimensions only — Best for steady-state problems
+- **FNO-3D**: Space + time as 3D tensor — Best for time-dependent PDEs
+- **FNO-2D+time**: 2D spatial with time as input parameter — Alternative for temporal problems
 
 For steady-state problems (e.g., equilibrium temperature distribution, steady flow), FNO-2D is the appropriate choice. For time-evolution problems where you want to predict the solution at future times, FNO-3D or FNO-2D+time are better suited.
 
@@ -1422,11 +1414,9 @@ model = FNO(n_modes=(16, 16), hidden_channels=64,
 
 The community uses standard benchmarks for comparison:
 
-| Dataset | Problem | Resolution | Samples | Source |
-|---------|---------|------------|---------|--------|
-| Burgers | 1D viscous flow | 8192 | 1000 | [neuraloperator data](https://github.com/neuraloperator/neuraloperator) |
-| Darcy Flow | 2D steady-state | 421×421 | 1000 | Original paper |
-| Navier-Stokes | 2D turbulence | 64×64 | 1000 | Original paper |
+- **Burgers**: 1D viscous flow, Resolution 8192, 1000 samples — [neuraloperator data](https://github.com/neuraloperator/neuraloperator)
+- **Darcy Flow**: 2D steady-state, Resolution 421×421, 1000 samples — Original paper
+- **Navier-Stokes**: 2D turbulence, Resolution 64×64, 1000 samples — Original paper
 
 ---
 
@@ -1434,14 +1424,12 @@ The community uses standard benchmarks for comparison:
 
 Here's a quick reference to all figures in this tutorial and what each teaches:
 
-| Figure | Title | Key Lesson |
-|--------|-------|------------|
-| **Fig. 1** | Architecture Overview | FNO has three stages: Lift → 4 Fourier Layers → Project. Spatial dimensions stay constant; only channels change. |
-| **Fig. 2** | Layer Details | Fourier layers use dual paths (spectral + local). Lifting/projection are simple linear operations. |
-| **Fig. 3** | Synthetic PDE | FNO learns to filter frequencies—ideal for PDEs that act as low-pass filters (diffusion, heat equation). |
-| **Fig. 4** | Training Curves | Monitor validation loss and generalization gap. Use cosine annealing for smooth LR decay. |
-| **Fig. 5** | Parameter Scaling | Parameters scale as $O(k_{max}^2 d_v^2)$. Match model size to your dataset size. |
-| **Fig. 6** | Resolution Invariance | Same weights work at any resolution—train cheap (32×32), deploy fine (128×128). |
+- **Fig. 1 - Architecture Overview**: FNO has three stages: Lift → 4 Fourier Layers → Project. Spatial dimensions stay constant; only channels change.
+- **Fig. 2 - Layer Details**: Fourier layers use dual paths (spectral + local). Lifting/projection are simple linear operations.
+- **Fig. 3 - Synthetic PDE**: FNO learns to filter frequencies—ideal for PDEs that act as low-pass filters (diffusion, heat equation).
+- **Fig. 4 - Training Curves**: Monitor validation loss and generalization gap. Use cosine annealing for smooth LR decay.
+- **Fig. 5 - Parameter Scaling**: Parameters scale as $O(k_{max}^2 d_v^2)$. Match model size to your dataset size.
+- **Fig. 6 - Resolution Invariance**: Same weights work at any resolution—train cheap (32×32), deploy fine (128×128).
 
 ---
 
@@ -1468,9 +1456,9 @@ Here's a quick reference to all figures in this tutorial and what each teaches:
 
 **Series Navigation:**
 
-| Previous | Current | Next |
-|----------|---------|------|
-| [← **Part 2:** The Fourier Layer](../chunk2/chunk2_blog_final.md) | **Part 3:** Complete Architecture | [**Part 4:** Advanced Topics →](../chunk4/chunk4_blog_final.md) |
+- [← **Part 2:** The Fourier Layer](../chunk2/chunk2_blog_final.md)
+- **Part 3:** Complete Architecture (You are here)
+- [**Part 4:** Advanced Topics →](../chunk4/chunk4_blog_final.md)
 
 **Part 2** covered the Fourier layer in detail—spectral convolution, mode truncation, and the dual-path architecture.
 

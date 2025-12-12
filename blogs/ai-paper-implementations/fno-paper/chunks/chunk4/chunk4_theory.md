@@ -87,11 +87,17 @@ Store μ_T and σ_T for denormalization at inference.
 
 For spatial data, consider:
 
-| Split Strategy | Pros | Cons |
-|---------------|------|------|
-| Random scenes | Simple, more data | May overfit to specific locations |
-| Temporal split | Tests generalization to new times | May miss seasonal patterns |
-| Spatial split | Tests generalization to new areas | Harder to implement |
+**Random scenes:**
+- Pros: Simple, more data
+- Cons: May overfit to specific locations
+
+**Temporal split:**
+- Pros: Tests generalization to new times
+- Cons: May miss seasonal patterns
+
+**Spatial split:**
+- Pros: Tests generalization to new areas
+- Cons: Harder to implement
 
 **Recommended for your problem:**
 - 70% training (~160 scenes)
@@ -374,13 +380,11 @@ Or use automatic balancing based on loss magnitudes.
 
 ## 2.5 Benefits of Physics-Informed Training
 
-| Benefit | Explanation |
-|---------|-------------|
-| Better generalization | Physics constraints guide extrapolation |
-| Data efficiency | Learn more from fewer samples |
-| Physical consistency | Predictions obey known laws |
-| Reduced overfitting | Physics acts as regularization |
-| Interpretability | Can verify predictions satisfy physics |
+- **Better generalization**: Physics constraints guide extrapolation
+- **Data efficiency**: Learn more from fewer samples
+- **Physical consistency**: Predictions obey known laws
+- **Reduced overfitting**: Physics acts as regularization
+- **Interpretability**: Can verify predictions satisfy physics
 
 **For your limited data (230 scenes):** Physics constraints could significantly help!
 
@@ -432,10 +436,15 @@ $$R(k_x, k_y) = U \cdot \text{diag}(R_x(k_x)) \cdot V \cdot \text{diag}(R_y(k_y)
 
 ### Parameter Reduction
 
-| Configuration | Standard | Factorized | Reduction |
-|--------------|----------|------------|-----------|
-| k_max=12, d_v=64 | 2.4M | 0.2M | 12× |
-| k_max=20, d_v=128 | 26M | 1.3M | 20× |
+**k_max=12, d_v=64:**
+- Standard: 2.4M parameters
+- Factorized: 0.2M parameters
+- Reduction: 12×
+
+**k_max=20, d_v=128:**
+- Standard: 26M parameters
+- Factorized: 1.3M parameters
+- Reduction: 20×
 
 ### Trade-off
 - Fewer parameters = less expressivity
@@ -665,10 +674,13 @@ Visualize: Predictions vs. ground truth
 
 ### Baseline Comparison
 
-| Model | Pooled R² | Spatial Anomaly R² |
-|-------|-----------|-------------------|
-| Your Random Forest | 0.98-0.99 | 0.48-0.75 |
-| FNO (expected) | 0.90-0.98 | 0.60-0.85 |
+**Your Random Forest:**
+- Pooled R²: 0.98-0.99
+- Spatial Anomaly R²: 0.48-0.75
+
+**FNO (expected):**
+- Pooled R²: 0.90-0.98
+- Spatial Anomaly R²: 0.60-0.85
 
 **Why FNO might have lower pooled R²:**
 - RF with 31M observations captures pixel-level patterns well
@@ -806,13 +818,25 @@ Does cooling extend beyond park boundaries?
 - Uses branch network (encodes input function) and trunk network (encodes output location)
 - Output: $u(x) = \sum_k b_k(a) \cdot t_k(x)$
 
-| Aspect | FNO | DeepONet |
-|--------|-----|----------|
-| Architecture | FFT-based | Basis function expansion |
-| Resolution invariance | Yes | Yes |
-| Global receptive field | Yes (FFT) | Depends on branch design |
-| Parameter efficiency | Good | Can be higher |
-| Implementation | Moderate | Simpler |
+**Architecture:**
+- FNO: FFT-based
+- DeepONet: Basis function expansion
+
+**Resolution invariance:**
+- FNO: Yes
+- DeepONet: Yes
+
+**Global receptive field:**
+- FNO: Yes (FFT)
+- DeepONet: Depends on branch design
+
+**Parameter efficiency:**
+- FNO: Good
+- DeepONet: Can be higher
+
+**Implementation:**
+- FNO: Moderate
+- DeepONet: Simpler
 
 **When to prefer DeepONet:**
 - Irregular domains (FNO needs regular grids)
@@ -824,12 +848,21 @@ Does cooling extend beyond park boundaries?
 - Work on unstructured meshes
 - Message passing between nodes
 
-| Aspect | FNO | GNO |
-|--------|-----|-----|
-| Domain | Regular grids | Any mesh |
-| Complexity | O(N log N) | O(N × neighbors) |
-| Resolution | Must be grid | Adaptive mesh |
-| Implementation | FFT-based | Graph libraries |
+**Domain:**
+- FNO: Regular grids
+- GNO: Any mesh
+
+**Complexity:**
+- FNO: O(N log N)
+- GNO: O(N × neighbors)
+
+**Resolution:**
+- FNO: Must be grid
+- GNO: Adaptive mesh
+
+**Implementation:**
+- FNO: FFT-based
+- GNO: Graph libraries
 
 **When to prefer GNO:**
 - Complex domain geometry
@@ -844,12 +877,21 @@ Does cooling extend beyond park boundaries?
 - Self-attention over spatial patches
 - Can model long-range dependencies
 
-| Aspect | FNO | Transformer |
-|--------|-----|-------------|
-| Global context | Yes (FFT) | Yes (attention) |
-| Complexity | O(N log N) | O(N²) or O(N log N) |
-| Inductive bias | Smoothness (spectral) | None (data-driven) |
-| Data efficiency | Better | Needs more data |
+**Global context:**
+- FNO: Yes (FFT)
+- Transformer: Yes (attention)
+
+**Complexity:**
+- FNO: O(N log N)
+- Transformer: O(N²) or O(N log N)
+
+**Inductive bias:**
+- FNO: Smoothness (spectral)
+- Transformer: None (data-driven)
+
+**Data efficiency:**
+- FNO: Better
+- Transformer: Needs more data
 
 **When to prefer Transformers:**
 - Very large datasets
@@ -860,12 +902,21 @@ Does cooling extend beyond park boundaries?
 
 ## 6.4 FNO vs. CNNs
 
-| Aspect | FNO | CNN |
-|--------|-----|-----|
-| Receptive field | Global (immediately) | Local (grows with depth) |
-| Resolution | Invariant | Fixed |
-| Parameters for global | O(k_max² d²) | O(N² d²) for global kernel |
-| Inductive bias | Spectral/smooth | Translation equivariance |
+**Receptive field:**
+- FNO: Global (immediately)
+- CNN: Local (grows with depth)
+
+**Resolution:**
+- FNO: Invariant
+- CNN: Fixed
+
+**Parameters for global:**
+- FNO: O(k_max² d²)
+- CNN: O(N² d²) for global kernel
+
+**Inductive bias:**
+- FNO: Spectral/smooth
+- CNN: Translation equivariance
 
 **For your problem:** 
 - CNN would work but needs many layers for global context
@@ -873,13 +924,25 @@ Does cooling extend beyond park boundaries?
 
 ## 6.5 FNO vs. Your Random Forest
 
-| Aspect | Random Forest | FNO |
-|--------|---------------|-----|
-| Spatial context | None | Global |
-| Training data | Point observations | Field observations |
-| Output | Point predictions | Full field |
-| Interpretability | High (feature importance) | Moderate |
-| Generalization | To similar points | To similar fields |
+**Spatial context:**
+- Random Forest: None
+- FNO: Global
+
+**Training data:**
+- Random Forest: Point observations
+- FNO: Field observations
+
+**Output:**
+- Random Forest: Point predictions
+- FNO: Full field
+
+**Interpretability:**
+- Random Forest: High (feature importance)
+- FNO: Moderate
+
+**Generalization:**
+- Random Forest: To similar points
+- FNO: To similar fields
 
 **Key insight:** They solve different problems!
 - RF: "Given features at point x, what's temperature?"

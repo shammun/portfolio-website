@@ -56,11 +56,21 @@ $$f_\theta: \mathbb{R}^n \rightarrow \mathbb{R}^m$$
 This maps a finite-dimensional input to a finite-dimensional output.
 
 **Examples:**
-| Task | Input | Output | Mapping |
-|------|-------|--------|---------|
-| Image classification | 224×224×3 image | 1000 class probabilities | $\mathbb{R}^{150528} \rightarrow \mathbb{R}^{1000}$ |
-| House price prediction | 10 features | 1 price | $\mathbb{R}^{10} \rightarrow \mathbb{R}$ |
-| Weather prediction (pointwise) | 20 atmospheric variables | 1 temperature | $\mathbb{R}^{20} \rightarrow \mathbb{R}$ |
+
+- **Image classification**
+  - Input: 224×224×3 image
+  - Output: 1000 class probabilities
+  - Mapping: $\mathbb{R}^{150528} \rightarrow \mathbb{R}^{1000}$
+
+- **House price prediction**
+  - Input: 10 features
+  - Output: 1 price
+  - Mapping: $\mathbb{R}^{10} \rightarrow \mathbb{R}$
+
+- **Weather prediction (pointwise)**
+  - Input: 20 atmospheric variables
+  - Output: 1 temperature
+  - Mapping: $\mathbb{R}^{20} \rightarrow \mathbb{R}$
 
 **The critical limitation:** The dimensions are **fixed**. If you train on 64×64 grids, you cannot directly use the model on 128×128 grids.
 
@@ -359,13 +369,19 @@ A true neural operator should be **discretization invariant**:
 
 ## 1.7 Summary: Functions vs Operators
 
-| Aspect | Function | Operator |
-|--------|----------|----------|
-| Input | Vector $\mathbf{x} \in \mathbb{R}^n$ | Function $a: \Omega \rightarrow \mathbb{R}$ |
-| Output | Vector $\mathbf{y} \in \mathbb{R}^m$ | Function $u: \Omega \rightarrow \mathbb{R}$ |
-| Dimensions | Fixed at training time | Resolution-independent |
-| What it learns | Pattern in specific discretization | Underlying continuous mapping |
-| Example | CNN classifier | PDE solution operator |
+**Function:**
+- Input: Vector $\mathbf{x} \in \mathbb{R}^n$
+- Output: Vector $\mathbf{y} \in \mathbb{R}^m$
+- Dimensions: Fixed at training time
+- What it learns: Pattern in specific discretization
+- Example: CNN classifier
+
+**Operator:**
+- Input: Function $a: \Omega \rightarrow \mathbb{R}$
+- Output: Function $u: \Omega \rightarrow \mathbb{R}$
+- Dimensions: Resolution-independent
+- What it learns: Underlying continuous mapping
+- Example: PDE solution operator
 
 ---
 
@@ -621,14 +637,14 @@ dft_manual, idft_manual = implement_dft_from_scratch()
 
 For a signal of length $N$ with sampling interval $\Delta x$:
 
-| Index $k$ | Frequency | Physical meaning |
-|-----------|-----------|------------------|
-| 0 | 0 | DC (mean value) |
-| 1 | $\frac{1}{N\Delta x}$ | Lowest frequency, wavelength = domain size |
-| 2 | $\frac{2}{N\Delta x}$ | Second harmonic |
-| ... | ... | ... |
-| $N/2$ | $\frac{1}{2\Delta x}$ | Nyquist frequency (highest) |
-| $N/2+1$ to $N-1$ | Negative frequencies | Aliased with positive |
+**Frequency indices and their meaning:**
+
+- **k = 0**: Frequency 0 — DC (mean value)
+- **k = 1**: Frequency $\frac{1}{N\Delta x}$ — Lowest frequency, wavelength = domain size
+- **k = 2**: Frequency $\frac{2}{N\Delta x}$ — Second harmonic
+- **...**
+- **k = N/2**: Frequency $\frac{1}{2\Delta x}$ — Nyquist frequency (highest)
+- **k = N/2+1 to N-1**: Negative frequencies — Aliased with positive
 
 ### 💻 Code: Visualizing Frequency Meaning
 
@@ -1252,17 +1268,15 @@ FNO will use these ideas:
 
 ## 📊 Figures Generated in This Chapter
 
-| Figure | Description |
-|--------|-------------|
-| `01_function_vs_operator.png` | Heat equation showing operator behavior |
-| `02_discretization_problem.png` | Same function at different resolutions |
-| `03_sinusoid_components.png` | Building signals from sinusoids |
-| `04_dft_implementation.png` | DFT from scratch with spectrum |
-| `05_frequency_meaning.png` | Fourier basis functions |
-| `06_2d_fft.png` | 2D FFT and power concentration |
-| `07_differentiation_property.png` | Spectral vs finite difference derivatives |
-| `08_convolution_theorem.png` | Convolution = multiplication in frequency |
-| `09_pde_spectral_solution.png` | Heat equation spectral solution |
+- **01_function_vs_operator.png**: Heat equation showing operator behavior
+- **02_discretization_problem.png**: Same function at different resolutions
+- **03_sinusoid_components.png**: Building signals from sinusoids
+- **04_dft_implementation.png**: DFT from scratch with spectrum
+- **05_frequency_meaning.png**: Fourier basis functions
+- **06_2d_fft.png**: 2D FFT and power concentration
+- **07_differentiation_property.png**: Spectral vs finite difference derivatives
+- **08_convolution_theorem.png**: Convolution = multiplication in frequency
+- **09_pde_spectral_solution.png**: Heat equation spectral solution
 
 ---
 
@@ -1270,27 +1284,21 @@ FNO will use these ideas:
 
 ## Fourier Transform Resources
 
-| Resource | Link | Description |
-|----------|------|-------------|
-| **3Blue1Brown: Fourier Transform** | [YouTube](https://www.youtube.com/watch?v=spUNpyF58BY) | Beautiful visual intuition (20 min) |
-| **An Interactive Guide to the Fourier Transform** | [BetterExplained](https://betterexplained.com/articles/an-interactive-guide-to-the-fourier-transform/) | Interactive web tutorial |
+- **3Blue1Brown: Fourier Transform** — [YouTube](https://www.youtube.com/watch?v=spUNpyF58BY): Beautiful visual intuition (20 min)
+- **An Interactive Guide to the Fourier Transform** — [BetterExplained](https://betterexplained.com/articles/an-interactive-guide-to-the-fourier-transform/): Interactive web tutorial
 
 ## Operator Theory & Function Spaces
 
-| Resource | Link | Description |
-|----------|------|-------------|
-| **Neural Operator Survey** (Section 2) | [JMLR PDF](https://www.jmlr.org/papers/volume24/21-1524/21-1524.pdf) | Rigorous mathematical foundation |
-| **Functional Analysis Basics** | [MIT OCW](https://ocw.mit.edu/courses/18-102-introduction-to-functional-analysis-spring-2021/) | For deeper mathematical understanding |
+- **Neural Operator Survey** (Section 2) — [JMLR PDF](https://www.jmlr.org/papers/volume24/21-1524/21-1524.pdf): Rigorous mathematical foundation
+- **Functional Analysis Basics** — [MIT OCW](https://ocw.mit.edu/courses/18-102-introduction-to-functional-analysis-spring-2021/): For deeper mathematical understanding
 
 ## Why These Concepts Matter for FNO
 
-| Concept | How FNO Uses It |
-|---------|-----------------|
-| **Operators map functions to functions** | FNO learns the PDE solution operator |
-| **Fourier transform** | Core of the spectral convolution layer |
-| **Differentiation property** | Why spectral methods work for PDEs |
-| **Convolution theorem** | Why multiplication in frequency = convolution in space |
-| **Discretization invariance** | FNO's key advantage over CNNs |
+- **Operators map functions to functions**: FNO learns the PDE solution operator
+- **Fourier transform**: Core of the spectral convolution layer
+- **Differentiation property**: Why spectral methods work for PDEs
+- **Convolution theorem**: Why multiplication in frequency = convolution in space
+- **Discretization invariance**: FNO's key advantage over CNNs
 
 ---
 

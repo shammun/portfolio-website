@@ -24,13 +24,25 @@ We'll also look ahead to where this field is going. Foundation models like Graph
 
 Before we dive in, let's take a moment to appreciate how far we've come:
 
-| Part | What You Learned | Key Insight |
-|------|------------------|-------------|
-| **Part 1** | Fourier transforms, DFT, FFT, convolution theorem | *Frequency domain reveals global structure that's invisible in physical space* |
-| **Part 2** | Spectral convolutions, mode truncation, the Fourier layer | *Truncating high frequencies is principled, not a hack—it's where the signal lives* |
-| **Part 3** | Complete FNO architecture, lifting, projection, stacking | *The bypass path handles local features; the spectral path handles global ones* |
-| **Part 4** | Training strategies, PINO, physics-informed learning | *Embedding physical laws as soft constraints guides learning toward realistic solutions* |
-| **Part 5** | Weather prediction, fluid dynamics, materials science | *FNO isn't just theory—it's already transforming real scientific domains* |
+**Part 1 - Fourier Foundations:**
+- What You Learned: Fourier transforms, DFT, FFT, convolution theorem
+- Key Insight: *Frequency domain reveals global structure that's invisible in physical space*
+
+**Part 2 - Spectral Convolutions:**
+- What You Learned: Spectral convolutions, mode truncation, the Fourier layer
+- Key Insight: *Truncating high frequencies is principled, not a hack—it's where the signal lives*
+
+**Part 3 - Complete Architecture:**
+- What You Learned: Complete FNO architecture, lifting, projection, stacking
+- Key Insight: *The bypass path handles local features; the spectral path handles global ones*
+
+**Part 4 - Training and Physics:**
+- What You Learned: Training strategies, PINO, physics-informed learning
+- Key Insight: *Embedding physical laws as soft constraints guides learning toward realistic solutions*
+
+**Part 5 - Real Applications:**
+- What You Learned: Weather prediction, fluid dynamics, materials science
+- Key Insight: *FNO isn't just theory—it's already transforming real scientific domains*
 
 Each part built on the last. Now we're ready to extend these ideas in powerful new directions.
 
@@ -170,12 +182,29 @@ Before we summarize, let's look at an overview figure that captures the key trad
 
 Here's a summary to guide your choice:
 
-| Approach | Error Accumulation | Memory | Flexibility | Best For |
-|----------|-------------------|--------|-------------|----------|
-| Autoregressive | Yes (compounds) | Low | Any horizon | Short-term forecasts |
-| Direct Multi-Step | No | Medium | Fixed horizon | Medium-range prediction |
-| 3D Space-Time | No | High | Fixed window | Periodic systems |
-| Factorized | Minimal | Medium | Variable length | Large-scale operational use |
+**Autoregressive:**
+- Error Accumulation: Yes (compounds over time)
+- Memory Requirements: Low
+- Flexibility: Any horizon length
+- Best For: Short-term forecasts
+
+**Direct Multi-Step:**
+- Error Accumulation: No
+- Memory Requirements: Medium
+- Flexibility: Fixed horizon
+- Best For: Medium-range prediction
+
+**3D Space-Time:**
+- Error Accumulation: No
+- Memory Requirements: High
+- Flexibility: Fixed temporal window
+- Best For: Periodic systems with space-time coupling
+
+**Factorized:**
+- Error Accumulation: Minimal
+- Memory Requirements: Medium
+- Flexibility: Variable sequence length
+- Best For: Large-scale operational use
 
 In practice, many operational systems use hybrid approaches—autoregressive for the first few hours where accuracy is paramount, then switch to direct prediction for longer horizons where stability matters more.
 
@@ -307,12 +336,33 @@ The guarantee is distribution-free—it works regardless of your model or data d
 
 ### Which Method to Use?
 
-| Method | Training Cost | Inference Cost | Captures Aleatoric | Captures Epistemic | Has Guarantees |
-|--------|--------------|----------------|-------------------|-------------------|----------------|
-| Ensemble | N× | N× | ✗ | ✓ | ✗ |
-| MC Dropout | 1× | M× | ✗ | ✓ (approximate) | ✗ |
-| Heteroscedastic | 1× | 1× | ✓ | ✗ | ✗ |
-| Conformal | 1× | 1× | ✗ | ✗ | ✓ |
+**Ensemble:**
+- Training Cost: N× (train N models)
+- Inference Cost: N× (run all N models)
+- Captures Aleatoric Uncertainty: No
+- Captures Epistemic Uncertainty: Yes
+- Has Statistical Guarantees: No
+
+**MC Dropout:**
+- Training Cost: 1× (single model)
+- Inference Cost: M× (M forward passes)
+- Captures Aleatoric Uncertainty: No
+- Captures Epistemic Uncertainty: Yes (approximate)
+- Has Statistical Guarantees: No
+
+**Heteroscedastic:**
+- Training Cost: 1× (single model)
+- Inference Cost: 1× (single forward pass)
+- Captures Aleatoric Uncertainty: Yes
+- Captures Epistemic Uncertainty: No
+- Has Statistical Guarantees: No
+
+**Conformal Prediction:**
+- Training Cost: 1× (single model)
+- Inference Cost: 1× (single forward pass)
+- Captures Aleatoric Uncertainty: No
+- Captures Epistemic Uncertainty: No
+- Has Statistical Guarantees: Yes (guaranteed coverage)
 
 For operational systems, the emerging best practice is to combine methods: heteroscedastic predictions for efficiency and aleatoric uncertainty, plus conformal calibration for guaranteed coverage.
 
@@ -428,14 +478,29 @@ This is the most flexible variant but also the most expensive, since we lose the
 
 ### Choosing Your Variant
 
-| Variant | Best For | Key Advantage |
-|---------|----------|---------------|
-| Standard FNO | General-purpose, regular grids | Simple, well-understood |
-| AFNO | Variable-scale phenomena | Adaptive mode importance |
-| F-FNO | Limited data, efficiency | 6× fewer parameters |
-| U-NO | Multi-scale problems | Hierarchical processing |
-| Geo-FNO | Irregular domains | Handles complex geometries |
-| GNO | Unstructured meshes | Maximum flexibility |
+**Standard FNO:**
+- Best For: General-purpose applications on regular grids
+- Key Advantage: Simple, well-understood, proven performance
+
+**AFNO (Adaptive FNO):**
+- Best For: Variable-scale phenomena
+- Key Advantage: Adaptive mode importance weighting
+
+**F-FNO (Factorized FNO):**
+- Best For: Limited data scenarios and efficiency requirements
+- Key Advantage: 6× fewer parameters
+
+**U-NO (U-shaped Neural Operator):**
+- Best For: Multi-scale problems
+- Key Advantage: Hierarchical processing with skip connections
+
+**Geo-FNO (Geometry-Adaptive FNO):**
+- Best For: Irregular domains
+- Key Advantage: Handles complex geometries through learned transforms
+
+**GNO (Graph Neural Operator):**
+- Best For: Unstructured meshes
+- Key Advantage: Maximum flexibility for arbitrary mesh topologies
 
 ---
 
@@ -991,9 +1056,9 @@ This chapter took you from the basics of temporal prediction through to the cutt
 
 ## Series Navigation
 
-| Previous | Current | Next |
-|----------|---------|------|
-| [Part 5: Real-World Applications](../chunk5/chunk5_complete.md) | **Part 6: Advanced Extensions** | [Return to Part 1](../chunk1/chunk1_complete.md) |
+- **Previous:** [Part 5: Real-World Applications](../chunk5/chunk5_complete.md)
+- **Current:** Part 6: Advanced Extensions
+- **Next:** [Return to Part 1](../chunk1/chunk1_complete.md)
 
 ### All Parts
 
