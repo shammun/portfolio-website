@@ -46,9 +46,9 @@ const highlights = [
     icon: Award,
     title: "Expertise",
     items: [
-      "Physics-Informed Machine Learning",
+      "Climate Data Science and Remote Sensing",
+      "Analytics Application Development",
       "Neural Operators (FNO, DeepONet)",
-      "Climate Data Science & Remote Sensing",
     ],
   },
 ];
