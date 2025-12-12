@@ -143,9 +143,10 @@ export default function ResearchPage() {
             Research &amp; Publications
           </h1>
           <p className="text-lg text-muted-foreground">
-            My research focuses on applying physics-informed machine learning to
-            climate science problems, with emphasis on urban heat islands, extreme
-            events, and climate services.
+            My research focus on the application of AI in urban climate. My previous
+            researches covered topics such as climate data analysis tool, measuring
+            economic impact of extreme weather events using newspaper scraping and
+            flood mapping.
           </p>
         </div>
 
