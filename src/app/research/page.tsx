@@ -117,7 +117,7 @@ const thesis = {
   year: 2025,
   status: "In Progress (Defense: November 2025)",
   abstract:
-    "This thesis develops machine learning model to predict urban land surface temperature across New York City at 70-meter resolution. Using ECOSTRESS satellite observations, ERA5 reanalysis data, NDVI vegetation data, and urban morphology parameters, the model achieves superior spatial pattern accuracy compared to traditional machine learning approaches.",
+    "This thesis develops machine learning model to predict urban land surface temperature across New York City at 70-meter resolution. Using ECOSTRESS satellite observations, ERA5 reanalysis data, NDVI vegetation data, and urban morphology parameters, the model achieves superior spatial pattern accuracy compared to traditional modeling approaches.",
   tags: ["FNO", "Machine Learning", "Urban Heat Island", "ECOSTRESS"],
 };
 
