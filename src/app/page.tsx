@@ -23,7 +23,7 @@ export default function HomePage() {
             </h1>
 
             <p className="mt-6 text-xl md:text-2xl text-muted-foreground leading-relaxed">
-              MS Candidate in Climate Dynamics · Columbia Climate &amp; Society Alum
+              MSc Candidate in Climate Science · Columbia Climate &amp; Society Alum
             </p>
 
             <p className="mt-4 text-lg text-muted-foreground leading-relaxed max-w-2xl">
