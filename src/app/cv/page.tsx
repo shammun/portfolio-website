@@ -112,12 +112,11 @@ export default function CVPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+        <div className="grid grid-cols-3 gap-4 mb-12">
           {[
             { label: "Years Experience", value: "10+" },
             { label: "Publications", value: "5" },
             { label: "Books Authored", value: "2" },
-            { label: "Countries Worked", value: "5+" },
           ].map((stat) => (
             <div
               key={stat.label}
