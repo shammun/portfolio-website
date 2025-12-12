@@ -610,7 +610,11 @@ But many physical phenomena have BOTH:
 
 The complete Fourier layer has **two parallel paths**:
 
-$$v^{(l+1)}(x) = \sigma\left( \underbrace{W v^{(l)}(x)}_{\text{local path}} + \underbrace{(\mathcal{K}v^{(l)})(x)}_{\text{spectral path}} + b \right)$$
+$$v^{(l+1)}(x) = \sigma\left( W v^{(l)}(x) + \mathcal{K}(v^{(l)})(x) + b \right)$$
+
+Where:
+- $W v^{(l)}(x)$ is the **local path** (1×1 convolution)
+- $\mathcal{K}(v^{(l)})(x)$ is the **spectral path** (Fourier convolution)
 
 This is shown in Figure 2 of the FNO paper, where both paths are applied in parallel.
 
