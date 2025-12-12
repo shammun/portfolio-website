@@ -67,8 +67,8 @@ export default async function ChunkPage({ params }: PageProps) {
         [
           rehypePrettyCode,
           {
-            theme: "github-dark",
-            keepBackground: true,
+            theme: "github-light",
+            keepBackground: false,
           },
         ],
       ],
