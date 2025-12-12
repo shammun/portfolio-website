@@ -23,20 +23,20 @@ export default function HomePage() {
             </h1>
 
             <p className="mt-6 text-xl md:text-2xl text-muted-foreground leading-relaxed">
-              Climate Scientist &amp; ML Researcher at George Mason University
+              MS Candidate in Climate Dynamics · Columbia Climate &amp; Society Alum
             </p>
 
             <p className="mt-4 text-lg text-muted-foreground leading-relaxed max-w-2xl">
-              I work at the intersection of{" "}
+              I combine{" "}
               <strong className="text-foreground">
-                physics-informed machine learning
+                machine learning
               </strong>{" "}
-              and{" "}
+              with{" "}
               <strong className="text-foreground">
-                climate science
-              </strong>
-              . Currently building neural operator models to predict urban heat
-              islands using satellite remote sensing data.
+                satellite data
+              </strong>{" "}
+              to understand how cities heat up. Author of two books on geospatial
+              analysis, now researching high-resolution urban heat island prediction.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">

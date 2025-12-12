@@ -58,9 +58,9 @@ export function Footer() {
               Shammunul Islam
             </Link>
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
-              Climate scientist and ML researcher at George Mason University.
-              Building interactive tutorials on AI papers and applying
-              physics-informed machine learning to climate problems.
+              Graduate researcher in climate science at George Mason University.
+              Building interactive tutorials on AI papers and applying machine
+              learning to urban climate problems.
             </p>
 
             {/* Social Links */}

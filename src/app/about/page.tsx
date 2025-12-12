@@ -139,8 +139,7 @@ export default function AboutPage() {
 
             <div className="prose prose-lg max-w-none text-muted-foreground">
               <p>
-                I am a climate scientist and machine learning researcher currently
-                completing my MS in Climate Science at{" "}
+                I am a graduate researcher completing my MS in Climate Dynamics at{" "}
                 <Link
                   href="https://www.gmu.edu/"
                   target="_blank"
@@ -148,18 +147,25 @@ export default function AboutPage() {
                 >
                   George Mason University
                 </Link>
-                . My research focuses on using physics-informed machine learning
-                to predict urban land surface temperatures, combining satellite
-                remote sensing with neural operators.
+                , with over a decade of experience in statistics, spatial data
+                science, and climate research. My career has spanned roles as a
+                statistician, spatial data scientist, and climate researcher—now
+                converging on a single goal: building AI-driven solutions for
+                climate and environmental challenges.
               </p>
               <p>
-                With over a decade of experience spanning climate research,
-                geospatial data science, and statistical consulting, I bring a
-                unique interdisciplinary perspective to solving complex
-                environmental challenges. I am the author of two international
-                books on GIS and remote sensing, and have contributed to
-                peer-reviewed research on climate extremes, aquaculture economics,
-                and climate data tools.
+                I hold an MA in Climate and Society from Columbia University and
+                have authored two books on GIS and remote sensing. My peer-reviewed
+                research spans climate extremes, aquaculture economics, and climate
+                data tools. I&apos;ve also taught graduate-level courses and consulted
+                on statistical and geospatial projects across sectors.
+              </p>
+              <p>
+                Currently, I&apos;m exploring how machine learning can advance climate
+                prediction—from satellite-based urban heat mapping to building
+                interactive tutorials that make AI research accessible. I aspire to
+                develop practical AI tools that help communities understand and
+                adapt to a changing climate.
               </p>
             </div>
           </div>
