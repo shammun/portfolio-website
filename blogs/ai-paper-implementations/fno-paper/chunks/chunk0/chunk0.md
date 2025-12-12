@@ -63,7 +63,7 @@ Where:
 - $a$ is the input function (initial condition, forcing term, coefficients)
 - $u$ is the solution to the PDE
 
-![Solution Operator Concept](/blog-images/fno-paper/chunk0/pro2_Solution Operator Concept Diagram.svg)
+![Solution Operator Concept](/blog-images/fno-paper/chunk0/pro2_Solution%20Operator%20Concept%20Diagram.svg)
 
 Once trained, FNO can produce solutions in **milliseconds** — a speedup of **1000-10000x** over traditional solvers.
 
