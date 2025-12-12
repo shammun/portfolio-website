@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npm install:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(powershell -Command:*)",
+      "Bash(powershell -Command \"Copy-Item ''blogs\\ai-paper-implementations\\fno-paper\\chunks\\chunk0\\figures\\*.html'' -Destination ''public\\blog-images\\fno-paper\\chunk0\\'' -Force\")",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}
