@@ -120,7 +120,7 @@ function H4({ children, id, ...props }: { children?: ReactNode; id?: string; cla
   );
 }
 
-// Clean Code Block Component - simple, readable styling
+// Code Block Component - preserves syntax highlighting from rehype-pretty-code
 function CodeBlock({ children, className, ...props }: { children?: ReactNode; className?: string }) {
   const language = detectLanguage(children);
   const codeContent = extractTextContent(children).trim();
@@ -134,11 +134,15 @@ function CodeBlock({ children, className, ...props }: { children?: ReactNode; cl
       {/* Code Container */}
       <div className="rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600 shadow-sm">
         {/* Header Bar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-slate-100 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
+        <div className="flex items-center justify-between px-4 py-2 bg-slate-200 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
           <div className="flex items-center gap-3">
-            <FileCode className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            <FileCode className="h-4 w-4 text-slate-600 dark:text-slate-400" />
             <span
-              className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200"
+              className="text-xs font-semibold px-2 py-0.5 rounded"
+              style={{
+                backgroundColor: langConfig?.color ? `${langConfig.color}20` : '#64748b20',
+                color: langConfig?.color || '#475569'
+              }}
             >
               {displayLang}
             </span>
@@ -149,7 +153,7 @@ function CodeBlock({ children, className, ...props }: { children?: ReactNode; cl
 
           <button
             onClick={() => navigator.clipboard.writeText(codeContent)}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-300 hover:bg-slate-400 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 transition-colors"
             title="Copy code"
           >
             <Copy className="h-3.5 w-3.5" />
@@ -157,22 +161,13 @@ function CodeBlock({ children, className, ...props }: { children?: ReactNode; cl
           </button>
         </div>
 
-        {/* Code Content - Clean white/dark background */}
-        <div className="overflow-x-auto">
+        {/* Code Content - Render children directly to preserve syntax highlighting */}
+        <div className="overflow-x-auto code-block-content">
           <pre
-            className="p-4 text-sm leading-6 font-mono bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+            className="p-4 text-sm leading-6 font-mono bg-slate-50 dark:bg-slate-800"
             {...props}
           >
-            <code className="block">
-              {codeContent.split("\n").map((line, i) => (
-                <div key={i} className="table-row">
-                  <span className="table-cell pr-4 text-right text-slate-400 dark:text-slate-500 select-none min-w-[2.5rem] text-xs">
-                    {i + 1}
-                  </span>
-                  <span className="table-cell pl-4 whitespace-pre">{line || " "}</span>
-                </div>
-              ))}
-            </code>
+            {children}
           </pre>
         </div>
       </div>

@@ -408,11 +408,70 @@ article figcaption {
   @apply text-sm text-muted-foreground text-center mt-3 italic;
 }
 
-/* ===== Clean Code Block Styling ===== */
+/* ===== Code Block Styling ===== */
 
 /* Ensure code blocks have proper font */
 pre, code {
   font-family: var(--font-mono);
   tab-size: 2;
   -moz-tab-size: 2;
+}
+
+/* Code block content styling */
+.code-block-content pre {
+  background: #f8fafc !important; /* slate-50 */
+}
+
+.dark .code-block-content pre {
+  background: #1e293b !important; /* slate-800 */
+}
+
+/* Ensure syntax highlighting is visible */
+.code-block-content code {
+  display: block;
+  color: #334155; /* slate-700 */
+}
+
+.dark .code-block-content code {
+  color: #e2e8f0; /* slate-200 */
+}
+
+/* Style for rehype-pretty-code output */
+.code-block-content [data-rehype-pretty-code-figure] {
+  margin: 0;
+}
+
+.code-block-content pre > code {
+  display: grid;
+  counter-reset: line;
+}
+
+.code-block-content [data-line] {
+  padding: 0 1rem;
+  border-left: 2px solid transparent;
+}
+
+.code-block-content [data-line]:hover {
+  background: rgba(100, 116, 139, 0.1);
+}
+
+.code-block-content [data-highlighted-line] {
+  background: rgba(59, 130, 246, 0.1);
+  border-left-color: #3b82f6;
+}
+
+/* Line numbers */
+.code-block-content [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1.5rem;
+  margin-right: 1.5rem;
+  text-align: right;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.dark .code-block-content [data-line]::before {
+  color: #64748b;
 }
