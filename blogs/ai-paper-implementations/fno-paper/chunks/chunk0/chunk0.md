@@ -14,18 +14,16 @@ By the end of this series, you will:
 
 ## 📄 The Paper We're Implementing
 
-<div align="center">
+**Title:** Fourier Neural Operator for Parametric Partial Differential Equations
 
-| Field | Details |
-|-------|---------|
-| **Title** | Fourier Neural Operator for Parametric Partial Differential Equations |
-| **Authors** | Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew Stuart, Anima Anandkumar |
-| **Venue** | ICLR 2021 |
-| **ArXiv** | [2010.08895](https://arxiv.org/abs/2010.08895) |
-| **PDF** | [arxiv.org/pdf/2010.08895](https://arxiv.org/pdf/2010.08895) |
-| **Official Code** | [github.com/neuraloperator/neuraloperator](https://github.com/neuraloperator/neuraloperator) |
+**Authors:** Zongyi Li, Nikola Kovachki, Kamyar Azizzadenesheli, Burigede Liu, Kaushik Bhattacharya, Andrew Stuart, Anima Anandkumar
 
-</div>
+**Venue:** ICLR 2021
+
+**Links:**
+- [arXiv:2010.08895](https://arxiv.org/abs/2010.08895)
+- [PDF](https://arxiv.org/pdf/2010.08895)
+- [Official Code (GitHub)](https://github.com/neuraloperator/neuraloperator)
 
 ---
 
@@ -84,35 +82,6 @@ The key innovation of FNO is performing neural network operations in **Fourier s
   height="850px"
 />
 
-### Architecture Flow (Text Reference)
-
-```
-Input a(x)
-    │
-    ▼
-┌─────────────────┐
-│   Lifting Layer │  (pointwise MLP: ℝ^d → ℝ^width)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Fourier Layer  │ ─┐
-└────────┬────────┘  │
-         │           │ × L layers (typically 4)
-         ▼           │
-┌─────────────────┐  │
-│  Fourier Layer  │ ─┘
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Projection Layer│  (pointwise MLP: ℝ^width → ℝ^out)
-└────────┬────────┘
-         │
-         ▼
-    Output u(x)
-```
-
 ### The Fourier Layer: The Heart of FNO
 
 Each **Fourier Layer** performs:
@@ -141,12 +110,12 @@ Where:
   height="700px"
 />
 
-| Property | Benefit |
-|----------|---------|
-| **Resolution invariance** | Train on 64×64, evaluate on 256×256 |
-| **Global receptive field** | Each output point depends on all input points |
-| **Efficient computation** | O(n log n) via FFT, not O(n²) |
-| **Continuous representation** | Approximates operators between function spaces |
+**Key Benefits of Fourier Space:**
+
+- **Resolution invariance** — Train on 64×64, evaluate on 256×256
+- **Global receptive field** — Each output point depends on all input points
+- **Efficient computation** — O(n log n) via FFT, not O(n²)
+- **Continuous representation** — Approximates operators between function spaces
 
 <InteractiveVisualization
   src="/blog-images/fno-paper/chunk0/pro10_storyboard.html"
@@ -170,11 +139,11 @@ The paper demonstrates FNO on three benchmark PDEs with remarkable results:
   height="900px"
 />
 
-| Problem | Description | FNO Error | Speedup |
-|---------|-------------|-----------|---------|
-| **Burgers' Equation** | 1D nonlinear PDE modeling shock waves | ~0.4% | 1000x |
-| **Darcy Flow** | 2D steady-state diffusion in porous media | ~1% | 1000x |
-| **Navier-Stokes** | 2D incompressible fluid dynamics | ~1% | 10,000x |
+**Benchmark Results:**
+
+- **Burgers' Equation** — 1D nonlinear PDE modeling shock waves — ~0.4% error — 1000x speedup
+- **Darcy Flow** — 2D steady-state diffusion in porous media — ~1% error — 1000x speedup
+- **Navier-Stokes** — 2D incompressible fluid dynamics — ~1% error — 10,000x speedup
 
 ### Navier-Stokes Prediction Example
 
@@ -289,14 +258,14 @@ To get the most out of this tutorial, you should have:
   height="850px"
 />
 
-| Topic | Level Needed | Resources if Needed |
-|-------|--------------|---------------------|
-| **Linear Algebra** | Comfortable | [3Blue1Brown: Essence of Linear Algebra](https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab) |
-| **Calculus** | Solid | [Khan Academy Calculus](https://www.khanacademy.org/math/calculus-1) |
-| **Fourier Analysis** | Basic (we'll cover what you need) | [3Blue1Brown: Fourier Transform](https://www.youtube.com/watch?v=spUNpyF58BY) |
-| **Python** | Intermediate | — |
-| **PyTorch** | Basic (tensors, autograd, nn.Module) | [PyTorch Tutorials](https://pytorch.org/tutorials/) |
-| **PDEs** | Helpful but not required | — |
+**Recommended Background:**
+
+- **Linear Algebra** (Comfortable) — [3Blue1Brown: Essence of Linear Algebra](https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab)
+- **Calculus** (Solid) — [Khan Academy Calculus](https://www.khanacademy.org/math/calculus-1)
+- **Fourier Analysis** (Basic - we'll cover what you need) — [3Blue1Brown: Fourier Transform](https://www.youtube.com/watch?v=spUNpyF58BY)
+- **Python** (Intermediate)
+- **PyTorch** (Basic: tensors, autograd, nn.Module) — [PyTorch Tutorials](https://pytorch.org/tutorials/)
+- **PDEs** (Helpful but not required)
 
 ---
 
@@ -329,39 +298,31 @@ Before diving into the tutorial, these videos provide excellent context:
 
 ### Official Resources
 
-| Resource | Link | Description |
-|----------|------|-------------|
-| **arXiv Paper** | [arxiv.org/abs/2010.08895](https://arxiv.org/abs/2010.08895) | Original paper |
-| **GitHub Repository** | [neuraloperator/neuraloperator](https://github.com/neuraloperator/neuraloperator) | Official PyTorch implementation (MIT License) |
-| **Documentation** | [neuraloperator.github.io](https://neuraloperator.github.io/dev/) | API docs and examples |
-| **Author's Blog** | [zongyi-li.github.io/blog/2020/fourier-pde](https://zongyi-li.github.io/blog/2020/fourier-pde/) | Excellent visual explanations |
-| **Neural Operator Hub** | [zongyi-li.github.io/neural-operator](https://zongyi-li.github.io/neural-operator/) | Links to all extensions |
+- **arXiv Paper** — [arxiv.org/abs/2010.08895](https://arxiv.org/abs/2010.08895) — Original paper
+- **GitHub Repository** — [neuraloperator/neuraloperator](https://github.com/neuraloperator/neuraloperator) — Official PyTorch implementation (MIT License)
+- **Documentation** — [neuraloperator.github.io](https://neuraloperator.github.io/dev/) — API docs and examples
+- **Author's Blog** — [zongyi-li.github.io/blog/2020/fourier-pde](https://zongyi-li.github.io/blog/2020/fourier-pde/) — Excellent visual explanations
+- **Neural Operator Hub** — [zongyi-li.github.io/neural-operator](https://zongyi-li.github.io/neural-operator/) — Links to all extensions
 
 ### Tutorials & Notebooks
 
-| Resource | Link | Description |
-|----------|------|-------------|
-| **UvA Deep Learning Course** | [UvA Notebooks](https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/DL2/Dynamical_Neural_Networks/Complete_DNN_2_2.html) | Complete FNO implementation from scratch |
-| **ETH Zurich AI4Science** | [GitHub Notebook](https://github.com/camlab-ethz/AI_Science_Engineering/blob/main/Tutorial%2005%20-%20Operator%20Learing%20-%20Fourier%20Neural%20Operator.ipynb) | Colab-compatible tutorial |
-| **NVIDIA Modulus** | [Darcy Flow Tutorial](https://docs.nvidia.com/deeplearning/modulus/modulus-sym/user_guide/neural_operators/darcy_fno.html) | Production-ready implementation |
-| **PKU Educational** | [PKU NeuralOperator](https://github.com/PKU-CMEGroup/NeuralOperator) | Lightweight code for students |
+- **UvA Deep Learning Course** — [UvA Notebooks](https://uvadlc-notebooks.readthedocs.io/en/latest/tutorial_notebooks/DL2/Dynamical_Neural_Networks/Complete_DNN_2_2.html) — Complete FNO implementation from scratch
+- **ETH Zurich AI4Science** — [GitHub Notebook](https://github.com/camlab-ethz/AI_Science_Engineering/blob/main/Tutorial%2005%20-%20Operator%20Learing%20-%20Fourier%20Neural%20Operator.ipynb) — Colab-compatible tutorial
+- **NVIDIA Modulus** — [Darcy Flow Tutorial](https://docs.nvidia.com/deeplearning/modulus/modulus-sym/user_guide/neural_operators/darcy_fno.html) — Production-ready implementation
+- **PKU Educational** — [PKU NeuralOperator](https://github.com/PKU-CMEGroup/NeuralOperator) — Lightweight code for students
 
 ### Blog Posts & Articles
 
-| Article | Link |
-|---------|------|
-| "Neural Operators and Where to Find Them" | [Medium - SISSA mathLab](https://medium.com/sissa-mathlab/neural-operators-and-where-to-find-them-19af4aa9da3e) |
-| "Why Are Neural Operators the Missing Link?" | [Medium](https://medium.com/@1alim/why-are-neural-operators-the-missing-link-between-physics-and-deep-learning-f5817e1acf9e) |
-| Dan MacKinlay's Neural PDE Notes | [danmackinlay.name](https://danmackinlay.name/notebook/ml_pde_operator) |
+- "Neural Operators and Where to Find Them" — [Medium - SISSA mathLab](https://medium.com/sissa-mathlab/neural-operators-and-where-to-find-them-19af4aa9da3e)
+- "Why Are Neural Operators the Missing Link?" — [Medium](https://medium.com/@1alim/why-are-neural-operators-the-missing-link-between-physics-and-deep-learning-f5817e1acf9e)
+- Dan MacKinlay's Neural PDE Notes — [danmackinlay.name](https://danmackinlay.name/notebook/ml_pde_operator)
 
 ### Related Papers
 
-| Paper | Link | Relationship to FNO |
-|-------|------|---------------------|
-| **DeepONet** (Lu et al., 2021) | [Nature Machine Intelligence](https://www.nature.com/articles/s42256-021-00302-5) | Alternative operator learning architecture |
-| **Neural Operator Survey** (97 pages) | [JMLR](https://www.jmlr.org/papers/volume24/21-1524/21-1524.pdf) | Comprehensive theoretical foundation |
-| **Physics-Informed Neural Operator (PINO)** | [arXiv:2111.03794](https://arxiv.org/abs/2111.03794) | Combines FNO with physics constraints |
-| **Adaptive FNO (AFNO)** | [arXiv:2111.13587](https://arxiv.org/abs/2111.13587) | Vision transformer + Fourier mixing |
+- **DeepONet** (Lu et al., 2021) — [Nature Machine Intelligence](https://www.nature.com/articles/s42256-021-00302-5) — Alternative operator learning architecture
+- **Neural Operator Survey** (97 pages) — [JMLR](https://www.jmlr.org/papers/volume24/21-1524/21-1524.pdf) — Comprehensive theoretical foundation
+- **Physics-Informed Neural Operator (PINO)** — [arXiv:2111.03794](https://arxiv.org/abs/2111.03794) — Combines FNO with physics constraints
+- **Adaptive FNO (AFNO)** — [arXiv:2111.13587](https://arxiv.org/abs/2111.13587) — Vision transformer + Fourier mixing
 
 ---
 
@@ -384,16 +345,14 @@ Each chunk contains:
 
 ### Time Estimate
 
-| Chunk | Topic | Estimated Time |
-|-------|-------|----------------|
-| 0 | Introduction (this page) | 15 min |
-| 1 | Mathematical Foundations | 45-60 min |
-| 2 | The Fourier Layer | 60 min |
-| 3 | Complete FNO Architecture | 60 min |
-| 4 | Training Methodology | 45 min |
-| 5 | Benchmark Applications | 60 min |
-| 6 | Advanced Topics | 45 min |
-| **Total** | | **~6 hours** |
+- **Chunk 0:** Introduction (this page) — 15 min
+- **Chunk 1:** Mathematical Foundations — 45-60 min
+- **Chunk 2:** The Fourier Layer — 60 min
+- **Chunk 3:** Complete FNO Architecture — 60 min
+- **Chunk 4:** Training Methodology — 45 min
+- **Chunk 5:** Benchmark Applications — 60 min
+- **Chunk 6:** Advanced Topics — 45 min
+- **Total:** ~6 hours
 
 ---
 
