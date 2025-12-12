@@ -139,7 +139,7 @@ export default function AboutPage() {
 
             <div className="prose prose-lg max-w-none text-muted-foreground">
               <p>
-                I am a graduate researcher completing my MS in Climate Dynamics at{" "}
+                I am a graduate student completing my MS in Climate Dynamics at{" "}
                 <Link
                   href="https://www.gmu.edu/"
                   target="_blank"
