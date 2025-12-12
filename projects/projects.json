@@ -4,7 +4,7 @@
       "id": "fno-lst-prediction",
       "title": "Urban Heat Island Prediction with FNO",
       "description": "Fourier Neural Operator model for predicting land surface temperature across New York City at 70m resolution using ECOSTRESS satellite data.",
-      "long_description": "My MS thesis project applying physics-informed neural operators to urban climate prediction. The model processes ECOSTRESS thermal observations, ERA5 reanalysis, NDVI vegetation data, and urban morphology parameters to predict spatial temperature patterns.",
+      "long_description": "My MS thesis project applies ML model to urban climate prediction. The model processes ECOSTRESS thermal observations, ERA5 reanalysis, NDVI vegetation data, and urban morphology parameters to predict spatial temperature patterns.",
       "status": "active",
       "featured": true,
       "image": "/images/projects/fno-lst.png",

@@ -15,7 +15,7 @@ const projects = [
     description:
       "Fourier Neural Operator model for predicting land surface temperature across New York City at 70m resolution using ECOSTRESS satellite data.",
     longDescription:
-      "My MS thesis project applying physics-informed neural operators to urban climate prediction. The model processes ECOSTRESS thermal observations, ERA5 reanalysis, NDVI vegetation data, and urban morphology parameters to predict spatial temperature patterns.",
+      "My MS thesis project applies ML model to urban climate prediction. The model processes ECOSTRESS thermal observations, ERA5 reanalysis, NDVI vegetation data, and urban morphology parameters to predict spatial temperature patterns.",
     status: "active",
     featured: true,
     github: "https://github.com/shammun/fno-lst-prediction",
