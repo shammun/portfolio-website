@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNO Resolution Invariance</title>
+    <style>
+        /* * CLEAN EDUCATIONAL STYLE SYSTEM */
+        :root {
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f5f7ff;
+            --card-bg: #ffffff;
+
+            /* Warm Colors (Training) */
+            --warm-bg: #fff7ed;
+            --warm-border: #fdba74;
+            --warm-text: #c2410c;
+            --warm-accent: #f97316;
+
+            /* Cool Colors (Evaluation) */
+            --cool-bg: #ecfdf5;
+            --cool-border: #6ee7b7;
+            --cool-text: #047857;
+            --cool-accent: #14b8a6;
+
+            /* Purple (Model) */
+            --model-bg: #f5f3ff;
+            --model-border: #c4b5fd;
+            --model-text: #7c3aed;
+
+            /* Neutrals */
+            --text-heading: #1e293b;
+            --text-body: #64748b;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            color: var(--text-body);
+            margin: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            margin-bottom: 40px;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+
+        /* Layout */
+        .main-container {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            max-width: 1000px;
+            width: 100%;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .phase-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 16px 0 rgba(99, 102, 241, 0.12);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 320px;
+            position: relative;
+        }
+
+        .phase-card.training {
+            border-top: 4px solid var(--warm-accent);
+        }
+
+        .phase-card.eval {
+            border-top: 4px solid var(--cool-accent);
+        }
+
+        /* Badges */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .badge-warm {
+            background: var(--warm-bg);
+            color: var(--warm-text);
+            border: 1px solid var(--warm-border);
+        }
+
+        .badge-cool {
+            background: var(--cool-bg);
+            color: var(--cool-text);
+            border: 1px solid var(--cool-border);
+        }
+
+        /* Canvas/Grid Area */
+        .grid-wrapper {
+            width: 200px;
+            height: 200px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 12px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            /* Crucial for showing resolution diff */
+        }
+
+        .res-label {
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            font-size: 14px;
+            color: var(--text-heading);
+            margin-top: 4px;
+        }
+
+        /* The Model Connector */
+        .model-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .model-box {
+            background: var(--model-bg);
+            border: 2px solid var(--model-border);
+            color: var(--model-text);
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+        }
+
+        .arrow-line {
+            height: 2px;
+            width: 60px;
+            background: #cbd5e1;
+            position: relative;
+        }
+
+        .arrow-line::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -4px;
+            border-left: 8px solid #cbd5e1;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+        }
+
+        /* Controls */
+        .controls-container {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+            width: 100%;
+            max-width: 700px;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--cool-accent);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-heading);
+            padding-top: 10px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        /* Insight Box */
+        .insight-box {
+            margin-top: 30px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 16px 24px;
+            max-width: 600px;
+            text-align: center;
+            color: #166534;
+            font-size: 14px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .insight-icon {
+            font-size: 20px;
+        }
+
+        /* Error state class */
+        .error-text {
+            color: var(--warm-text);
+            font-weight: bold;
+            display: none;
+        }
+
+        .show-error .error-text {
+            display: block;
+        }
+
+        .show-error .success-text {
+            display: none;
+        }
+
+        @media (max-width: 800px) {
+            .arrow-line {
+                transform: rotate(90deg);
+                width: 40px;
+                margin: 20px 0;
+            }
+
+            .arrow-line::after {
+                right: -4px;
+                top: -4px;
+                transform: rotate(0);
+            }
+
+            /* Simplified for vertical */
+            .main-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>FNO Resolution Invariance</h1>
+    <p class="subtitle">Train once on coarse data, evaluate anywhere on fine data without retraining.</p>
+
+    <div class="main-container">
+
+        <!-- SCENE 1: TRAINING -->
+        <div class="phase-card training">
+            <div class="badge badge-warm">Phase 1: Training</div>
+            <div class="grid-wrapper">
+                <canvas id="trainCanvas"></canvas>
+            </div>
+            <div class="res-label">Resolution: 64 × 64</div>
+            <p style="font-size: 12px; color: var(--text-body); margin-top: 8px; text-align: center;">
+                Model learns weights <span style="font-family: Georgia; color: var(--warm-text)">W</span> on coarse
+                grid.
+            </p>
+        </div>
+
+        <!-- SCENE 2: MODEL -->
+        <div class="model-connector">
+            <div class="arrow-line"></div>
+            <div class="model-box">
+                <div>FNO Model</div>
+                <div style="font-size: 10px; font-weight: 400; opacity: 0.8">Continuous Operator</div>
+            </div>
+            <div class="arrow-line"></div>
+        </div>
+
+        <!-- SCENE 3: EVALUATION -->
+        <div class="phase-card eval" id="evalCard">
+            <div class="badge badge-cool">Phase 2: Evaluation</div>
+            <div class="grid-wrapper">
+                <canvas id="evalCanvas"></canvas>
+            </div>
+            <div class="res-label" id="evalLabel">Resolution: 256 × 256</div>
+
+            <!-- Status Indicators -->
+            <div class="status-box" style="margin-top: 12px; font-size: 12px; text-align: center;">
+                <span class="success-text" style="color: var(--cool-text); font-weight: 600;">
+                    ✓ Physics Preserved
+                </span>
+                <span class="error-text">
+                    ⚠ Artifacts / Failure
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls-container">
+        <div class="slider-group">
+            <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); width: 80px;">EVAL RES:</span>
+            <input type="range" id="resSlider" min="64" max="256" value="256" step="32">
+            <span id="sliderVal"
+                style="font-size: 12px; font-weight: 600; color: var(--cool-accent); width: 60px;">256²</span>
+        </div>
+
+        <div class="toggle-group">
+            <input type="checkbox" id="cnnMode" style="accent-color: var(--warm-accent); width: 16px; height: 16px;">
+            <label for="cnnMode" style="cursor: pointer;">Simulate Standard CNN Failure</label>
+        </div>
+
+        <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+            *Drag slider to change evaluation grid size. Standard CNNs fail when input size differs from training size.
+        </p>
+    </div>
+
+    <!-- INSIGHT -->
+    <div class="insight-box">
+        <div class="insight-icon">💡</div>
+        <div>
+            <strong>Key Insight:</strong> FNO learns the operator in function space, not pixel space.
+            This means the learned weights are independent of discretization.
+        </div>
+    </div>
+
+    <script>
+        // Setup Canvases
+        const trainCanvas = document.getElementById('trainCanvas');
+        const evalCanvas = document.getElementById('evalCanvas');
+        const trainCtx = trainCanvas.getContext('2d');
+        const evalCtx = evalCanvas.getContext('2d');
+
+        // Setup Inputs
+        const slider = document.getElementById('resSlider');
+        const sliderVal = document.getElementById('sliderVal');
+        const evalLabel = document.getElementById('evalLabel');
+        const cnnCheckbox = document.getElementById('cnnMode');
+        const evalCard = document.getElementById('evalCard');
+
+        // Animation State
+        let time = 0;
+
+        // Fluid Simulation Function (Visual Approximation)
+        // Generates a vortex-like pattern at coordinate (x,y)
+        function getFluidValue(x, y, t) {
+            // Normalized coords 0 to 1
+            const cx = 0.5;
+            const cy = 0.5;
+            const dx = x - cx;
+            const dy = y - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+
+            // Rotating spiral
+            const spiral = Math.sin(dist * 20 - t * 2 + angle * 3);
+            const mainBlob = Math.exp(-dist * 3);
+
+            return (spiral * mainBlob + 1) / 2; // Normalize 0-1
+        }
+
+        // Draw Function
+        function drawGrid(ctx, resolution, time, isCnnFailure = false) {
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+            const cellSize = width / resolution;
+
+            // Clear
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Cells
+            for (let i = 0; i < resolution; i++) {
+                for (let j = 0; j < resolution; j++) {
+                    const x = i / resolution;
+                    const y = j / resolution;
+
+                    let val;
+
+                    if (isCnnFailure && resolution > 64) {
+                        // SIMULATE CNN FAILURE
+                        // CNNs expect local patterns at specific scales. 
+                        // If res increases, the "receptive field" relative to the object shrinks.
+                        // We simulate this by breaking the coherence.
+
+                        // Misalign the coordinate lookup to simulate "pixel space" dependency breaking
+                        const noise = Math.sin(i * 0.5) * Math.cos(j * 0.5);
+                        val = getFluidValue(x * 2, y * 2, time); // Pattern shrinks/tiles wrongly
+                        val += noise * 0.2; // Artifacts
+
+                    } else {
+                        // FNO SUCCESS
+                        // Sample the continuous function at the new grid points
+                        val = getFluidValue(x, y, time);
+                    }
+
+                    // Color Map (Teal/Blue fluid)
+                    // HSL: 180 (Cyan) -> 220 (Blue)
+                    const hue = 170 + (val * 40);
+                    const sat = 70 + (val * 30);
+                    const light = 95 - (val * 50);
+
+                    ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
+                    // Use slightly larger rect to prevent grid lines
+                    ctx.fillRect(i * cellSize, j * cellSize, cellSize + 0.5, cellSize + 0.5);
+                }
+            }
+        }
+
+        function animate() {
+            time += 0.05;
+
+            // 1. Draw Training (Fixed at 64x64)
+            // We set canvas internal resolution low to force pixelation look
+            trainCanvas.width = 64;
+            trainCanvas.height = 64;
+            drawGrid(trainCtx, 16, time, false); // Visual resolution is 16 blocks for demo clarity
+
+            // 2. Draw Evaluation (Variable)
+            const evalRes = parseInt(slider.value);
+
+            // We scale the visual "blockiness" based on the slider
+            // Real resolution mapping: 64 -> 16 blocks, 256 -> 64 blocks
+            const visualBlocks = Math.floor(evalRes / 4);
+
+            evalCanvas.width = visualBlocks;
+            evalCanvas.height = visualBlocks;
+
+            const isFailure = cnnCheckbox.checked && evalRes > 64;
+
+            drawGrid(evalCtx, visualBlocks, time, isFailure);
+
+            // Update UI State for Failure
+            if (isFailure) {
+                evalCard.classList.add('show-error');
+            } else {
+                evalCard.classList.remove('show-error');
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Event Listeners
+        slider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            sliderVal.textContent = `${val}²`;
+            evalLabel.textContent = `Resolution: ${val} × ${val}`;
+        });
+
+        // Start
+        animate();
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physical Phenomena Governed by PDEs</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+    
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    
+    /* Title */
+    .title {
+      text-align: center;
+      margin-bottom: 35px;
+    }
+    
+    .title h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 10px;
+    }
+    
+    .title p {
+      font-size: 15px;
+      color: #64748b;
+    }
+    
+    .title p em {
+      color: #7c3aed;
+      font-style: normal;
+      font-weight: 500;
+    }
+    
+    /* Grid */
+    .phenomena-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+    
+    @media (max-width: 900px) {
+      .phenomena-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 600px) {
+      .phenomena-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* Panel card */
+    .panel {
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .panel:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 48px rgba(99, 102, 241, 0.18);
+    }
+    
+    .panel:hover .panel-viz {
+      transform: scale(1.02);
+    }
+    
+    .panel:hover .pde-badge {
+      background: var(--accent-color);
+      color: white;
+    }
+    
+    /* Accent colors per panel */
+    .panel-fluid { --accent-color: #3b82f6; --accent-light: #dbeafe; }
+    .panel-heat { --accent-color: #f97316; --accent-light: #ffedd5; }
+    .panel-em { --accent-color: #8b5cf6; --accent-light: #ede9fe; }
+    .panel-weather { --accent-color: #06b6d4; --accent-light: #cffafe; }
+    .panel-quantum { --accent-color: #ec4899; --accent-light: #fce7f3; }
+    .panel-elastic { --accent-color: #10b981; --accent-light: #d1fae5; }
+    
+    /* Visualization container */
+    .panel-viz {
+      width: 100%;
+      aspect-ratio: 4/3;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      background: var(--accent-light);
+      transition: transform 0.3s ease;
+      position: relative;
+    }
+    
+    .panel-viz canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    /* Content */
+    .panel-content {
+      text-align: center;
+    }
+    
+    .panel-label {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    
+    .pde-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: var(--accent-light);
+      color: var(--accent-color);
+      border-radius: 15px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: Georgia, serif;
+      font-style: italic;
+      transition: all 0.3s ease;
+    }
+    
+    /* Description tooltip */
+    .panel-description {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      color: white;
+      padding: 60px 15px 15px;
+      font-size: 12px;
+      line-height: 1.5;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    
+    .panel:hover .panel-description {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* Bottom callout */
+    .callout {
+      background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+      border: 2px solid #a78bfa;
+      border-radius: 16px;
+      padding: 20px 30px;
+      text-align: center;
+    }
+    
+    .callout-text {
+      font-size: 16px;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    
+    .callout-text strong {
+      color: #7c3aed;
+    }
+    
+    .callout-subtext {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    .callout-subtext em {
+      color: #dc2626;
+      font-style: normal;
+      font-weight: 600;
+    }
+    
+    /* Play/Pause indicator */
+    .play-indicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 28px;
+      height: 28px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+    
+    .panel:hover .play-indicator {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">
+      <h1>PDEs Describe Nearly Every Physical Phenomenon</h1>
+      <p>From fluid flow to quantum mechanics — <em>and solving them is computationally expensive</em></p>
+    </div>
+    
+    <div class="phenomena-grid">
+      <!-- Panel 1: Fluid Dynamics -->
+      <div class="panel panel-fluid" onclick="toggleAnimation(0)">
+        <div class="panel-viz">
+          <canvas id="canvas-fluid" width="320" height="240"></canvas>
+          <div class="play-indicator" id="play-0">▶</div>
+        </div>
+        <div class="panel-content">
+          <div class="panel-label">Fluid Dynamics</div>
+          <span class="pde-badge">Navier-Stokes</span>
+        </div>
+        <div class="panel-description">
+          Describes the motion of fluids — from ocean currents to airflow around aircraft wings. Notoriously difficult to solve; a $1M prize awaits anyone who proves solutions always exist.
+        </div>
+      </div>
+      
+      <!-- Panel 2: Heat Transfer -->
+      <div class="panel panel-heat" onclick="toggleAnimation(1)">
+        <div class="panel-viz">
+          <canvas id="canvas-heat" width="320" height="240"></canvas>
+          <div class="play-indicator" id="play-1">▶</div>
+        </div>
+        <div class="panel-content">
+          <div class="panel-label">Heat Transfer</div>
+          <span class="pde-badge">Heat Equation</span>
+        </div>
+        <div class="panel-description">
+          Models how temperature distributes over time. Used in everything from cooling electronics to predicting Earth's climate. One of the oldest and most studied PDEs.
+        </div>
+      </div>
+      
+      <!-- Panel 3: Electromagnetics -->
+      <div class="panel panel-em" onclick="toggleAnimation(2)">
+        <div class="panel-viz">
+          <canvas id="canvas-em" width="320" height="240"></canvas>
+          <div class="play-indicator" id="play-2">▶</div>
+        </div>
+        <div class="panel-content">
+          <div class="panel-label">Electromagnetics</div>
+          <span class="pde-badge">Maxwell's Equations</span>
+        </div>
+        <div class="panel-description">
+          Governs light, radio waves, and all electromagnetic phenomena. Foundation of modern communication, from WiFi to satellite links. Unified electricity and magnetism.
+        </div>
+      </div>
+      
+      <!-- Panel 4: Weather -->
+      <div class="panel panel-weather" onclick="toggleAnimation(3)">
+        <div class="panel-viz">
+          <canvas id="canvas-weather" width="320" height="240"></canvas>
+          <div class="play-indicator" id="play-3">▶</div>
+        </div>
+        <div class="panel-content">
+          <div class="panel-label">Weather & Climate</div>
+          <span class="pde-badge">Primitive Equations</span>
+        </div>
+        <div class="panel-description">
+          Atmospheric dynamics combining fluid flow, thermodynamics, and rotation. Weather forecasts require solving these on massive supercomputers — FNO is changing this.
+        </div>
+      </div>
+      
+      <!-- Panel 5: Quantum Mechanics -->
+      <div class="panel panel-quantum" onclick="toggleAnimation(4)">
+        <div class="panel-viz">
+          <canvas id="canvas-quantum" width="320" height="240"></canvas>
+          <div class="play-indicator" id="play-4">▶</div>
+        </div>
+        <div class="panel-content">
+          <div class="panel-label">Quantum Mechanics</div>
+          <span class="pde-badge">Schrödinger Equation</span>
+        </div>
+        <div class="panel-description">
+          Describes how quantum states evolve. Essential for understanding atoms, molecules, and semiconductors. The basis for all modern electronics and quantum computing.
+        </div>
+      </div>
+      
+      <!-- Panel 6: Structural Mechanics -->
+      <div class="panel panel-elastic" onclick="toggleAnimation(5)">
+        <div class="panel-viz">
+          <canvas id="canvas-elastic" width="320" height="240"></canvas>
+          <div class="play-indicator" id="play-5">▶</div>
+        </div>
+        <div class="panel-content">
+          <div class="panel-label">Structural Mechanics</div>
+          <span class="pde-badge">Elasticity Equations</span>
+        </div>
+        <div class="panel-description">
+          Models deformation of solid materials under stress. Critical for designing bridges, buildings, aircraft, and any structure that must withstand forces without breaking.
+        </div>
+      </div>
+    </div>
+    
+    <div class="callout">
+      <div class="callout-text">
+        <strong>Traditional solvers</strong> can take hours or days for a single simulation
+      </div>
+      <div class="callout-subtext">
+        FNO reduces this to <em>milliseconds</em> with only ~1% error
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Animation state
+    const animations = [true, true, true, true, true, true];
+    let animationFrames = [];
+    let time = 0;
+    
+    // Toggle animation
+    function toggleAnimation(index) {
+      animations[index] = !animations[index];
+      document.getElementById(`play-${index}`).textContent = animations[index] ? '▶' : '⏸';
+    }
+    
+    // ==================== FLUID DYNAMICS ====================
+    function drawFluid(canvas, t) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      // Background
+      ctx.fillStyle = '#dbeafe';
+      ctx.fillRect(0, 0, w, h);
+      
+      // Draw velocity field with streamlines
+      const numLines = 8;
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 2;
+      
+      for (let i = 0; i < numLines; i++) {
+        const startY = (i + 0.5) * h / numLines;
+        ctx.beginPath();
+        ctx.moveTo(0, startY);
+        
+        let x = 0;
+        let y = startY;
+        
+        while (x < w) {
+          // Velocity field with vortices
+          const vx = 3 + Math.sin((y / h) * Math.PI * 2 + t * 2) * 1.5;
+          const vy = Math.cos((x / w) * Math.PI * 3 + t * 1.5) * Math.sin((y / h) * Math.PI * 2) * 2;
+          
+          x += vx * 3;
+          y += vy * 3;
+          y = Math.max(10, Math.min(h - 10, y));
+          
+          ctx.lineTo(x, y);
+        }
+        
+        ctx.stroke();
+      }
+      
+      // Draw vortex centers
+      const vortexPositions = [
+        { x: w * 0.3 + Math.sin(t) * 20, y: h * 0.35 },
+        { x: w * 0.7 + Math.cos(t * 0.7) * 15, y: h * 0.65 }
+      ];
+      
+      vortexPositions.forEach((pos, idx) => {
+        // Spiral
+        ctx.strokeStyle = idx === 0 ? '#1d4ed8' : '#60a5fa';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let a = 0; a < Math.PI * 4; a += 0.1) {
+          const r = 5 + a * 4;
+          const angle = a + t * 2 * (idx === 0 ? 1 : -1);
+          const px = pos.x + Math.cos(angle) * r;
+          const py = pos.y + Math.sin(angle) * r;
+          if (a === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      });
+    }
+    
+    // ==================== HEAT TRANSFER ====================
+    function drawHeat(canvas, t) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      // Draw temperature field
+      const resolution = 40;
+      const cellW = w / resolution;
+      const cellH = h / resolution;
+      
+      // Heat source position (oscillates slightly)
+      const sourceX = w * 0.3;
+      const sourceY = h * 0.5 + Math.sin(t * 0.5) * 10;
+      
+      for (let yi = 0; yi < resolution; yi++) {
+        for (let xi = 0; xi < resolution; xi++) {
+          const px = (xi + 0.5) * cellW;
+          const py = (yi + 0.5) * cellH;
+          
+          // Distance from heat source
+          const dx = px - sourceX;
+          const dy = py - sourceY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          // Temperature decreases with distance (diffusion effect)
+          const diffusionWidth = 80 + Math.sin(t) * 10;
+          let temp = Math.exp(-dist * dist / (2 * diffusionWidth * diffusionWidth));
+          
+          // Add some variation
+          temp += 0.1 * Math.sin(px / 30 + t) * Math.cos(py / 30);
+          temp = Math.max(0, Math.min(1, temp));
+          
+          // Color: blue (cold) to red (hot)
+          const r = Math.round(255 * temp);
+          const b = Math.round(255 * (1 - temp));
+          const g = Math.round(100 * (1 - Math.abs(temp - 0.5) * 2));
+          
+          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+          ctx.fillRect(xi * cellW, yi * cellH, cellW + 1, cellH + 1);
+        }
+      }
+      
+      // Heat source indicator
+      ctx.beginPath();
+      ctx.arc(sourceX, sourceY, 12 + Math.sin(t * 3) * 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fill();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Radiating lines
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2 + t;
+        const innerR = 18;
+        const outerR = 25 + Math.sin(t * 4 + i) * 3;
+        ctx.beginPath();
+        ctx.moveTo(sourceX + Math.cos(angle) * innerR, sourceY + Math.sin(angle) * innerR);
+        ctx.lineTo(sourceX + Math.cos(angle) * outerR, sourceY + Math.sin(angle) * outerR);
+        ctx.strokeStyle = '#fcd34d';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+    
+    // ==================== ELECTROMAGNETICS ====================
+    function drawEM(canvas, t) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      // Background
+      ctx.fillStyle = '#ede9fe';
+      ctx.fillRect(0, 0, w, h);
+      
+      // Draw EM wave (E and B fields perpendicular)
+      const wavelength = 80;
+      const amplitude = 40;
+      
+      // E field (vertical oscillation) - purple
+      ctx.strokeStyle = '#8b5cf6';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let x = 0; x < w; x += 2) {
+        const phase = (x / wavelength) * Math.PI * 2 - t * 3;
+        const y = h / 2 + Math.sin(phase) * amplitude;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      
+      // B field (horizontal oscillation, shown as depth via opacity) - blue
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 2;
+      for (let x = 0; x < w; x += wavelength / 4) {
+        const phase = (x / wavelength) * Math.PI * 2 - t * 3;
+        const bValue = Math.cos(phase);
+        const opacity = 0.3 + Math.abs(bValue) * 0.5;
+        
+        ctx.beginPath();
+        ctx.moveTo(x, h / 2 - 50);
+        ctx.lineTo(x, h / 2 + 50);
+        ctx.strokeStyle = `rgba(59, 130, 246, ${opacity})`;
+        ctx.stroke();
+        
+        // Arrow head indicating direction
+        const arrowDir = bValue > 0 ? -1 : 1;
+        const arrowY = h / 2 + arrowDir * 45;
+        ctx.beginPath();
+        ctx.moveTo(x - 5, arrowY - arrowDir * 8);
+        ctx.lineTo(x, arrowY);
+        ctx.lineTo(x + 5, arrowY - arrowDir * 8);
+        ctx.stroke();
+      }
+      
+      // Propagation arrow
+      ctx.fillStyle = '#a78bfa';
+      ctx.beginPath();
+      ctx.moveTo(w - 30, h / 2);
+      ctx.lineTo(w - 50, h / 2 - 10);
+      ctx.lineTo(w - 50, h / 2 + 10);
+      ctx.fill();
+      
+      // Labels
+      ctx.font = 'italic 14px Georgia';
+      ctx.fillStyle = '#8b5cf6';
+      ctx.fillText('E', 20, h / 2 - amplitude - 10);
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillText('B', 20, h / 2 + amplitude + 20);
+    }
+    
+    // ==================== WEATHER ====================
+    function drawWeather(canvas, t) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      // Background gradient (atmosphere)
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+      bgGrad.addColorStop(0, '#0ea5e9');
+      bgGrad.addColorStop(1, '#cffafe');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+      
+      // Pressure systems
+      const highPressure = { x: w * 0.3, y: h * 0.4, label: 'H' };
+      const lowPressure = { x: w * 0.7, y: h * 0.6, label: 'L' };
+      
+      // Draw isobars (pressure contours)
+      [highPressure, lowPressure].forEach((system, idx) => {
+        const isHigh = idx === 0;
+        ctx.strokeStyle = isHigh ? '#dc2626' : '#1d4ed8';
+        
+        for (let r = 20; r < 80; r += 20) {
+          ctx.beginPath();
+          ctx.lineWidth = 1.5;
+          // Slightly deformed circles
+          for (let a = 0; a < Math.PI * 2; a += 0.1) {
+            const deform = 1 + 0.1 * Math.sin(a * 3 + t);
+            const px = system.x + Math.cos(a) * r * deform;
+            const py = system.y + Math.sin(a) * r * deform * 0.8;
+            if (a === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
+        
+        // Label
+        ctx.font = 'bold 24px system-ui';
+        ctx.fillStyle = isHigh ? '#dc2626' : '#1d4ed8';
+        ctx.textAlign = 'center';
+        ctx.fillText(system.label, system.x, system.y + 8);
+      });
+      
+      // Wind arrows (flow between systems)
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      const arrowCount = 5;
+      for (let i = 0; i < arrowCount; i++) {
+        const progress = (i + 0.5) / arrowCount;
+        const startX = highPressure.x + 60;
+        const startY = highPressure.y + (progress - 0.5) * 80;
+        
+        // Curved arrow path
+        ctx.beginPath();
+        const cp1x = w * 0.5;
+        const cp1y = startY + Math.sin(t + i) * 20;
+        const endX = lowPressure.x - 60;
+        const endY = lowPressure.y + (progress - 0.5) * 80;
+        
+        ctx.moveTo(startX, startY);
+        ctx.quadraticCurveTo(cp1x, cp1y, endX, endY);
+        ctx.stroke();
+        
+        // Arrow head
+        const angle = Math.atan2(endY - cp1y, endX - cp1x);
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - 8 * Math.cos(angle - 0.4), endY - 8 * Math.sin(angle - 0.4));
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - 8 * Math.cos(angle + 0.4), endY - 8 * Math.sin(angle + 0.4));
+        ctx.stroke();
+      }
+      
+      ctx.textAlign = 'left';
+    }
+    
+    // ==================== QUANTUM MECHANICS ====================
+    function drawQuantum(canvas, t) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      // Background
+      ctx.fillStyle = '#fce7f3';
+      ctx.fillRect(0, 0, w, h);
+      
+      const cx = w / 2;
+      const cy = h / 2;
+      
+      // Draw probability density (orbital)
+      const resolution = 50;
+      const cellW = w / resolution;
+      const cellH = h / resolution;
+      
+      for (let yi = 0; yi < resolution; yi++) {
+        for (let xi = 0; xi < resolution; xi++) {
+          const px = (xi + 0.5) * cellW - cx;
+          const py = (yi + 0.5) * cellH - cy;
+          
+          // 2p orbital shape (dumbbell)
+          const r = Math.sqrt(px * px + py * py);
+          const theta = Math.atan2(py, px);
+          
+          // Radial part * angular part for 2p_z-like
+          const radial = r * Math.exp(-r / 40);
+          const angular = Math.cos(theta + t * 0.5); // Rotating
+          const psi = radial * angular;
+          const probability = psi * psi * 0.01;
+          
+          if (probability > 0.001) {
+            const alpha = Math.min(0.8, probability * 5);
+            const hue = psi > 0 ? 320 : 280; // Pink vs purple for phase
+            ctx.fillStyle = `hsla(${hue}, 70%, 50%, ${alpha})`;
+            ctx.fillRect(xi * cellW, yi * cellH, cellW + 1, cellH + 1);
+          }
+        }
+      }
+      
+      // Nucleus
+      ctx.beginPath();
+      ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      
+      // Phase labels
+      ctx.font = '12px Georgia';
+      ctx.fillStyle = '#ec4899';
+      ctx.fillText('+ψ', cx + 50, cy - 40);
+      ctx.fillStyle = '#8b5cf6';
+      ctx.fillText('−ψ', cx - 65, cy + 50);
+    }
+    
+    // ==================== ELASTIC DEFORMATION ====================
+    function drawElastic(canvas, t) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      // Background
+      ctx.fillStyle = '#d1fae5';
+      ctx.fillRect(0, 0, w, h);
+      
+      // Fixed support (wall)
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(0, h * 0.3, 20, h * 0.4);
+      
+      // Hatching for wall
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 8; i++) {
+        const y = h * 0.3 + i * (h * 0.4 / 8);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(15, y + 10);
+        ctx.stroke();
+      }
+      
+      // Beam parameters
+      const beamStartX = 20;
+      const beamEndX = w - 40;
+      const beamY = h * 0.5;
+      const beamHeight = 30;
+      
+      // Deflection (oscillating load)
+      const loadMagnitude = 30 + Math.sin(t * 2) * 15;
+      
+      // Draw deformed beam
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.moveTo(beamStartX, beamY - beamHeight / 2);
+      
+      // Top edge with deflection
+      for (let x = beamStartX; x <= beamEndX; x += 5) {
+        const xi = (x - beamStartX) / (beamEndX - beamStartX);
+        // Cantilever deflection curve: y = (x^2)(3L - x) / (6EI) * load
+        const deflection = loadMagnitude * xi * xi * (3 - xi) / 2;
+        ctx.lineTo(x, beamY - beamHeight / 2 + deflection);
+      }
+      
+      // Right end
+      const endDeflection = loadMagnitude * 1 * 1 * (3 - 1) / 2;
+      ctx.lineTo(beamEndX, beamY + beamHeight / 2 + endDeflection);
+      
+      // Bottom edge
+      for (let x = beamEndX; x >= beamStartX; x -= 5) {
+        const xi = (x - beamStartX) / (beamEndX - beamStartX);
+        const deflection = loadMagnitude * xi * xi * (3 - xi) / 2;
+        ctx.lineTo(x, beamY + beamHeight / 2 + deflection);
+      }
+      
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#059669';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Stress visualization (color gradient along beam)
+      const stressGrad = ctx.createLinearGradient(beamStartX, 0, beamEndX * 0.4, 0);
+      stressGrad.addColorStop(0, 'rgba(239, 68, 68, 0.5)'); // High stress at fixed end
+      stressGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+      ctx.fillStyle = stressGrad;
+      ctx.fill();
+      
+      // Load arrow
+      ctx.strokeStyle = '#dc2626';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(beamEndX - 20, beamY - 50);
+      ctx.lineTo(beamEndX - 20, beamY + endDeflection - 20);
+      ctx.stroke();
+      
+      // Arrow head
+      ctx.beginPath();
+      ctx.moveTo(beamEndX - 20, beamY + endDeflection - 15);
+      ctx.lineTo(beamEndX - 27, beamY + endDeflection - 25);
+      ctx.lineTo(beamEndX - 13, beamY + endDeflection - 25);
+      ctx.fillStyle = '#dc2626';
+      ctx.fill();
+      
+      // Force label
+      ctx.font = 'bold 14px system-ui';
+      ctx.fillStyle = '#dc2626';
+      ctx.fillText('F', beamEndX - 15, beamY - 55);
+    }
+    
+    // Animation loop
+    function animate() {
+      time += 0.02;
+      
+      if (animations[0]) drawFluid(document.getElementById('canvas-fluid'), time);
+      if (animations[1]) drawHeat(document.getElementById('canvas-heat'), time);
+      if (animations[2]) drawEM(document.getElementById('canvas-em'), time);
+      if (animations[3]) drawWeather(document.getElementById('canvas-weather'), time);
+      if (animations[4]) drawQuantum(document.getElementById('canvas-quantum'), time);
+      if (animations[5]) drawElastic(document.getElementById('canvas-elastic'), time);
+      
+      requestAnimationFrame(animate);
+    }
+    
+    // Initialize
+    animate();
+  </script>
+</body>
+</html>

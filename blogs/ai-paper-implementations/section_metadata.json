@@ -1,0 +1,81 @@
+{
+  "section_id": "ai-paper-implementations",
+  "title": "AI Paper Implementations from Scratch",
+  "subtitle": "Interactive tutorials explaining foundational AI papers with theory and runnable code",
+  "description": "Deep dive into important AI and AI-for-Science papers. Each paper is broken into digestible chunks with mathematical explanations and Python implementations you can modify and run directly in your browser. Perfect for researchers and practitioners who want to truly understand how these models work.",
+  "icon": "brain-circuit",
+  "featured": true,
+  
+  "features": [
+    "Step-by-step mathematical derivations",
+    "Interactive Python code you can modify",
+    "Real-time visualizations",
+    "No local setup required - runs in browser"
+  ],
+  
+  "series": [
+    {
+      "id": "fno-paper",
+      "status": "published",
+      "featured": true,
+      "order": 1
+    }
+  ],
+  
+  "planned_series": [
+    {
+      "id": "pinns-paper",
+      "title": "Physics-Informed Neural Networks (PINNs)",
+      "paper": "Raissi, Perdikaris & Karniadakis, 2019",
+      "arxiv": "1711.10561",
+      "status": "planned",
+      "description": "Learn how to embed physical laws directly into neural network training."
+    },
+    {
+      "id": "neural-ode",
+      "title": "Neural Ordinary Differential Equations",
+      "paper": "Chen et al., 2018",
+      "arxiv": "1806.07366",
+      "status": "planned",
+      "description": "Continuous-depth neural networks using ODE solvers."
+    },
+    {
+      "id": "deeponet",
+      "title": "DeepONet: Learning Nonlinear Operators",
+      "paper": "Lu et al., 2021",
+      "arxiv": "1910.03193",
+      "status": "planned",
+      "description": "Branch-trunk architecture for learning operators between function spaces."
+    },
+    {
+      "id": "vision-transformer",
+      "title": "Vision Transformer (ViT)",
+      "paper": "Dosovitskiy et al., 2020",
+      "arxiv": "2010.11929",
+      "status": "planned",
+      "description": "Applying transformers to image recognition."
+    },
+    {
+      "id": "pangu-weather",
+      "title": "Pangu-Weather: AI Weather Forecasting",
+      "paper": "Bi et al., 2023",
+      "arxiv": "2211.02556",
+      "status": "planned",
+      "description": "3D Earth-specific transformer for weather prediction."
+    }
+  ],
+  
+  "target_audience": [
+    "Graduate students in ML/AI",
+    "Climate scientists learning ML",
+    "ML practitioners exploring scientific applications",
+    "Anyone who learns by implementing"
+  ],
+  
+  "prerequisites_general": [
+    "Python programming basics",
+    "Linear algebra fundamentals",
+    "Calculus (derivatives, integrals)",
+    "Basic neural network concepts"
+  ]
+}

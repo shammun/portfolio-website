@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traditional vs Neural PDE Solver</title>
+    <!-- Tailwind CSS for layout utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* --- TYPOGRAPHY --- */
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(180deg, #fafbff 0%, #f5f7ff 100%);
+            color: #64748b;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+
+        h1 {
+            color: #1e293b;
+            font-weight: 700;
+        }
+
+        .math-font {
+            font-family: Georgia, serif;
+            font-style: italic;
+        }
+
+        /* --- EFFECTS & FILTERS --- */
+        /* Primary Card Shadow */
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+            /* Purple tinted shadow */
+            transition: transform 0.3s ease;
+        }
+
+        /* Badge/Pill styling */
+        .badge {
+            border-radius: 13px;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- GRADIENTS --- */
+        /* Warm Gradient (Left Side) */
+        .bg-gradient-warm {
+            background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 35%, #f97316 65%, #dc2626 100%);
+        }
+
+        /* Cool Gradient (Right Side) */
+        .bg-gradient-cool {
+            background: linear-gradient(135deg, #ecfdf5 0%, #6ee7b7 35%, #14b8a6 65%, #0891b2 100%);
+        }
+
+        /* Operator Gradient (Purple) */
+        .bg-gradient-operator {
+            background: linear-gradient(90deg, #c4b5fd 0%, #a78bfa 50%, #8b5cf6 100%);
+        }
+
+        /* --- GRID HEATMAPS --- */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            padding: 4px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+        }
+
+        .left-grid-container {
+            border-color: #fdba74;
+            /* Peach border */
+            background-color: #fff7ed;
+        }
+
+        .right-grid-container {
+            border-color: #6ee7b7;
+            /* Soft Green border */
+            background-color: #ecfdf5;
+        }
+
+        .grid-cell {
+            aspect-ratio: 44/28;
+            border-radius: 2px;
+            background-color: #e2e8f0;
+            /* Empty state */
+            transition: background-color 0.1s ease;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes pulse-heat {
+            0% {
+                filter: drop-shadow(0 0 0 rgba(220, 38, 38, 0));
+            }
+
+            50% {
+                filter: drop-shadow(0 0 15px rgba(220, 38, 38, 0.6));
+            }
+
+            100% {
+                filter: drop-shadow(0 0 0 rgba(220, 38, 38, 0));
+            }
+        }
+
+        .heating-up {
+            animation: pulse-heat 1s infinite;
+        }
+
+        .lightning-flash {
+            animation: flash 0.3s ease-out forwards;
+        }
+
+        @keyframes flash {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Speedup Text Reveal */
+        .speedup-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .speedup-reveal.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Custom SVG Icon fills */
+        .icon-warm {
+            fill: #dc2626;
+        }
+
+        .icon-cool {
+            fill: #0891b2;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+
+    <!-- Title Section -->
+    <div class="text-center mb-8 max-w-2xl">
+        <h1 class="text-3xl md:text-4xl mb-2">PDE Solver Comparison</h1>
+        <p class="text-[#64748b]">Navier-Stokes Equation Solution Benchmark</p>
+        <div class="mt-4 p-3 bg-white rounded-xl border border-slate-200 inline-block shadow-sm">
+            <span class="math-font text-lg md:text-xl text-[#1e293b]">
+                <span class="text-[#c2410c]">∂<sub>t</sub>u</span> +
+                <span class="text-[#0d9488]">u⋅∇u</span> =
+                -∇p + ν∇²u
+            </span>
+        </div>
+    </div>
+
+    <!-- Main Comparison Area -->
+    <div
+        class="relative w-full max-w-3xl mx-auto flex flex-col md:flex-row gap-6 md:gap-8 items-stretch justify-center">
+
+        <!-- LEFT SIDE: TRADITIONAL -->
+        <div class="card flex-1 p-6 md:p-8 relative border-t-4 border-[#dc2626]">
+            <!-- Header -->
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <span class="badge bg-[#fff7ed] text-[#c2410c] mb-2 inline-block">Traditional Method</span>
+                    <h2 class="text-xl font-bold text-[#1e293b]">Numerical Solver</h2>
+                    <p class="text-xs text-[#94a3b8] mt-1">Finite Difference / FVM</p>
+                </div>
+                <!-- Server Icon SVG -->
+                <div id="server-icon" class="w-12 h-12 transition-all duration-300">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 4H20V20H4V4Z" stroke="#dc2626" stroke-width="2" stroke-linejoin="round"
+                            fill="#fff7ed" />
+                        <path d="M7 8H17" stroke="#fdba74" stroke-width="2" stroke-linecap="round" />
+                        <path d="M7 12H17" stroke="#fdba74" stroke-width="2" stroke-linecap="round" />
+                        <path d="M7 16H17" stroke="#fdba74" stroke-width="2" stroke-linecap="round" />
+                        <circle cx="18" cy="18" r="1" fill="#dc2626" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Visualization Area -->
+            <div class="mb-6">
+                <div class="flex justify-between text-xs font-semibold uppercase tracking-wider text-[#94a3b8] mb-2">
+                    <span>Simulation Mesh</span>
+                    <span>Iteration: <span id="iter-count" class="text-[#c2410c] font-mono">0</span></span>
+                </div>
+                <div id="grid-left" class="grid-container left-grid-container h-48 w-full">
+                    <!-- Cells injected via JS -->
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="bg-[#fafbff] rounded-lg p-4 border border-[#e2e8f0]">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-[#64748b]">Clock Time</span>
+                    <span id="timer-left" class="font-mono text-lg font-bold text-[#dc2626]">00h:00m</span>
+                </div>
+                <div class="w-full bg-[#e2e8f0] rounded-full h-2">
+                    <div id="progress-left" class="bg-gradient-warm h-2 rounded-full" style="width: 0%"></div>
+                </div>
+                <p id="status-left" class="text-xs text-[#94a3b8] mt-2 italic">Waiting to solve...</p>
+            </div>
+        </div>
+
+        <!-- CENTER DIVIDER -->
+        <div
+            class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 hidden md:flex flex-col items-center">
+            <div
+                class="w-14 h-14 rounded-full bg-gradient-operator shadow-lg flex items-center justify-center border-4 border-white">
+                <span class="text-white font-black italic text-lg pr-1">VS</span>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE: NEURAL OPERATOR -->
+        <div class="card flex-1 p-6 md:p-8 relative border-t-4 border-[#0891b2]">
+            <!-- Header -->
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <span class="badge bg-[#ecfdf5] text-[#0d9488] mb-2 inline-block">Neural Operator</span>
+                    <h2 class="text-xl font-bold text-[#1e293b]">FNO Model</h2>
+                    <p class="text-xs text-[#94a3b8] mt-1">Resolution Invariant</p>
+                </div>
+                <!-- Network Icon SVG -->
+                <div id="network-icon" class="w-12 h-12">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="6" cy="6" r="3" stroke="#0891b2" stroke-width="2" fill="#ecfdf5" />
+                        <circle cx="6" cy="18" r="3" stroke="#0891b2" stroke-width="2" fill="#ecfdf5" />
+                        <circle cx="18" cy="12" r="3" stroke="#0891b2" stroke-width="2" fill="#ecfdf5" />
+                        <path d="M8.5 7.5L15.5 10.5" stroke="#6ee7b7" stroke-width="1.5" />
+                        <path d="M8.5 16.5L15.5 13.5" stroke="#6ee7b7" stroke-width="1.5" />
+                        <path d="M16 5L20 2" stroke="#fcd34d" stroke-width="2" stroke-linecap="round"
+                            class="opacity-0 lightning-bolt" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Visualization Area -->
+            <div class="mb-6">
+                <div class="flex justify-between text-xs font-semibold uppercase tracking-wider text-[#94a3b8] mb-2">
+                    <span>Inference Output</span>
+                    <span>One-Shot</span>
+                </div>
+                <div id="grid-right" class="grid-container right-grid-container h-48 w-full">
+                    <!-- Cells injected via JS -->
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="bg-[#fafbff] rounded-lg p-4 border border-[#e2e8f0]">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-[#64748b]">Inference Time</span>
+                    <span id="timer-right" class="font-mono text-lg font-bold text-[#0891b2]">0ms</span>
+                </div>
+                <div class="w-full bg-[#e2e8f0] rounded-full h-2">
+                    <div id="progress-right" class="bg-gradient-cool h-2 rounded-full" style="width: 0%"></div>
+                </div>
+                <p id="status-right" class="text-xs text-[#94a3b8] mt-2 italic">Model ready.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Action & Result -->
+    <div class="mt-10 flex flex-col items-center justify-center w-full max-w-lg mx-auto">
+        <button id="run-btn" onclick="startSimulation()"
+            class="group relative inline-flex items-center justify-center px-8 py-3 text-base font-bold text-white transition-all duration-200 bg-gradient-operator rounded-full hover:shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+            <span>Run Comparison Simulation</span>
+            <svg class="w-5 h-5 ml-2 -mr-1 transition-transform group-hover:translate-x-1" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z">
+                </path>
+            </svg>
+        </button>
+
+        <div id="result-badge"
+            class="speedup-reveal mt-6 bg-[#1e293b] text-white px-8 py-4 rounded-xl shadow-xl flex items-center space-x-4 border border-[#6ee7b7]">
+            <div class="text-3xl">🚀</div>
+            <div class="text-left">
+                <p class="text-sm text-[#94a3b8] uppercase tracking-wider font-semibold">Result</p>
+                <p
+                    class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#6ee7b7] to-[#14b8a6]">
+                    10,000&times; Speedup
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script logic -->
+    <script>
+        const gridLeft = document.getElementById('grid-left');
+        const gridRight = document.getElementById('grid-right');
+        const CELLS_COUNT = 32; // 8x4 grid approximation
+
+        // --- 1. SETUP GRIDS ---
+        function createGrid(container) {
+            container.innerHTML = '';
+            for (let i = 0; i < CELLS_COUNT; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                container.appendChild(cell);
+            }
+        }
+
+        createGrid(gridLeft);
+        createGrid(gridRight);
+
+        // --- 2. COLOR SCALES ---
+        // Warm Gradient Colors (for Traditional)
+        const warmColors = ['#fef3c7', '#fcd34d', '#fbbf24', '#f97316', '#ea580c', '#dc2626'];
+        // Cool Gradient Colors (for FNO)
+        const coolColors = ['#ecfdf5', '#a7f3d0', '#6ee7b7', '#34d399', '#10b981', '#059669'];
+
+        let isSimulating = false;
+
+        function startSimulation() {
+            if (isSimulating) return;
+            isSimulating = true;
+
+            // Reset UI
+            document.getElementById('result-badge').classList.remove('show');
+            document.getElementById('run-btn').classList.add('opacity-50', 'cursor-not-allowed');
+            createGrid(gridLeft);
+            createGrid(gridRight);
+            document.getElementById('progress-left').style.width = '0%';
+            document.getElementById('progress-right').style.width = '0%';
+            document.getElementById('timer-left').innerText = '00h:00m';
+            document.getElementById('timer-right').innerText = '0ms';
+            document.getElementById('iter-count').innerText = '0';
+
+            // --- RIGHT SIDE (FNO) - FAST ---
+            // Triggers almost instantly
+            setTimeout(() => {
+                const rightCells = gridRight.children;
+                document.getElementById('status-right').innerText = "Inferring...";
+
+                // Flash effect
+                document.getElementById('network-icon').classList.add('lightning-flash');
+
+                // Fill all at once
+                setTimeout(() => {
+                    for (let i = 0; i < CELLS_COUNT; i++) {
+                        // Assign random cool colors to simulate flow field
+                        const colorIndex = Math.floor(Math.random() * coolColors.length);
+                        rightCells[i].style.backgroundColor = coolColors[colorIndex];
+                    }
+                    document.getElementById('timer-right').innerText = '24ms';
+                    document.getElementById('progress-right').style.width = '100%';
+                    document.getElementById('status-right').innerText = "Solution Generated.";
+                    document.getElementById('status-right').className = "text-xs text-[#059669] mt-2 font-bold";
+
+                    // Cleanup Flash
+                    setTimeout(() => {
+                        document.getElementById('network-icon').classList.remove('lightning-flash');
+                    }, 500);
+
+                }, 400); // 400ms delay to be perceptible
+            }, 100);
+
+
+            // --- LEFT SIDE (Traditional) - SLOW ---
+            const leftCells = gridLeft.children;
+            let currentCell = 0;
+            let hours = 0;
+            let iterations = 0;
+
+            document.getElementById('status-left').innerText = "Solver initiated. Iterating mesh...";
+            document.getElementById('server-icon').classList.add('heating-up');
+
+            const interval = setInterval(() => {
+                if (currentCell >= CELLS_COUNT) {
+                    // FINISHED
+                    clearInterval(interval);
+                    isSimulating = false;
+                    document.getElementById('run-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+                    document.getElementById('server-icon').classList.remove('heating-up');
+                    document.getElementById('status-left').innerText = "Convergence reached.";
+                    document.getElementById('result-badge').classList.add('show');
+                    return;
+                }
+
+                // Fill one cell
+                // Simple Perlin-noise-ish gradient logic for visual
+                const row = Math.floor(currentCell / 8);
+                const colorIndex = Math.min(warmColors.length - 1, row + Math.floor(Math.random() * 2));
+                leftCells[currentCell].style.backgroundColor = warmColors[colorIndex];
+
+                // Update Stats
+                iterations += 150;
+                hours += 2;
+
+                document.getElementById('iter-count').innerText = iterations;
+                document.getElementById('timer-left').innerText = `${hours}h:00m`;
+
+                const percent = ((currentCell + 1) / CELLS_COUNT) * 100;
+                document.getElementById('progress-left').style.width = `${percent}%`;
+
+                currentCell++;
+            }, 100); // Speed of traditional fill
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,49 @@
+{
+  "projects": [
+    {
+      "id": "fno-lst-prediction",
+      "title": "Urban Heat Island Prediction with FNO",
+      "description": "Fourier Neural Operator model for predicting land surface temperature across New York City at 70m resolution using ECOSTRESS satellite data.",
+      "long_description": "My MS thesis project applying physics-informed neural operators to urban climate prediction. The model processes ECOSTRESS thermal observations, ERA5 reanalysis, NDVI vegetation data, and urban morphology parameters to predict spatial temperature patterns.",
+      "status": "active",
+      "featured": true,
+      "image": "/images/projects/fno-lst.png",
+      "github": "https://github.com/YOUR_USERNAME/fno-lst-prediction",
+      "demo": "",
+      "paper": "",
+      "tags": ["PyTorch", "FNO", "Climate", "Remote Sensing", "ECOSTRESS"],
+      "year": 2024
+    },
+    {
+      "id": "ai-paper-tutorials",
+      "title": "AI Paper Implementations from Scratch",
+      "description": "Interactive tutorials explaining foundational AI papers with theory and runnable Python code in the browser.",
+      "status": "active",
+      "featured": true,
+      "github": "https://github.com/YOUR_USERNAME/ai-paper-tutorials",
+      "demo": "/blog/ai-paper-implementations",
+      "tags": ["Education", "Python", "Neural Networks", "Interactive"],
+      "year": 2024
+    },
+    {
+      "id": "cmip6-downscaling",
+      "title": "CMIP6 Statistical Downscaling",
+      "description": "Statistical downscaling of CMIP6 climate projections for Virginia using PRISM data with bias correction and quantile mapping.",
+      "status": "completed",
+      "github": "",
+      "tags": ["Climate", "R", "Statistics", "CMIP6"],
+      "year": 2024
+    },
+    {
+      "id": "project-placeholder-1",
+      "title": "[Another Project Title]",
+      "description": "[Brief description of the project]",
+      "status": "completed",
+      "github": "https://github.com/YOUR_USERNAME/project",
+      "tags": ["Python", "GIS"],
+      "year": 2023
+    }
+  ],
+  
+  "status_options": ["active", "completed", "archived", "planned"]
+}

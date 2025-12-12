@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FNO Benchmark Results</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    /* Title */
+    .title {
+      text-align: center;
+      margin-bottom: 35px;
+    }
+    
+    .title h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    
+    .title p {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    /* Cards container */
+    .cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    /* Benchmark card */
+    .benchmark-card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px 30px;
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 25px;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .benchmark-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 5px;
+      height: 100%;
+      background: linear-gradient(180deg, var(--accent-light), var(--accent-dark));
+    }
+    
+    .benchmark-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15);
+    }
+    
+    .benchmark-card.expanded {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto;
+    }
+    
+    /* Card accent colors */
+    .card-burgers {
+      --accent-light: #818cf8;
+      --accent-dark: #6366f1;
+    }
+    
+    .card-darcy {
+      --accent-light: #34d399;
+      --accent-dark: #10b981;
+    }
+    
+    .card-navier {
+      --accent-light: #f472b6;
+      --accent-dark: #ec4899;
+    }
+    
+    /* Icon section */
+    .card-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .card-burgers .card-icon {
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+    }
+    
+    .card-darcy .card-icon {
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    }
+    
+    .card-navier .card-icon {
+      background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+    }
+    
+    .icon-svg {
+      width: 50px;
+      height: 50px;
+    }
+    
+    /* Info section */
+    .card-info {
+      min-width: 200px;
+    }
+    
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 6px;
+    }
+    
+    .card-subtitle {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+    
+    .card-equation {
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+    
+    /* Metrics section */
+    .card-metrics {
+      display: flex;
+      gap: 20px;
+    }
+    
+    .metric {
+      text-align: center;
+      padding: 12px 20px;
+      border-radius: 12px;
+      min-width: 100px;
+    }
+    
+    .metric-error {
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+      border: 1px solid #6ee7b7;
+    }
+    
+    .metric-speed {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 1px solid #fcd34d;
+    }
+    
+    .metric-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    
+    .metric-error .metric-value {
+      color: #059669;
+    }
+    
+    .metric-speed .metric-value {
+      color: #d97706;
+    }
+    
+    .metric-icon {
+      font-size: 16px;
+    }
+    
+    /* Visualization section */
+    .card-viz {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .viz-item {
+      text-align: center;
+    }
+    
+    .viz-box {
+      width: 70px;
+      height: 50px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .viz-box canvas {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .viz-arrow {
+      color: #a78bfa;
+      font-size: 18px;
+    }
+    
+    .viz-label {
+      font-size: 9px;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 4px;
+    }
+    
+    /* Expanded details */
+    .card-details {
+      display: none;
+      grid-column: 1 / -1;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      margin-top: 15px;
+    }
+    
+    .benchmark-card.expanded .card-details {
+      display: block;
+    }
+    
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .detail-section {
+      padding: 15px;
+      background: #f8fafc;
+      border-radius: 12px;
+    }
+    
+    .detail-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .detail-content {
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.6;
+    }
+    
+    .detail-content ul {
+      margin-left: 16px;
+      margin-top: 8px;
+    }
+    
+    .detail-content li {
+      margin-bottom: 4px;
+    }
+    
+    .large-viz {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      align-items: center;
+      padding: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .large-viz-item {
+      text-align: center;
+    }
+    
+    .large-viz-box {
+      width: 140px;
+      height: 100px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border: 2px solid #e2e8f0;
+    }
+    
+    .large-viz-box canvas {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .large-viz-label {
+      font-size: 11px;
+      color: #64748b;
+      text-align: center;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+    
+    .large-viz-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .large-viz-arrow svg {
+      width: 40px;
+      height: 30px;
+    }
+    
+    .large-viz-arrow span {
+      font-size: 10px;
+      color: #7c3aed;
+      font-weight: 600;
+    }
+    
+    /* Color legend */
+    .color-legend {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 15px;
+      padding: 10px;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #64748b;
+    }
+    
+    .legend-bar {
+      width: 60px;
+      height: 12px;
+      border-radius: 3px;
+    }
+    
+    /* Summary section */
+    .summary-section {
+      background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+      border-radius: 20px;
+      padding: 25px 35px;
+      text-align: center;
+      border: 2px solid #a78bfa;
+    }
+    
+    .summary-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #7c3aed;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    
+    .summary-main {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    
+    .summary-main .highlight-green {
+      color: #059669;
+    }
+    
+    .summary-main .highlight-orange {
+      color: #d97706;
+    }
+    
+    .summary-sub {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    /* Expand indicator */
+    .expand-indicator {
+      position: absolute;
+      bottom: 10px;
+      right: 15px;
+      font-size: 11px;
+      color: #94a3b8;
+      transition: all 0.3s;
+    }
+    
+    .benchmark-card:hover .expand-indicator {
+      color: #64748b;
+    }
+    
+    .benchmark-card.expanded .expand-indicator {
+      transform: rotate(180deg);
+    }
+    
+    /* Physics annotation */
+    .physics-note {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 10px 15px;
+      margin-top: 15px;
+      font-size: 12px;
+      color: #92400e;
+    }
+    
+    .physics-note strong {
+      color: #78350f;
+    }
+    
+    /* Responsive */
+    @media (max-width: 900px) {
+      .benchmark-card {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      
+      .card-icon {
+        margin: 0 auto;
+      }
+      
+      .card-metrics {
+        justify-content: center;
+      }
+      
+      .card-viz {
+        justify-content: center;
+      }
+      
+      .details-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* Animations */
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    .metric:hover {
+      animation: pulse 0.4s ease-in-out;
+    }
+    
+    @keyframes lightning {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    .lightning-icon {
+      animation: lightning 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">
+      <h1>FNO Benchmark Results</h1>
+      <p>Performance on standard PDE benchmarks — Click cards for details</p>
+    </div>
+    
+    <div class="cards-container">
+      <!-- Card 1: Burgers' Equation -->
+      <div class="benchmark-card card-burgers" onclick="toggleCard(this)">
+        <div class="card-icon">
+          <svg class="icon-svg" viewBox="0 0 50 50">
+            <!-- Shock wave icon -->
+            <path d="M5,35 Q15,35 20,25 L20,25 L22,15 L28,35 Q35,35 45,35" 
+                  stroke="#6366f1" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <circle cx="22" cy="15" r="3" fill="#6366f1"/>
+          </svg>
+        </div>
+        
+        <div class="card-info">
+          <div class="card-title">Burgers' Equation</div>
+          <div class="card-subtitle">1D nonlinear PDE modeling shock waves and turbulence</div>
+          <div class="card-equation">∂u/∂t + u·∂u/∂x = ν·∂²u/∂x²</div>
+        </div>
+        
+        <div class="card-metrics">
+          <div class="metric metric-error">
+            <div class="metric-label">Rel. Error</div>
+            <div class="metric-value">
+              <span class="metric-icon">✓</span>
+              0.4%
+            </div>
+          </div>
+          <div class="metric metric-speed">
+            <div class="metric-label">Speedup</div>
+            <div class="metric-value">
+              <span class="metric-icon lightning-icon">⚡</span>
+              1000×
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-viz">
+          <div class="viz-item">
+            <div class="viz-box">
+              <canvas id="burgers-in-small" width="140" height="100"></canvas>
+            </div>
+            <div class="viz-label">t = 0</div>
+          </div>
+          <span class="viz-arrow">→</span>
+          <div class="viz-item">
+            <div class="viz-box">
+              <canvas id="burgers-out-small" width="140" height="100"></canvas>
+            </div>
+            <div class="viz-label">t = 1</div>
+          </div>
+        </div>
+        
+        <span class="expand-indicator">▼</span>
+        
+        <div class="card-details">
+          <div class="details-grid">
+            <div class="detail-section">
+              <div class="detail-title">Problem Description</div>
+              <div class="detail-content">
+                Burgers' equation is a fundamental PDE that combines nonlinear advection with diffusion. It develops <strong>shock waves</strong> — discontinuities that form even from smooth initial conditions.
+                <ul>
+                  <li>Domain: 1D periodic boundary</li>
+                  <li>Resolution: 8192 grid points</li>
+                  <li>Time horizon: t = 1.0</li>
+                </ul>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-title">FNO Configuration</div>
+              <div class="detail-content">
+                <ul>
+                  <li>Fourier modes: 16</li>
+                  <li>Width: 64 channels</li>
+                  <li>Layers: 4 Fourier blocks</li>
+                  <li>Training samples: 1000</li>
+                  <li>Parameters: ~500K</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="large-viz">
+            <div class="large-viz-item">
+              <div class="large-viz-box">
+                <canvas id="burgers-in-large" width="280" height="200"></canvas>
+              </div>
+              <div class="large-viz-label">Initial: Smooth wave u(x, 0)</div>
+            </div>
+            <div class="large-viz-arrow">
+              <svg viewBox="0 0 40 30">
+                <defs>
+                  <linearGradient id="arrowGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#c4b5fd"/>
+                    <stop offset="100%" style="stop-color:#7c3aed"/>
+                  </linearGradient>
+                </defs>
+                <path d="M5,15 L30,15" stroke="url(#arrowGrad1)" stroke-width="4" stroke-linecap="round"/>
+                <path d="M25,8 L35,15 L25,22" stroke="url(#arrowGrad1)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>FNO</span>
+            </div>
+            <div class="large-viz-item">
+              <div class="large-viz-box">
+                <canvas id="burgers-out-large" width="280" height="200"></canvas>
+              </div>
+              <div class="large-viz-label">Solution: Shocked wave u(x, 1)</div>
+            </div>
+          </div>
+          <div class="physics-note">
+            <strong>Physical insight:</strong> The smooth sine wave steepens due to nonlinear advection (faster parts catch up to slower parts), forming a sharp discontinuity called a <em>shock</em>. The overall wave shape is preserved but compressed.
+          </div>
+        </div>
+      </div>
+      
+      <!-- Card 2: Darcy Flow -->
+      <div class="benchmark-card card-darcy" onclick="toggleCard(this)">
+        <div class="card-icon">
+          <svg class="icon-svg" viewBox="0 0 50 50">
+            <!-- Porous media icon -->
+            <rect x="8" y="8" width="34" height="34" rx="4" stroke="#10b981" stroke-width="2" fill="none"/>
+            <circle cx="18" cy="18" r="4" fill="#6ee7b7"/>
+            <circle cx="32" cy="18" r="3" fill="#6ee7b7"/>
+            <circle cx="25" cy="28" r="5" fill="#6ee7b7"/>
+            <circle cx="15" cy="35" r="3" fill="#6ee7b7"/>
+            <circle cx="35" cy="32" r="4" fill="#6ee7b7"/>
+            <!-- Flow arrows -->
+            <path d="M5,25 L12,25" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+            <path d="M38,25 L45,25" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          </svg>
+        </div>
+        
+        <div class="card-info">
+          <div class="card-title">Darcy Flow</div>
+          <div class="card-subtitle">2D steady-state diffusion through porous media</div>
+          <div class="card-equation">−∇·(a(x)∇u(x)) = f(x)</div>
+        </div>
+        
+        <div class="card-metrics">
+          <div class="metric metric-error">
+            <div class="metric-label">Rel. Error</div>
+            <div class="metric-value">
+              <span class="metric-icon">✓</span>
+              1.0%
+            </div>
+          </div>
+          <div class="metric metric-speed">
+            <div class="metric-label">Speedup</div>
+            <div class="metric-value">
+              <span class="metric-icon lightning-icon">⚡</span>
+              1000×
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-viz">
+          <div class="viz-item">
+            <div class="viz-box">
+              <canvas id="darcy-in-small" width="140" height="100"></canvas>
+            </div>
+            <div class="viz-label">Permeability</div>
+          </div>
+          <span class="viz-arrow">→</span>
+          <div class="viz-item">
+            <div class="viz-box">
+              <canvas id="darcy-out-small" width="140" height="100"></canvas>
+            </div>
+            <div class="viz-label">Pressure</div>
+          </div>
+        </div>
+        
+        <span class="expand-indicator">▼</span>
+        
+        <div class="card-details">
+          <div class="details-grid">
+            <div class="detail-section">
+              <div class="detail-title">Problem Description</div>
+              <div class="detail-content">
+                Darcy flow models fluid flow through porous materials. Given a <strong>permeability field</strong> a(x), predict the <strong>pressure field</strong> u(x).
+                <ul>
+                  <li>Domain: 2D unit square</li>
+                  <li>Resolution: 421 × 421</li>
+                  <li>Boundary: Dirichlet</li>
+                </ul>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-title">FNO Configuration</div>
+              <div class="detail-content">
+                <ul>
+                  <li>Fourier modes: 12 × 12</li>
+                  <li>Width: 32 channels</li>
+                  <li>Layers: 4 Fourier blocks</li>
+                  <li>Training samples: 1000</li>
+                  <li>Parameters: ~930K</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="large-viz">
+            <div class="large-viz-item">
+              <div class="large-viz-box">
+                <canvas id="darcy-in-large" width="280" height="200"></canvas>
+              </div>
+              <div class="large-viz-label">Permeability a(x) — patchy</div>
+            </div>
+            <div class="large-viz-arrow">
+              <svg viewBox="0 0 40 30">
+                <path d="M5,15 L30,15" stroke="url(#arrowGrad1)" stroke-width="4" stroke-linecap="round"/>
+                <path d="M25,8 L35,15 L25,22" stroke="url(#arrowGrad1)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>FNO</span>
+            </div>
+            <div class="large-viz-item">
+              <div class="large-viz-box">
+                <canvas id="darcy-out-large" width="280" height="200"></canvas>
+              </div>
+              <div class="large-viz-label">Pressure u(x) — smoothed</div>
+            </div>
+          </div>
+          <div class="color-legend">
+            <div class="legend-item">
+              <span>Permeability:</span>
+              <div class="legend-bar" style="background: linear-gradient(90deg, #fef3c7, #f97316, #dc2626);"></div>
+              <span>Low → High</span>
+            </div>
+            <div class="legend-item">
+              <span>Pressure:</span>
+              <div class="legend-bar" style="background: linear-gradient(90deg, #ecfdf5, #14b8a6, #0891b2);"></div>
+              <span>Low → High</span>
+            </div>
+          </div>
+          <div class="physics-note">
+            <strong>Physical insight:</strong> High permeability regions (orange/red patches) allow easier flow, creating <em>lower pressure gradients</em>. The pressure field is a smoothed version that "averages out" the patchy permeability, with pressure building up before low-permeability barriers.
+          </div>
+        </div>
+      </div>
+      
+      <!-- Card 3: Navier-Stokes -->
+      <div class="benchmark-card card-navier" onclick="toggleCard(this)">
+        <div class="card-icon">
+          <svg class="icon-svg" viewBox="0 0 50 50">
+            <!-- Vortex/turbulence icon -->
+            <circle cx="25" cy="25" r="18" stroke="#ec4899" stroke-width="2" fill="none"/>
+            <path d="M25,12 Q35,20 30,28 Q25,36 18,30 Q12,24 20,18 Q28,12 25,22" 
+                  stroke="#f472b6" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <circle cx="25" cy="22" r="3" fill="#ec4899"/>
+          </svg>
+        </div>
+        
+        <div class="card-info">
+          <div class="card-title">Navier-Stokes</div>
+          <div class="card-subtitle">2D incompressible fluid dynamics with turbulence</div>
+          <div class="card-equation">∂ω/∂t + u·∇ω = ν∇²ω + f</div>
+        </div>
+        
+        <div class="card-metrics">
+          <div class="metric metric-error">
+            <div class="metric-label">Rel. Error</div>
+            <div class="metric-value">
+              <span class="metric-icon">✓</span>
+              1.0%
+            </div>
+          </div>
+          <div class="metric metric-speed">
+            <div class="metric-label">Speedup</div>
+            <div class="metric-value">
+              <span class="metric-icon lightning-icon">⚡⚡</span>
+              10000×
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-viz">
+          <div class="viz-item">
+            <div class="viz-box">
+              <canvas id="navier-in-small" width="140" height="100"></canvas>
+            </div>
+            <div class="viz-label">t = 10</div>
+          </div>
+          <span class="viz-arrow">→</span>
+          <div class="viz-item">
+            <div class="viz-box">
+              <canvas id="navier-out-small" width="140" height="100"></canvas>
+            </div>
+            <div class="viz-label">t = 40</div>
+          </div>
+        </div>
+        
+        <span class="expand-indicator">▼</span>
+        
+        <div class="card-details">
+          <div class="details-grid">
+            <div class="detail-section">
+              <div class="detail-title">Problem Description</div>
+              <div class="detail-content">
+                The Navier-Stokes equations govern fluid motion. This benchmark predicts turbulent <strong>vorticity field evolution</strong> — the most challenging test for neural operators.
+                <ul>
+                  <li>Domain: 2D periodic torus</li>
+                  <li>Resolution: 64 × 64</li>
+                  <li>Time steps: 10 → 40</li>
+                  <li>Reynolds number: 1000</li>
+                </ul>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-title">FNO Configuration</div>
+              <div class="detail-content">
+                <ul>
+                  <li>Fourier modes: 12 × 12</li>
+                  <li>Width: 20 channels</li>
+                  <li>Layers: 4 Fourier blocks</li>
+                  <li>Training samples: 1000</li>
+                  <li>Autoregressive: 10 steps → 30 steps</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="large-viz">
+            <div class="large-viz-item">
+              <div class="large-viz-box">
+                <canvas id="navier-in-large" width="280" height="200"></canvas>
+              </div>
+              <div class="large-viz-label">Vorticity ω(t=10) — distinct vortices</div>
+            </div>
+            <div class="large-viz-arrow">
+              <svg viewBox="0 0 40 30">
+                <path d="M5,15 L30,15" stroke="url(#arrowGrad1)" stroke-width="4" stroke-linecap="round"/>
+                <path d="M25,8 L35,15 L25,22" stroke="url(#arrowGrad1)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>FNO</span>
+            </div>
+            <div class="large-viz-item">
+              <div class="large-viz-box">
+                <canvas id="navier-out-large" width="280" height="200"></canvas>
+              </div>
+              <div class="large-viz-label">Vorticity ω(t=40) — merged & stretched</div>
+            </div>
+          </div>
+          <div class="color-legend">
+            <div class="legend-item">
+              <span>Vorticity:</span>
+              <div class="legend-bar" style="background: linear-gradient(90deg, #3b82f6, #f8fafc, #ef4444);"></div>
+              <span>−ω (CW) → 0 → +ω (CCW)</span>
+            </div>
+          </div>
+          <div class="physics-note">
+            <strong>Physical insight:</strong> The two initial vortices (blue=clockwise, red=counter-clockwise) interact and merge over time. They stretch, wrap around each other, and eventually form a more complex pattern while conserving total circulation. Notice how the original vortex centers are still visible but deformed.
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Summary -->
+    <div class="summary-section">
+      <div class="summary-label">Key Takeaway</div>
+      <div class="summary-main">
+        Consistent <span class="highlight-green">~1% error</span> with 
+        <span class="highlight-orange">1,000–10,000× speedup</span>
+      </div>
+      <div class="summary-sub">
+        FNO achieves near-solver accuracy while being orders of magnitude faster than traditional numerical methods
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Toggle card expansion
+    function toggleCard(card) {
+      card.classList.toggle('expanded');
+    }
+    
+    // Color interpolation
+    function interpolateColor(colors, t) {
+      t = Math.max(0, Math.min(1, t));
+      const n = colors.length - 1;
+      const i = Math.min(Math.floor(t * n), n - 1);
+      const f = t * n - i;
+      const c1 = colors[i];
+      const c2 = colors[i + 1];
+      return [
+        Math.round(c1[0] + (c2[0] - c1[0]) * f),
+        Math.round(c1[1] + (c2[1] - c1[1]) * f),
+        Math.round(c1[2] + (c2[2] - c1[2]) * f)
+      ];
+    }
+    
+    // Warm colors (orange) for permeability
+    const warmColors = [
+      [254, 243, 199], // cream
+      [252, 211, 77],  // yellow
+      [249, 115, 22],  // orange
+      [220, 38, 38]    // red
+    ];
+    
+    // Cool colors (teal) for pressure
+    const coolColors = [
+      [236, 253, 245], // mint
+      [110, 231, 183], // light teal
+      [20, 184, 166],  // teal
+      [8, 145, 178]    // cyan
+    ];
+    
+    // Diverging blue-white-red for vorticity
+    const vorticityColors = [
+      [59, 130, 246],   // blue (negative/clockwise)
+      [147, 197, 253],  // light blue
+      [248, 250, 252],  // near white (zero)
+      [252, 165, 165],  // light red
+      [239, 68, 68]     // red (positive/counter-clockwise)
+    ];
+    
+    // ===================== BURGERS' EQUATION =====================
+    function drawBurgersWave(canvasId, time, isLarge = false) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      ctx.clearRect(0, 0, w, h);
+      
+      // Background gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+      bgGrad.addColorStop(0, '#f8fafc');
+      bgGrad.addColorStop(1, '#f1f5f9');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+      
+      // Grid lines (subtle)
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < 5; i++) {
+        const y = h * (0.2 + i * 0.15);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+      
+      // Compute wave points
+      const points = [];
+      const numPoints = 200;
+      
+      for (let i = 0; i <= numPoints; i++) {
+        const x = i / numPoints;
+        let u;
+        
+        if (time === 0) {
+          // Initial condition: smooth sine wave
+          u = 0.5 + 0.35 * Math.sin(2 * Math.PI * x);
+        } else {
+          // Evolved: wave steepens into shock
+          // Simulate characteristic intersection
+          const phase = 2 * Math.PI * x;
+          const steepening = 0.8; // Amount of steepening
+          
+          // Create shock by compressing the rising part
+          if (x < 0.25 + 0.1 * time) {
+            u = 0.5 + 0.35 * Math.sin(phase * (1 + steepening * 0.5));
+          } else if (x < 0.35 + 0.05 * time) {
+            // Sharp transition (shock)
+            const shockPos = 0.3 + 0.075 * time;
+            const shockWidth = 0.03;
+            const dist = (x - shockPos) / shockWidth;
+            u = 0.85 - 0.7 / (1 + Math.exp(-dist * 8));
+          } else {
+            // Post-shock smooth region
+            u = 0.15 + 0.2 * Math.sin(phase * 0.8 + 1);
+          }
+        }
+        
+        points.push({ x: x * w, y: h * (1 - u) });
+      }
+      
+      // Fill under curve
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      points.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      
+      const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
+      if (time === 0) {
+        fillGrad.addColorStop(0, 'rgba(249, 115, 22, 0.3)');
+        fillGrad.addColorStop(1, 'rgba(249, 115, 22, 0.05)');
+      } else {
+        fillGrad.addColorStop(0, 'rgba(20, 184, 166, 0.3)');
+        fillGrad.addColorStop(1, 'rgba(20, 184, 166, 0.05)');
+      }
+      ctx.fillStyle = fillGrad;
+      ctx.fill();
+      
+      // Draw wave line
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      points.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.strokeStyle = time === 0 ? '#f97316' : '#14b8a6';
+      ctx.lineWidth = isLarge ? 3 : 2;
+      ctx.stroke();
+      
+      // Add shock indicator for evolved wave
+      if (time === 1 && isLarge) {
+        const shockX = w * 0.32;
+        ctx.setLineDash([5, 3]);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(shockX, h * 0.1);
+        ctx.lineTo(shockX, h * 0.9);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Label
+        ctx.fillStyle = '#ef4444';
+        ctx.font = '10px system-ui';
+        ctx.fillText('shock', shockX + 5, h * 0.15);
+      }
+    }
+    
+    // ===================== DARCY FLOW =====================
+    // Generate consistent permeability field
+    function generatePermeabilityField(resolution, seed = 42) {
+      const field = [];
+      // Use seeded pseudo-random for consistency
+      const random = (x, y) => {
+        const dot = x * 12.9898 + y * 78.233 + seed;
+        return (Math.sin(dot) * 43758.5453) % 1;
+      };
+      
+      for (let yi = 0; yi < resolution; yi++) {
+        const row = [];
+        for (let xi = 0; xi < resolution; xi++) {
+          const nx = xi / resolution;
+          const ny = yi / resolution;
+          
+          // Create patchy permeability with distinct high/low regions
+          let value = 0.5;
+          
+          // Large patches
+          value += 0.3 * Math.sin(nx * 4 * Math.PI) * Math.sin(ny * 3 * Math.PI);
+          value += 0.2 * Math.cos(nx * 6 * Math.PI + 1) * Math.cos(ny * 5 * Math.PI);
+          
+          // Sharp boundaries (step function-like)
+          const blob1 = Math.exp(-((nx - 0.3) ** 2 + (ny - 0.3) ** 2) * 20);
+          const blob2 = Math.exp(-((nx - 0.7) ** 2 + (ny - 0.6) ** 2) * 15);
+          const blob3 = Math.exp(-((nx - 0.5) ** 2 + (ny - 0.8) ** 2) * 25);
+          
+          value += 0.4 * blob1 - 0.3 * blob2 + 0.35 * blob3;
+          
+          row.push(Math.max(0.1, Math.min(0.95, value)));
+        }
+        field.push(row);
+      }
+      return field;
+    }
+    
+    // Generate pressure field that responds to permeability
+    function generatePressureField(permeability, resolution) {
+      const field = [];
+      
+      for (let yi = 0; yi < resolution; yi++) {
+        const row = [];
+        for (let xi = 0; xi < resolution; xi++) {
+          const nx = xi / resolution;
+          const ny = yi / resolution;
+          
+          // Base pressure gradient (left to right)
+          let value = 0.1 + 0.8 * nx;
+          
+          // Pressure builds up before low-permeability regions
+          // and drops after high-permeability regions
+          // This is a simplified model of the actual physics
+          
+          // Sample nearby permeability
+          let localPerm = permeability[yi][xi];
+          
+          // Average with neighbors for smoothing
+          let avgPerm = localPerm;
+          let count = 1;
+          for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+              const nyi = Math.max(0, Math.min(resolution - 1, yi + dy));
+              const nxi = Math.max(0, Math.min(resolution - 1, xi + dx));
+              avgPerm += permeability[nyi][nxi];
+              count++;
+            }
+          }
+          avgPerm /= count;
+          
+          // Low permeability → higher pressure upstream, lower downstream
+          // Modulate the base gradient
+          value *= (0.7 + 0.6 * avgPerm);
+          
+          // Add some smooth variation
+          value += 0.1 * Math.sin(ny * Math.PI * 2) * Math.cos(nx * Math.PI);
+          
+          row.push(Math.max(0, Math.min(1, value)));
+        }
+        field.push(row);
+      }
+      return field;
+    }
+    
+    function draw2DField(canvasId, field, colors, resolution) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      const cellW = w / resolution;
+      const cellH = h / resolution;
+      
+      for (let yi = 0; yi < resolution; yi++) {
+        for (let xi = 0; xi < resolution; xi++) {
+          const value = field[yi][xi];
+          const color = interpolateColor(colors, value);
+          ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+          ctx.fillRect(xi * cellW, yi * cellH, cellW + 1, cellH + 1);
+        }
+      }
+    }
+    
+    // ===================== NAVIER-STOKES =====================
+    function generateVorticityField(resolution, time) {
+      const field = [];
+      
+      // Center of the domain
+      const cx = 0.5, cy = 0.5;
+      
+      // Initial vortex positions (symmetric about center)
+      const initialSeparation = 0.15;
+      
+      // Time evolution parameters
+      // At t=0: vortices are horizontal (left-right)
+      // At t=1: vortices have rotated ~50 degrees and stretched
+      const rotationAngle = time * 0.9; // ~50 degrees at t=1
+      const diffusionFactor = 1 + time * 0.4; // Vortices spread out
+      const stretchFactor = 1 + time * 0.3; // Vortices elongate
+      
+      const cosA = Math.cos(rotationAngle);
+      const sinA = Math.sin(rotationAngle);
+      
+      // Vortex 1: positive (CCW, red) - starts on left
+      const v1x = cx + initialSeparation * cosA;
+      const v1y = cy + initialSeparation * sinA;
+      
+      // Vortex 2: negative (CW, blue) - starts on right
+      const v2x = cx - initialSeparation * cosA;
+      const v2y = cy - initialSeparation * sinA;
+      
+      // Base vortex size
+      const baseSize = 0.10;
+      const vortexSize = baseSize * diffusionFactor;
+      
+      // Direction perpendicular to vortex pair axis (for stretching)
+      const perpX = -sinA;
+      const perpY = cosA;
+      
+      for (let yi = 0; yi < resolution; yi++) {
+        const row = [];
+        for (let xi = 0; xi < resolution; xi++) {
+          const nx = xi / resolution;
+          const ny = yi / resolution;
+          
+          // --- Vortex 1 (positive/red) ---
+          let dx1 = nx - v1x;
+          let dy1 = ny - v1y;
+          
+          // Apply stretching perpendicular to the pair axis
+          if (time > 0) {
+            const alongAxis1 = dx1 * cosA + dy1 * sinA;
+            const perpAxis1 = dx1 * perpX + dy1 * perpY;
+            dx1 = alongAxis1 * cosA + perpAxis1 * perpX / stretchFactor;
+            dy1 = alongAxis1 * sinA + perpAxis1 * perpY / stretchFactor;
+          }
+          
+          const r1sq = dx1 * dx1 + dy1 * dy1;
+          const omega1 = Math.exp(-r1sq / (2 * vortexSize * vortexSize));
+          
+          // --- Vortex 2 (negative/blue) ---
+          let dx2 = nx - v2x;
+          let dy2 = ny - v2y;
+          
+          // Apply stretching
+          if (time > 0) {
+            const alongAxis2 = dx2 * cosA + dy2 * sinA;
+            const perpAxis2 = dx2 * perpX + dy2 * perpY;
+            dx2 = alongAxis2 * cosA + perpAxis2 * perpX / stretchFactor;
+            dy2 = alongAxis2 * sinA + perpAxis2 * perpY / stretchFactor;
+          }
+          
+          const r2sq = dx2 * dx2 + dy2 * dy2;
+          const omega2 = -Math.exp(-r2sq / (2 * vortexSize * vortexSize));
+          
+          // Combined vorticity
+          let omega = omega1 + omega2;
+          
+          // Add trailing tails at evolved time (wrapping effect)
+          if (time > 0) {
+            // Tail behind vortex 1 (wrapping from vortex 2's influence)
+            const tailAngle1 = Math.atan2(ny - v1y, nx - v1x);
+            const r1 = Math.sqrt(r1sq);
+            const tailDir1 = rotationAngle + Math.PI; // Opposite to rotation
+            const tailAlignment1 = Math.cos(tailAngle1 - tailDir1);
+            if (tailAlignment1 > 0 && r1 > vortexSize && r1 < vortexSize * 3) {
+              const tailStrength = 0.2 * tailAlignment1 * Math.exp(-(r1 - vortexSize) / (vortexSize * 1.5));
+              omega += tailStrength;
+            }
+            
+            // Tail behind vortex 2
+            const tailAngle2 = Math.atan2(ny - v2y, nx - v2x);
+            const r2 = Math.sqrt(r2sq);
+            const tailDir2 = rotationAngle; // Rotation direction
+            const tailAlignment2 = Math.cos(tailAngle2 - tailDir2);
+            if (tailAlignment2 > 0 && r2 > vortexSize && r2 < vortexSize * 3) {
+              const tailStrength = 0.2 * tailAlignment2 * Math.exp(-(r2 - vortexSize) / (vortexSize * 1.5));
+              omega -= tailStrength;
+            }
+          }
+          
+          // Normalize to [0, 1] range where 0.5 is zero vorticity
+          const normalized = 0.5 + omega * 0.45;
+          row.push(Math.max(0, Math.min(1, normalized)));
+        }
+        field.push(row);
+      }
+      return field;
+    }
+    
+    function drawVorticityField(canvasId, field, resolution) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      const cellW = w / resolution;
+      const cellH = h / resolution;
+      
+      for (let yi = 0; yi < resolution; yi++) {
+        for (let xi = 0; xi < resolution; xi++) {
+          const value = field[yi][xi];
+          const color = interpolateColor(vorticityColors, value);
+          ctx.fillStyle = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+          ctx.fillRect(xi * cellW, yi * cellH, cellW + 1, cellH + 1);
+        }
+      }
+    }
+    
+    // ===================== INITIALIZATION =====================
+    function initVisualizations() {
+      // Burgers' Equation
+      drawBurgersWave('burgers-in-small', 0, false);
+      drawBurgersWave('burgers-out-small', 1, false);
+      drawBurgersWave('burgers-in-large', 0, true);
+      drawBurgersWave('burgers-out-large', 1, true);
+      
+      // Darcy Flow - generate consistent fields
+      const permResSmall = 20;
+      const permResLarge = 40;
+      
+      const permFieldSmall = generatePermeabilityField(permResSmall);
+      const pressFieldSmall = generatePressureField(permFieldSmall, permResSmall);
+      draw2DField('darcy-in-small', permFieldSmall, warmColors, permResSmall);
+      draw2DField('darcy-out-small', pressFieldSmall, coolColors, permResSmall);
+      
+      const permFieldLarge = generatePermeabilityField(permResLarge);
+      const pressFieldLarge = generatePressureField(permFieldLarge, permResLarge);
+      draw2DField('darcy-in-large', permFieldLarge, warmColors, permResLarge);
+      draw2DField('darcy-out-large', pressFieldLarge, coolColors, permResLarge);
+      
+      // Navier-Stokes - time evolution
+      const nsResSmall = 25;
+      const nsResLarge = 50;
+      
+      const vortFieldInitSmall = generateVorticityField(nsResSmall, 0);
+      const vortFieldEvolvedSmall = generateVorticityField(nsResSmall, 1);
+      drawVorticityField('navier-in-small', vortFieldInitSmall, nsResSmall);
+      drawVorticityField('navier-out-small', vortFieldEvolvedSmall, nsResSmall);
+      
+      const vortFieldInitLarge = generateVorticityField(nsResLarge, 0);
+      const vortFieldEvolvedLarge = generateVorticityField(nsResLarge, 1);
+      drawVorticityField('navier-in-large', vortFieldInitLarge, nsResLarge);
+      drawVorticityField('navier-out-large', vortFieldEvolvedLarge, nsResLarge);
+    }
+    
+    // Run on load
+    initVisualizations();
+  </script>
+</body>
+</html>

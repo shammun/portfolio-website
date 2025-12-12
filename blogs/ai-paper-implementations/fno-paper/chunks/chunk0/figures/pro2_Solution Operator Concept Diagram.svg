@@ -1,0 +1,250 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 600">
+  <defs>
+    <!-- Clean gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fafbff"/>
+      <stop offset="100%" style="stop-color:#f5f7ff"/>
+    </linearGradient>
+    
+    <!-- Warm heatmap for input -->
+    <linearGradient id="warmGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#fef3c7"/>
+      <stop offset="35%" style="stop-color:#fcd34d"/>
+      <stop offset="65%" style="stop-color:#f97316"/>
+      <stop offset="100%" style="stop-color:#dc2626"/>
+    </linearGradient>
+    
+    <!-- Cool heatmap for output -->
+    <linearGradient id="coolGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ecfdf5"/>
+      <stop offset="35%" style="stop-color:#6ee7b7"/>
+      <stop offset="65%" style="stop-color:#14b8a6"/>
+      <stop offset="100%" style="stop-color:#0891b2"/>
+    </linearGradient>
+    
+    <!-- Operator gradient -->
+    <linearGradient id="operatorGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#c4b5fd"/>
+      <stop offset="50%" style="stop-color:#a78bfa"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+    
+    <!-- Subtle shadows -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366f1" flood-opacity="0.12"/>
+    </filter>
+    
+    <filter id="smallShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1100" height="600" fill="url(#bgGrad)"/>
+  
+  <!-- Title -->
+  <text x="550" y="45" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#1e293b">The Solution Operator</text>
+  <text x="550" y="72" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#64748b">Mapping initial conditions to PDE solutions</text>
+  
+  <!-- ==================== LEFT: Input Function ==================== -->
+  <g transform="translate(70, 110)">
+    <!-- Card -->
+    <rect width="280" height="310" rx="16" fill="white" filter="url(#shadow)"/>
+    
+    <!-- Header -->
+    <text x="140" y="35" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#64748b" letter-spacing="0.5">INPUT FUNCTION</text>
+    <text x="140" y="62" text-anchor="middle" font-family="Georgia, serif" font-size="28" font-style="italic" fill="#ea580c">a(x)</text>
+    
+    <!-- Heatmap visualization -->
+    <g transform="translate(30, 85)">
+      <rect width="220" height="140" rx="8" fill="#fef3c7"/>
+      
+      <!-- Heatmap cells - irregular pattern showing initial condition -->
+      <g>
+        <!-- Row 1 -->
+        <rect x="0" y="0" width="44" height="28" rx="2" fill="#fef3c7"/>
+        <rect x="44" y="0" width="44" height="28" rx="2" fill="#fcd34d"/>
+        <rect x="88" y="0" width="44" height="28" rx="2" fill="#f97316"/>
+        <rect x="132" y="0" width="44" height="28" rx="2" fill="#dc2626"/>
+        <rect x="176" y="0" width="44" height="28" rx="2" fill="#f97316"/>
+        
+        <!-- Row 2 -->
+        <rect x="0" y="28" width="44" height="28" rx="2" fill="#fcd34d"/>
+        <rect x="44" y="28" width="44" height="28" rx="2" fill="#f97316"/>
+        <rect x="88" y="28" width="44" height="28" rx="2" fill="#dc2626"/>
+        <rect x="132" y="28" width="44" height="28" rx="2" fill="#dc2626"/>
+        <rect x="176" y="28" width="44" height="28" rx="2" fill="#f97316"/>
+        
+        <!-- Row 3 -->
+        <rect x="0" y="56" width="44" height="28" rx="2" fill="#fef3c7"/>
+        <rect x="44" y="56" width="44" height="28" rx="2" fill="#fcd34d"/>
+        <rect x="88" y="56" width="44" height="28" rx="2" fill="#f97316"/>
+        <rect x="132" y="56" width="44" height="28" rx="2" fill="#f97316"/>
+        <rect x="176" y="56" width="44" height="28" rx="2" fill="#fcd34d"/>
+        
+        <!-- Row 4 -->
+        <rect x="0" y="84" width="44" height="28" rx="2" fill="#fef3c7"/>
+        <rect x="44" y="84" width="44" height="28" rx="2" fill="#fef3c7"/>
+        <rect x="88" y="84" width="44" height="28" rx="2" fill="#fcd34d"/>
+        <rect x="132" y="84" width="44" height="28" rx="2" fill="#fcd34d"/>
+        <rect x="176" y="84" width="44" height="28" rx="2" fill="#fef3c7"/>
+        
+        <!-- Row 5 -->
+        <rect x="0" y="112" width="44" height="28" rx="2" fill="#fef3c7"/>
+        <rect x="44" y="112" width="44" height="28" rx="2" fill="#fef3c7"/>
+        <rect x="88" y="112" width="44" height="28" rx="2" fill="#fef3c7"/>
+        <rect x="132" y="112" width="44" height="28" rx="2" fill="#fcd34d"/>
+        <rect x="176" y="112" width="44" height="28" rx="2" fill="#fef3c7"/>
+      </g>
+      
+      <!-- Border -->
+      <rect width="220" height="140" rx="8" fill="none" stroke="#fdba74" stroke-width="2"/>
+    </g>
+    
+    <!-- Label badge -->
+    <rect x="40" y="240" width="200" height="26" rx="13" fill="#fff7ed"/>
+    <text x="140" y="258" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="500" fill="#c2410c">Initial Condition</text>
+    
+    <!-- Examples -->
+    <text x="140" y="290" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#94a3b8">temperature, velocity, coefficients</text>
+  </g>
+  
+  <!-- ==================== CENTER: Operator ==================== -->
+  <g transform="translate(400, 180)">
+    <!-- Simple clean arrow -->
+    <g filter="url(#smallShadow)">
+      <!-- Arrow shape -->
+      <path d="M0,85 L220,85 L220,50 L300,100 L220,150 L220,115 L0,115 Z" 
+            fill="url(#operatorGrad)"/>
+    </g>
+    
+    <!-- Operator symbol -->
+    <g transform="translate(110, 100)">
+      <!-- White circle background -->
+      <circle r="40" fill="white" filter="url(#smallShadow)"/>
+      
+      <!-- G symbol -->
+      <text x="0" y="12" text-anchor="middle" font-family="Georgia, serif" font-size="42" font-weight="600" fill="#7c3aed">𝒢</text>
+    </g>
+    
+    <!-- Label above -->
+    <text x="150" y="25" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" font-weight="600" fill="#1e293b">Solution Operator</text>
+    
+    <!-- Subtitle -->
+    <text x="150" y="185" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#7c3aed" font-weight="500">Learned Mapping</text>
+  </g>
+  
+  <!-- ==================== RIGHT: Output Function ==================== -->
+  <g transform="translate(750, 110)">
+    <!-- Card -->
+    <rect width="280" height="310" rx="16" fill="white" filter="url(#shadow)"/>
+    
+    <!-- Header -->
+    <text x="140" y="35" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#64748b" letter-spacing="0.5">OUTPUT FUNCTION</text>
+    <text x="140" y="62" text-anchor="middle" font-family="Georgia, serif" font-size="28" font-style="italic" fill="#0d9488">u(x)</text>
+    
+    <!-- Heatmap visualization - smoother/diffused pattern -->
+    <g transform="translate(30, 85)">
+      <rect width="220" height="140" rx="8" fill="#ecfdf5"/>
+      
+      <!-- Heatmap cells - smoother, more diffused pattern (solution) -->
+      <g>
+        <!-- Row 1 -->
+        <rect x="0" y="0" width="44" height="28" rx="2" fill="#6ee7b7"/>
+        <rect x="44" y="0" width="44" height="28" rx="2" fill="#14b8a6"/>
+        <rect x="88" y="0" width="44" height="28" rx="2" fill="#14b8a6"/>
+        <rect x="132" y="0" width="44" height="28" rx="2" fill="#14b8a6"/>
+        <rect x="176" y="0" width="44" height="28" rx="2" fill="#6ee7b7"/>
+        
+        <!-- Row 2 -->
+        <rect x="0" y="28" width="44" height="28" rx="2" fill="#6ee7b7"/>
+        <rect x="44" y="28" width="44" height="28" rx="2" fill="#14b8a6"/>
+        <rect x="88" y="28" width="44" height="28" rx="2" fill="#0891b2"/>
+        <rect x="132" y="28" width="44" height="28" rx="2" fill="#14b8a6"/>
+        <rect x="176" y="28" width="44" height="28" rx="2" fill="#6ee7b7"/>
+        
+        <!-- Row 3 -->
+        <rect x="0" y="56" width="44" height="28" rx="2" fill="#ecfdf5"/>
+        <rect x="44" y="56" width="44" height="28" rx="2" fill="#6ee7b7"/>
+        <rect x="88" y="56" width="44" height="28" rx="2" fill="#14b8a6"/>
+        <rect x="132" y="56" width="44" height="28" rx="2" fill="#6ee7b7"/>
+        <rect x="176" y="56" width="44" height="28" rx="2" fill="#ecfdf5"/>
+        
+        <!-- Row 4 -->
+        <rect x="0" y="84" width="44" height="28" rx="2" fill="#ecfdf5"/>
+        <rect x="44" y="84" width="44" height="28" rx="2" fill="#ecfdf5"/>
+        <rect x="88" y="84" width="44" height="28" rx="2" fill="#6ee7b7"/>
+        <rect x="132" y="84" width="44" height="28" rx="2" fill="#ecfdf5"/>
+        <rect x="176" y="84" width="44" height="28" rx="2" fill="#ecfdf5"/>
+        
+        <!-- Row 5 -->
+        <rect x="0" y="112" width="44" height="28" rx="2" fill="#ecfdf5"/>
+        <rect x="44" y="112" width="44" height="28" rx="2" fill="#ecfdf5"/>
+        <rect x="88" y="112" width="44" height="28" rx="2" fill="#ecfdf5"/>
+        <rect x="132" y="112" width="44" height="28" rx="2" fill="#ecfdf5"/>
+        <rect x="176" y="112" width="44" height="28" rx="2" fill="#ecfdf5"/>
+      </g>
+      
+      <!-- Border -->
+      <rect width="220" height="140" rx="8" fill="none" stroke="#6ee7b7" stroke-width="2"/>
+    </g>
+    
+    <!-- Label badge -->
+    <rect x="40" y="240" width="200" height="26" rx="13" fill="#ecfdf5"/>
+    <text x="140" y="258" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="500" fill="#047857">PDE Solution</text>
+    
+    <!-- Examples -->
+    <text x="140" y="290" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#94a3b8">evolved field, final state</text>
+  </g>
+  
+  <!-- ==================== BOTTOM: Key equation ==================== -->
+  <g transform="translate(550, 480)">
+    <!-- Background pill -->
+    <rect x="-280" y="-25" width="560" height="50" rx="25" fill="white" filter="url(#shadow)"/>
+    
+    <!-- Mathematical notation -->
+    <text x="-180" y="8" text-anchor="middle" font-family="Georgia, serif" font-size="32" font-weight="600" fill="#7c3aed">𝒢</text>
+    <text x="-140" y="8" text-anchor="middle" font-family="Georgia, serif" font-size="28" fill="#64748b">:</text>
+    <text x="-95" y="8" text-anchor="middle" font-family="Georgia, serif" font-size="28" font-style="italic" fill="#ea580c">a</text>
+    
+    <!-- Arrow -->
+    <line x1="-60" y1="0" x2="20" y2="0" stroke="#64748b" stroke-width="2.5"/>
+    <polygon points="20,0 10,-6 10,6" fill="#64748b"/>
+    <line x1="-60" y1="-10" x2="-60" y2="10" stroke="#64748b" stroke-width="2.5"/>
+    
+    <text x="60" y="8" text-anchor="middle" font-family="Georgia, serif" font-size="28" font-style="italic" fill="#0d9488">u</text>
+    
+    <!-- Divider -->
+    <line x1="100" y1="-15" x2="100" y2="15" stroke="#e2e8f0" stroke-width="1.5"/>
+    
+    <!-- Tagline -->
+    <text x="185" y="6" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" fill="#64748b">Learn once, solve infinitely</text>
+  </g>
+  
+  <!-- Color scale legends -->
+  <!-- Input legend -->
+  <g transform="translate(70, 440)">
+    <text x="0" y="0" font-family="system-ui, sans-serif" font-size="10" fill="#64748b">Low</text>
+    <rect x="25" y="-10" width="80" height="12" rx="2" fill="url(#warmGrad)"/>
+    <text x="110" y="0" font-family="system-ui, sans-serif" font-size="10" fill="#64748b">High</text>
+  </g>
+  
+  <!-- Output legend -->
+  <g transform="translate(890, 440)">
+    <text x="0" y="0" font-family="system-ui, sans-serif" font-size="10" fill="#64748b">Low</text>
+    <rect x="25" y="-10" width="80" height="12" rx="2" fill="url(#coolGrad)"/>
+    <text x="110" y="0" font-family="system-ui, sans-serif" font-size="10" fill="#64748b">High</text>
+  </g>
+  
+  <!-- Decorative flow indicators -->
+  <g fill="#c4b5fd" opacity="0.4">
+    <circle cx="365" cy="265" r="4"/>
+    <circle cx="380" cy="265" r="4"/>
+    <circle cx="395" cy="265" r="4"/>
+  </g>
+  <g fill="#a7f3d0" opacity="0.4">
+    <circle cx="705" cy="265" r="4"/>
+    <circle cx="720" cy="265" r="4"/>
+    <circle cx="735" cy="265" r="4"/>
+  </g>
+</svg>

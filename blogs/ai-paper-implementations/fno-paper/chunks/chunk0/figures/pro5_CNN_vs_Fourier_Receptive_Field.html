@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNN vs FNO Comparison</title>
+    <style>
+        /* * CLEAN EDUCATIONAL STYLE SYSTEM 
+         * Adhering to the specific color palette and design principles provided.
+         */
+
+        :root {
+            /* Backgrounds */
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f5f7ff;
+            --card-bg: #ffffff;
+
+            /* Warm Colors (CNN/Local) */
+            --warm-light: #fcd34d;
+            --warm-medium: #f97316;
+            --warm-dark: #dc2626;
+            --warm-border: #fdba74;
+            --warm-bg-subtle: #fff7ed;
+
+            /* Cool Colors (FNO/Global) */
+            --cool-light: #6ee7b7;
+            --cool-medium: #14b8a6;
+            --cool-dark: #0891b2;
+            --cool-border: #6ee7b7;
+            --cool-bg-subtle: #ecfdf5;
+
+            /* Neutrals */
+            --text-heading: #1e293b;
+            --text-body: #64748b;
+            --text-muted: #94a3b8;
+            --border-light: #e2e8f0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            color: var(--text-body);
+            margin: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-body);
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-heading);
+        }
+
+        .math {
+            font-family: Georgia, serif;
+            font-style: italic;
+        }
+
+        .caption {
+            font-size: 13px;
+            color: var(--text-body);
+            margin-top: 12px;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* Layout */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            max-width: 1000px;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+
+        /* Card Design */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 30px;
+            /* Purple-tinted shadow per style guide */
+            box-shadow: 0 4px 16px 0 rgba(99, 102, 241, 0.12);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Grid Visualization */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            width: 240px;
+            height: 240px;
+            padding: 4px;
+            border-radius: 8px;
+            background: #f1f5f9;
+            position: relative;
+            cursor: crosshair;
+        }
+
+        .cell {
+            background: white;
+            border-radius: 2px;
+            transition: background 0.1s;
+        }
+
+        /* Interaction States - CNN */
+        .cnn-container {
+            border: 2px solid var(--warm-border);
+        }
+
+        .cell.cnn-highlight {
+            background: var(--warm-medium);
+            box-shadow: 0 0 4px var(--warm-dark);
+            z-index: 10;
+        }
+
+        .cell.cnn-neighbor {
+            background: var(--warm-light);
+        }
+
+        /* Interaction States - FNO */
+        .fno-container {
+            border: 2px solid var(--cool-border);
+            overflow: hidden;
+            /* For SVG waves */
+        }
+
+        .fno-active .cell {
+            background: var(--cool-light);
+            opacity: 0.8;
+        }
+
+        /* Waves for FNO */
+        .waves-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.3;
+            transition: opacity 0.3s;
+        }
+
+        .fno-container:hover .waves-overlay {
+            opacity: 0.8;
+        }
+
+        /* Labels / Pills */
+        .pill {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+        }
+
+        .pill-warm {
+            background: var(--warm-bg-subtle);
+            color: var(--warm-dark);
+            border: 1px solid var(--warm-border);
+        }
+
+        .pill-cool {
+            background: var(--cool-bg-subtle);
+            color: var(--cool-dark);
+            border: 1px solid var(--cool-border);
+        }
+
+        /* Comparison Table */
+        .table-container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 16px 0 rgba(99, 102, 241, 0.12);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-body);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        td {
+            padding: 16px;
+            font-size: 14px;
+            color: var(--text-heading);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .col-prop {
+            width: 30%;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .col-cnn {
+            width: 35%;
+            color: var(--warm-dark);
+        }
+
+        .col-fno {
+            width: 35%;
+            color: var(--cool-dark);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>CNN vs. FNO Architecture</h1>
+    <p class="subtitle">Visualizing the difference between Local and Global Receptive Fields</p>
+
+    <div class="container">
+        <!-- LEFT PANEL: CNN -->
+        <div class="card">
+            <div class="pill pill-warm">Convolutional Neural Network</div>
+            <h2>Local Receptive Field</h2>
+
+            <!-- Grid -->
+            <div id="cnnGrid" class="grid-container cnn-container">
+                <!-- Cells generated by JS -->
+            </div>
+
+            <p class="caption">
+                <strong>Hover over the grid.</strong><br>
+                The red kernel only "sees" a small <span class="math">3×3</span> neighborhood.<br>
+                Information propagates slowly, layer by layer.
+            </p>
+        </div>
+
+        <!-- RIGHT PANEL: FNO -->
+        <div class="card">
+            <div class="pill pill-cool">Fourier Neural Operator</div>
+            <h2>Global Receptive Field</h2>
+
+            <!-- Grid -->
+            <div id="fnoGrid" class="grid-container fno-container">
+                <!-- SVG Waves Overlay -->
+                <svg class="waves-overlay" viewBox="0 0 240 240" preserveAspectRatio="none">
+                    <!-- Sine Wave 1 (Low Freq) -->
+                    <path d="M0,120 Q60,40 120,120 T240,120" fill="none" stroke="#0891b2" stroke-width="2"
+                        opacity="0.6" />
+                    <path d="M0,120 Q60,200 120,120 T240,120" fill="none" stroke="#0891b2" stroke-width="2"
+                        opacity="0.6" />
+
+                    <!-- Sine Wave 2 (Med Freq) -->
+                    <path d="M0,120 Q30,80 60,120 T120,120 T180,120 T240,120" fill="none" stroke="#14b8a6"
+                        stroke-width="1.5" opacity="0.5" />
+
+                    <!-- Sine Wave 3 (Diagonal/Global) -->
+                    <path d="M0,240 L240,0" stroke="#6ee7b7" stroke-width="100" stroke-opacity="0.1"
+                        style="mix-blend-mode: multiply;" />
+                </svg>
+                <!-- Cells generated by JS -->
+            </div>
+
+            <p class="caption">
+                <strong>Hover over the grid.</strong><br>
+                Fourier basis functions (sine waves) span the <strong>entire</strong> domain.<br>
+                Every output pixel depends on <span class="math">all</span> input pixels simultaneously.
+            </p>
+        </div>
+    </div>
+
+    <!-- COMPARISON TABLE -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Property</th>
+                    <th style="color: var(--warm-medium)">CNN (Local)</th>
+                    <th style="color: var(--cool-medium)">FNO (Global)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-prop">Receptive Field</td>
+                    <td class="col-cnn">Local (defined by kernel size)</td>
+                    <td class="col-fno">Global (entire domain <span class="math">D</span>)</td>
+                </tr>
+                <tr>
+                    <td class="col-prop">Pattern Learning</td>
+                    <td class="col-cnn">Edges, textures, local shapes</td>
+                    <td class="col-fno">Global frequencies, periodic modes</td>
+                </tr>
+                <tr>
+                    <td class="col-prop">Computational Complexity</td>
+                    <td class="col-cnn"><span class="math">O(n²)</span> for global info propagation</td>
+                    <td class="col-fno"><span class="math">O(n log n)</span> via FFT efficiency</td>
+                </tr>
+                <tr>
+                    <td class="col-prop">Resolution Dependence</td>
+                    <td class="col-cnn">Fixed to training grid size</td>
+                    <td class="col-fno">Zero-Shot Super-Resolution (Grid invariant)</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const GRID_SIZE = 10;
+        const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
+
+        // --- CNN LOGIC ---
+        const cnnGrid = document.getElementById('cnnGrid');
+
+        // Create Grid Cells
+        for (let i = 0; i < TOTAL_CELLS; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.index = i;
+            cnnGrid.appendChild(cell);
+        }
+
+        const cnnCells = cnnGrid.querySelectorAll('.cell');
+
+        // Hover Effect
+        cnnGrid.addEventListener('mousemove', (e) => {
+            if (!e.target.classList.contains('cell')) return;
+
+            // Clear previous
+            cnnCells.forEach(c => {
+                c.className = 'cell';
+            });
+
+            const index = parseInt(e.target.dataset.index);
+            const row = Math.floor(index / GRID_SIZE);
+            const col = index % GRID_SIZE;
+
+            // Highlight 3x3 Kernel
+            for (let r = row - 1; r <= row + 1; r++) {
+                for (let c = col - 1; c <= col + 1; c++) {
+                    if (r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE) {
+                        const neighborIndex = r * GRID_SIZE + c;
+                        const el = cnnCells[neighborIndex];
+
+                        if (r === row && c === col) {
+                            el.classList.add('cnn-highlight'); // Center
+                        } else {
+                            el.classList.add('cnn-neighbor'); // Neighbor
+                        }
+                    }
+                }
+            }
+        });
+
+        // Reset on leave
+        cnnGrid.addEventListener('mouseleave', () => {
+            cnnCells.forEach(c => c.className = 'cell');
+        });
+
+
+        // --- FNO LOGIC ---
+        const fnoGrid = document.getElementById('fnoGrid');
+
+        // Create Grid Cells (transparent mainly, used for hover detection and background fill)
+        for (let i = 0; i < TOTAL_CELLS; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            fnoGrid.appendChild(cell);
+        }
+
+        // FNO Hover Effect (Global)
+        fnoGrid.addEventListener('mouseenter', () => {
+            fnoGrid.classList.add('fno-active');
+        });
+
+        fnoGrid.addEventListener('mouseleave', () => {
+            fnoGrid.classList.remove('fno-active');
+        });
+
+    </script>
+</body>
+
+</html>

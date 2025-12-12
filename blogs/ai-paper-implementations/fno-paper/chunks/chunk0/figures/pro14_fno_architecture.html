@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive FNO Architecture Explorer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+      min-height: 100vh;
+    }
+    
+    /* Layout */
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    .main-content {
+      flex: 1;
+      padding: 25px;
+      overflow-y: auto;
+    }
+    
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    
+    .title h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    
+    .title p {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: white;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid #e2e8f0;
+      user-select: none;
+    }
+    
+    .toggle:hover {
+      border-color: #a78bfa;
+    }
+    
+    .toggle.active {
+      background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+      border-color: #a78bfa;
+      color: #5b21b6;
+    }
+    
+    .toggle-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      position: relative;
+      transition: all 0.2s;
+    }
+    
+    .toggle.active .toggle-dot {
+      background: #7c3aed;
+    }
+    
+    .toggle.active .toggle-dot::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 10px;
+      color: white;
+    }
+    
+    /* Architecture Card */
+    .architecture-card {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(99, 102, 241, 0.12);
+      margin-bottom: 20px;
+    }
+    
+    /* Architecture Diagram */
+    .architecture-diagram {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      overflow-x: auto;
+      padding: 20px 0;
+      position: relative;
+    }
+    
+    /* Component base styles */
+    .component {
+      position: relative;
+      border-radius: 12px;
+      padding: 15px 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+      min-width: 100px;
+    }
+    
+    .component:hover {
+      transform: translateY(-4px);
+    }
+    
+    .component.selected {
+      box-shadow: 0 0 0 3px #7c3aed;
+    }
+    
+    .component-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    
+    .component-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    
+    .component-sublabel {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    
+    /* Dimension badge */
+    .dim-badge {
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 3px 8px;
+      background: #1e293b;
+      color: white;
+      border-radius: 8px;
+      font-size: 9px;
+      font-family: 'SF Mono', Monaco, monospace;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .show-dimensions .dim-badge {
+      opacity: 1;
+    }
+    
+    /* Math overlay */
+    .math-overlay {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 10px;
+      background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+      border-radius: 8px;
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-size: 11px;
+      color: #5b21b6;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .show-math .math-overlay {
+      opacity: 1;
+    }
+    
+    /* Component colors */
+    .comp-input {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 2px solid #f59e0b;
+    }
+    
+    .comp-lifting {
+      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+      border: 2px solid #3b82f6;
+    }
+    
+    .comp-fourier {
+      background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+      border: 2px solid #7c3aed;
+      min-width: 140px;
+    }
+    
+    .comp-projection {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+      border: 2px solid #10b981;
+    }
+    
+    .comp-output {
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+      border: 2px solid #0d9488;
+    }
+    
+    /* Arrow between components */
+    .arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #94a3b8;
+      min-width: 40px;
+    }
+    
+    .arrow svg {
+      width: 30px;
+      height: 20px;
+    }
+    
+    /* Data flow animation */
+    .flow-container {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 4px;
+      pointer-events: none;
+      overflow: visible;
+      display: none;
+    }
+    
+    .show-data-flow .flow-container {
+      display: block;
+    }
+    
+    .data-particle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: radial-gradient(circle, #7c3aed 0%, #a78bfa 50%, transparent 70%);
+      border-radius: 50%;
+      top: -4px;
+      animation: flowParticle 4s linear infinite;
+      box-shadow: 0 0 10px #7c3aed, 0 0 20px rgba(124, 58, 237, 0.5);
+    }
+    
+    .data-particle:nth-child(2) { animation-delay: 0.8s; }
+    .data-particle:nth-child(3) { animation-delay: 1.6s; }
+    .data-particle:nth-child(4) { animation-delay: 2.4s; }
+    .data-particle:nth-child(5) { animation-delay: 3.2s; }
+    
+    @keyframes flowParticle {
+      0% { left: -20px; opacity: 0; transform: scale(0.5); }
+      5% { opacity: 1; transform: scale(1); }
+      95% { opacity: 1; transform: scale(1); }
+      100% { left: calc(100% + 20px); opacity: 0; transform: scale(0.5); }
+    }
+    
+    /* Pulse effect on components when data flows through */
+    .show-data-flow .component {
+      animation: componentPulse 4s ease-in-out infinite;
+    }
+    
+    .show-data-flow .component:nth-child(1) { animation-delay: 0s; }
+    .show-data-flow .component:nth-child(3) { animation-delay: 0.6s; }
+    .show-data-flow .component:nth-child(5) { animation-delay: 1.2s; }
+    .show-data-flow .component:nth-child(7) { animation-delay: 1.8s; }
+    .show-data-flow .component:nth-child(9) { animation-delay: 2.4s; }
+    
+    @keyframes componentPulse {
+      0%, 100% { box-shadow: none; }
+      15%, 25% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.6), inset 0 0 10px rgba(124, 58, 237, 0.1); }
+    }
+    
+    /* Arrow glow when data flows */
+    .show-data-flow .arrow svg path {
+      animation: arrowGlow 4s ease-in-out infinite;
+    }
+    
+    .show-data-flow .arrow:nth-child(2) svg path { animation-delay: 0.3s; }
+    .show-data-flow .arrow:nth-child(4) svg path { animation-delay: 0.9s; }
+    .show-data-flow .arrow:nth-child(6) svg path { animation-delay: 1.5s; }
+    .show-data-flow .arrow:nth-child(8) svg path { animation-delay: 2.1s; }
+    
+    @keyframes arrowGlow {
+      0%, 100% { filter: none; }
+      15%, 25% { filter: drop-shadow(0 0 6px #7c3aed); }
+    }
+    
+    /* Expanded Fourier Layer */
+    .fourier-expanded {
+      display: none;
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      margin-top: 20px;
+      border: 2px solid #a78bfa;
+      box-shadow: 0 8px 30px rgba(124, 58, 237, 0.15);
+    }
+    
+    .fourier-expanded.visible {
+      display: block;
+      animation: expandIn 0.3s ease;
+    }
+    
+    @keyframes expandIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    .fourier-expanded-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .fourier-expanded-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    
+    .close-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: none;
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .close-btn:hover {
+      background: #e2e8f0;
+    }
+    
+    /* Dual pathway diagram */
+    .dual-pathway {
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .pathway {
+      flex: 1;
+      min-width: 200px;
+      max-width: 300px;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    
+    .pathway-spectral {
+      background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+      border: 2px solid #a78bfa;
+    }
+    
+    .pathway-local {
+      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+      border: 2px solid #3b82f6;
+    }
+    
+    .pathway-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 15px;
+    }
+    
+    .pathway-spectral .pathway-title { color: #5b21b6; }
+    .pathway-local .pathway-title { color: #1d4ed8; }
+    
+    .pathway-step {
+      padding: 10px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: #1e293b;
+    }
+    
+    .pathway-step .math {
+      font-family: Georgia, serif;
+      font-style: italic;
+      color: #7c3aed;
+      display: block;
+      margin-top: 4px;
+    }
+    
+    .pathway-arrow {
+      color: #94a3b8;
+      margin: 5px 0;
+    }
+    
+    .combine-symbol {
+      font-size: 24px;
+      color: #7c3aed;
+      font-weight: 700;
+    }
+    
+    .full-equation {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    .full-equation-label {
+      font-size: 11px;
+      color: #92400e;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    
+    .full-equation .formula {
+      font-family: Georgia, serif;
+      font-size: 16px;
+      color: #78350f;
+      font-style: italic;
+    }
+    
+    /* Side Panel */
+    .side-panel {
+      width: 350px;
+      background: white;
+      border-left: 1px solid #e2e8f0;
+      padding: 25px;
+      overflow-y: auto;
+      transition: transform 0.3s;
+    }
+    
+    .side-panel.collapsed {
+      transform: translateX(100%);
+      width: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    
+    .panel-toggle {
+      position: fixed;
+      right: 350px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 60px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #64748b;
+      font-size: 12px;
+      transition: right 0.3s;
+      z-index: 100;
+    }
+    
+    .side-panel.collapsed + .panel-toggle {
+      right: 0;
+    }
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+    
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    
+    .current-component {
+      font-size: 12px;
+      color: #7c3aed;
+      font-weight: 600;
+    }
+    
+    .panel-section {
+      margin-bottom: 20px;
+    }
+    
+    .panel-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    
+    .panel-description {
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.6;
+    }
+    
+    .panel-math {
+      background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: Georgia, serif;
+      font-style: italic;
+      color: #5b21b6;
+      text-align: center;
+      font-size: 14px;
+    }
+    
+    .code-block {
+      background: #1e293b;
+      border-radius: 10px;
+      padding: 15px;
+      overflow-x: auto;
+    }
+    
+    .code-block pre {
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      font-size: 11px;
+      color: #e2e8f0;
+      line-height: 1.5;
+      margin: 0;
+    }
+    
+    .code-keyword { color: #c4b5fd; }
+    .code-function { color: #67e8f9; }
+    .code-string { color: #86efac; }
+    .code-comment { color: #64748b; }
+    
+    .tutorial-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 15px;
+      background: #f8fafc;
+      border-radius: 10px;
+      color: #3b82f6;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .tutorial-link:hover {
+      background: #dbeafe;
+    }
+    
+    /* Tooltip */
+    .tooltip {
+      position: fixed;
+      padding: 10px 14px;
+      background: #1e293b;
+      color: white;
+      border-radius: 8px;
+      font-size: 12px;
+      max-width: 250px;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .tooltip.visible {
+      opacity: 1;
+    }
+    
+    .tooltip-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .tooltip-math {
+      font-family: Georgia, serif;
+      font-style: italic;
+      color: #a78bfa;
+      margin-top: 6px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 900px) {
+      .side-panel {
+        position: fixed;
+        right: 0;
+        top: 0;
+        height: 100vh;
+        z-index: 200;
+      }
+      
+      .side-panel.collapsed {
+        transform: translateX(100%);
+        width: 350px;
+        padding: 25px;
+      }
+    }
+    
+    /* Instructions */
+    .instructions {
+      background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+      border-radius: 12px;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #065f46;
+    }
+    
+    .instructions strong {
+      color: #047857;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="header">
+        <div class="title">
+          <h1>FNO Architecture Explorer</h1>
+          <p>Click on components to explore • Hover for quick info</p>
+        </div>
+        
+        <div class="controls">
+          <div class="toggle" id="toggle-flow" onclick="toggleOption('flow')">
+            <div class="toggle-dot"></div>
+            <span>Data Flow</span>
+          </div>
+          <div class="toggle" id="toggle-dimensions" onclick="toggleOption('dimensions')">
+            <div class="toggle-dot"></div>
+            <span>Dimensions</span>
+          </div>
+          <div class="toggle active" id="toggle-math" onclick="toggleOption('math')">
+            <div class="toggle-dot"></div>
+            <span>Show Math</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="instructions">
+        <strong>Interactive Guide:</strong> Click any component to see detailed information in the side panel. 
+        Click the Fourier Layer to expand its internal dual-pathway structure.
+      </div>
+      
+      <div class="architecture-card" id="architecture-card">
+        <div class="architecture-diagram" id="diagram">
+          <!-- Data flow particles -->
+          <div class="flow-container">
+            <div class="data-particle"></div>
+            <div class="data-particle"></div>
+            <div class="data-particle"></div>
+            <div class="data-particle"></div>
+            <div class="data-particle"></div>
+          </div>
+          
+          <!-- Input -->
+          <div class="component comp-input" data-component="input" 
+               onmouseenter="showTooltip(event, 'input')" 
+               onmouseleave="hideTooltip()"
+               onclick="selectComponent('input')">
+            <div class="math-overlay">a(x)</div>
+            <div class="component-icon">📥</div>
+            <div class="component-label">Input</div>
+            <div class="component-sublabel">Function</div>
+            <div class="dim-badge">[B, X, d_in]</div>
+          </div>
+          
+          <div class="arrow">
+            <svg viewBox="0 0 30 20">
+              <path d="M0,10 L20,10" stroke="#c4b5fd" stroke-width="3" stroke-linecap="round"/>
+              <path d="M15,5 L25,10 L15,15" fill="#a78bfa"/>
+            </svg>
+          </div>
+          
+          <!-- Lifting -->
+          <div class="component comp-lifting" data-component="lifting"
+               onmouseenter="showTooltip(event, 'lifting')"
+               onmouseleave="hideTooltip()"
+               onclick="selectComponent('lifting')">
+            <div class="math-overlay">P(a)</div>
+            <div class="component-icon">⬆️</div>
+            <div class="component-label">Lifting</div>
+            <div class="component-sublabel">Layer</div>
+            <div class="dim-badge">[B, X, width]</div>
+          </div>
+          
+          <div class="arrow">
+            <svg viewBox="0 0 30 20">
+              <path d="M0,10 L20,10" stroke="#c4b5fd" stroke-width="3" stroke-linecap="round"/>
+              <path d="M15,5 L25,10 L15,15" fill="#a78bfa"/>
+            </svg>
+          </div>
+          
+          <!-- Fourier Layers -->
+          <div class="component comp-fourier" data-component="fourier"
+               onmouseenter="showTooltip(event, 'fourier')"
+               onmouseleave="hideTooltip()"
+               onclick="selectComponent('fourier'); toggleFourierExpanded()">
+            <div class="math-overlay">σ(Wv + K(v))</div>
+            <div class="component-icon">〜</div>
+            <div class="component-label">Fourier Layers</div>
+            <div class="component-sublabel">×4 blocks</div>
+            <div class="dim-badge">[B, X, width]</div>
+          </div>
+          
+          <div class="arrow">
+            <svg viewBox="0 0 30 20">
+              <path d="M0,10 L20,10" stroke="#c4b5fd" stroke-width="3" stroke-linecap="round"/>
+              <path d="M15,5 L25,10 L15,15" fill="#a78bfa"/>
+            </svg>
+          </div>
+          
+          <!-- Projection -->
+          <div class="component comp-projection" data-component="projection"
+               onmouseenter="showTooltip(event, 'projection')"
+               onmouseleave="hideTooltip()"
+               onclick="selectComponent('projection')">
+            <div class="math-overlay">Q(v)</div>
+            <div class="component-icon">⬇️</div>
+            <div class="component-label">Projection</div>
+            <div class="component-sublabel">Layer</div>
+            <div class="dim-badge">[B, X, d_out]</div>
+          </div>
+          
+          <div class="arrow">
+            <svg viewBox="0 0 30 20">
+              <path d="M0,10 L20,10" stroke="#c4b5fd" stroke-width="3" stroke-linecap="round"/>
+              <path d="M15,5 L25,10 L15,15" fill="#a78bfa"/>
+            </svg>
+          </div>
+          
+          <!-- Output -->
+          <div class="component comp-output" data-component="output"
+               onmouseenter="showTooltip(event, 'output')"
+               onmouseleave="hideTooltip()"
+               onclick="selectComponent('output')">
+            <div class="math-overlay">u(x)</div>
+            <div class="component-icon">📤</div>
+            <div class="component-label">Output</div>
+            <div class="component-sublabel">Solution</div>
+            <div class="dim-badge">[B, X, d_out]</div>
+          </div>
+        </div>
+        
+        <!-- Expanded Fourier Layer -->
+        <div class="fourier-expanded" id="fourier-expanded">
+          <div class="fourier-expanded-header">
+            <div class="fourier-expanded-title">Fourier Layer Internal Structure</div>
+            <button class="close-btn" onclick="toggleFourierExpanded()">×</button>
+          </div>
+          
+          <div class="dual-pathway">
+            <div class="pathway pathway-spectral">
+              <div class="pathway-title">Spectral Pathway (Global)</div>
+              <div class="pathway-step">
+                FFT Transform
+                <span class="math">ℱ(v)</span>
+              </div>
+              <div class="pathway-arrow">↓</div>
+              <div class="pathway-step">
+                Multiply R weights
+                <span class="math">R · ℱ(v)</span>
+              </div>
+              <div class="pathway-arrow">↓</div>
+              <div class="pathway-step">
+                Inverse FFT
+                <span class="math">ℱ⁻¹(R · ℱ(v))</span>
+              </div>
+            </div>
+            
+            <div class="combine-symbol">+</div>
+            
+            <div class="pathway pathway-local">
+              <div class="pathway-title">Local Pathway</div>
+              <div class="pathway-step">
+                Pointwise Linear
+                <span class="math">W · v(x)</span>
+              </div>
+              <div class="pathway-arrow">↓</div>
+              <div class="pathway-step">
+                Captures local patterns
+                <span class="math">(bias term)</span>
+              </div>
+              <div class="pathway-arrow">↓</div>
+              <div class="pathway-step">
+                Bypasses frequency domain
+              </div>
+            </div>
+          </div>
+          
+          <div class="full-equation">
+            <div class="full-equation-label">COMPLETE FOURIER LAYER EQUATION</div>
+            <div class="formula">v<sub>l+1</sub>(x) = σ( W·v<sub>l</sub>(x) + ℱ⁻¹( R<sub>l</sub> · ℱ(v<sub>l</sub>) )(x) )</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Side Panel -->
+    <div class="side-panel" id="side-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Component Details</div>
+          <div class="current-component" id="current-component">Select a component</div>
+        </div>
+      </div>
+      
+      <div id="panel-content">
+        <div class="panel-section">
+          <div class="panel-section-title">Description</div>
+          <div class="panel-description" id="panel-description">
+            Click on any component in the architecture diagram to view detailed information, mathematical formulations, and PyTorch implementation code.
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel-toggle" onclick="togglePanel()">
+      <span id="panel-arrow">›</span>
+    </div>
+  </div>
+  
+  <!-- Tooltip -->
+  <div class="tooltip" id="tooltip">
+    <div class="tooltip-title" id="tooltip-title"></div>
+    <div class="tooltip-desc" id="tooltip-desc"></div>
+    <div class="tooltip-math" id="tooltip-math"></div>
+  </div>
+  
+  <script>
+    // Component data
+    const componentData = {
+      input: {
+        name: 'Input Function',
+        tooltip: 'The input function a(x) defined on the domain',
+        tooltipMath: 'a: D → ℝ^{d_in}',
+        description: 'The input to FNO is a function a(x) sampled on a grid. This could represent initial conditions (temperature field), boundary conditions, or physical parameters (permeability). The function is discretized as a tensor of shape [batch, grid_points, input_channels].',
+        math: 'a(x) ∈ ℝ^{d_{in}} for x ∈ D',
+        code: `<span class="code-comment"># Input: function values on grid</span>
+<span class="code-keyword">def</span> <span class="code-function">forward</span>(self, x):
+    <span class="code-comment"># x shape: [batch, n_x, d_in]</span>
+    <span class="code-comment"># For 2D: [batch, n_x, n_y, d_in]</span>
+    <span class="code-keyword">return</span> x`,
+        tutorial: 'Chunk 3: Architecture'
+      },
+      lifting: {
+        name: 'Lifting Layer',
+        tooltip: 'Expands input dimensions using pointwise MLP',
+        tooltipMath: 'P: ℝ^{d_in} → ℝ^{width}',
+        description: 'The lifting layer P maps the low-dimensional input to a higher-dimensional representation. This is implemented as a pointwise fully-connected network (applied independently at each spatial location). It expands the channel dimension from d_in to the network width.',
+        math: 'v₀(x) = P(a(x)), where P: ℝ^{d_in} → ℝ^{width}',
+        code: `<span class="code-keyword">class</span> <span class="code-function">LiftingLayer</span>(nn.Module):
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self, d_in, width):
+        <span class="code-keyword">super</span>().__init__()
+        self.fc = nn.Linear(d_in, width)
+    
+    <span class="code-keyword">def</span> <span class="code-function">forward</span>(self, x):
+        <span class="code-comment"># x: [B, X, d_in] → [B, X, width]</span>
+        <span class="code-keyword">return</span> self.fc(x)`,
+        tutorial: 'Chunk 3: Architecture'
+      },
+      fourier: {
+        name: 'Fourier Layer',
+        tooltip: 'Core FNO block with spectral convolution + local transform',
+        tooltipMath: 'v → σ(Wv + ℱ⁻¹(R·ℱ(v)))',
+        description: 'The Fourier layer is the core building block of FNO. It combines two pathways: (1) a spectral convolution that operates in frequency space with global receptive field, and (2) a local linear transform. The outputs are summed and passed through an activation function.',
+        math: 'v_{l+1}(x) = σ( W·v_l(x) + ℱ⁻¹( R_l · ℱ(v_l) )(x) )',
+        code: `<span class="code-keyword">class</span> <span class="code-function">FourierLayer</span>(nn.Module):
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self, width, modes):
+        <span class="code-keyword">super</span>().__init__()
+        self.R = nn.Parameter(
+            torch.randn(modes, width, width))
+        self.W = nn.Linear(width, width)
+    
+    <span class="code-keyword">def</span> <span class="code-function">forward</span>(self, v):
+        <span class="code-comment"># Spectral path</span>
+        v_fft = torch.fft.rfft(v, dim=1)
+        v_fft = v_fft[:, :self.modes] @ self.R
+        spectral = torch.fft.irfft(v_fft)
+        
+        <span class="code-comment"># Local path + combine</span>
+        <span class="code-keyword">return</span> F.gelu(self.W(v) + spectral)`,
+        tutorial: 'Chunk 2: Fourier Layer'
+      },
+      projection: {
+        name: 'Projection Layer',
+        tooltip: 'Projects back to output dimensions',
+        tooltipMath: 'Q: ℝ^{width} → ℝ^{d_out}',
+        description: 'The projection layer Q maps the high-dimensional latent representation back to the desired output dimension. Like the lifting layer, it\'s a pointwise operation (applied at each spatial location independently). Often implemented as a small MLP.',
+        math: 'u(x) = Q(v_L(x)), where Q: ℝ^{width} → ℝ^{d_out}',
+        code: `<span class="code-keyword">class</span> <span class="code-function">ProjectionLayer</span>(nn.Module):
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self, width, d_out):
+        <span class="code-keyword">super</span>().__init__()
+        self.fc1 = nn.Linear(width, 128)
+        self.fc2 = nn.Linear(128, d_out)
+    
+    <span class="code-keyword">def</span> <span class="code-function">forward</span>(self, x):
+        x = F.gelu(self.fc1(x))
+        <span class="code-keyword">return</span> self.fc2(x)`,
+        tutorial: 'Chunk 3: Architecture'
+      },
+      output: {
+        name: 'Output Solution',
+        tooltip: 'The predicted solution function u(x)',
+        tooltipMath: 'u: D → ℝ^{d_out}',
+        description: 'The output is the predicted solution function u(x). FNO learns to map from input functions to output functions (the solution operator). The output has the same spatial resolution as the input but may have different channels. For time-dependent problems, this is often the solution at a future time.',
+        math: 'u(x) ∈ ℝ^{d_{out}} for x ∈ D',
+        code: `<span class="code-comment"># Complete FNO forward pass</span>
+<span class="code-keyword">def</span> <span class="code-function">forward</span>(self, a):
+    <span class="code-comment"># a: input function [B, X, d_in]</span>
+    v = self.lifting(a)
+    
+    <span class="code-keyword">for</span> layer <span class="code-keyword">in</span> self.fourier_layers:
+        v = layer(v)
+    
+    u = self.projection(v)
+    <span class="code-keyword">return</span> u  <span class="code-comment"># [B, X, d_out]</span>`,
+        tutorial: 'Chunk 3: Architecture'
+      }
+    };
+    
+    // State
+    let selectedComponent = null;
+    let fourierExpanded = false;
+    let panelCollapsed = false;
+    let options = {
+      flow: false,
+      dimensions: false,
+      math: true
+    };
+    
+    // Toggle options
+    function toggleOption(option) {
+      options[option] = !options[option];
+      
+      const toggle = document.getElementById(`toggle-${option}`);
+      toggle.classList.toggle('active', options[option]);
+      
+      const card = document.getElementById('architecture-card');
+      const diagram = document.getElementById('diagram');
+      
+      if (option === 'dimensions') {
+        card.classList.toggle('show-dimensions', options.dimensions);
+      } else if (option === 'math') {
+        card.classList.toggle('show-math', options.math);
+      } else if (option === 'flow') {
+        diagram.classList.toggle('show-data-flow', options.flow);
+      }
+    }
+    
+    // Show tooltip
+    function showTooltip(event, component) {
+      const data = componentData[component];
+      const tooltip = document.getElementById('tooltip');
+      
+      document.getElementById('tooltip-title').textContent = data.name;
+      document.getElementById('tooltip-desc').textContent = data.tooltip;
+      document.getElementById('tooltip-math').textContent = data.tooltipMath;
+      
+      tooltip.style.left = event.pageX + 15 + 'px';
+      tooltip.style.top = event.pageY + 15 + 'px';
+      tooltip.classList.add('visible');
+    }
+    
+    function hideTooltip() {
+      document.getElementById('tooltip').classList.remove('visible');
+    }
+    
+    // Select component
+    function selectComponent(component) {
+      // Update selection state
+      document.querySelectorAll('.component').forEach(c => c.classList.remove('selected'));
+      document.querySelector(`[data-component="${component}"]`).classList.add('selected');
+      selectedComponent = component;
+      
+      // Update panel
+      const data = componentData[component];
+      document.getElementById('current-component').textContent = data.name;
+      
+      document.getElementById('panel-content').innerHTML = `
+        <div class="panel-section">
+          <div class="panel-section-title">Description</div>
+          <div class="panel-description">${data.description}</div>
+        </div>
+        
+        <div class="panel-section">
+          <div class="panel-section-title">Mathematical Formulation</div>
+          <div class="panel-math">${data.math}</div>
+        </div>
+        
+        <div class="panel-section">
+          <div class="panel-section-title">PyTorch Implementation</div>
+          <div class="code-block">
+            <pre>${data.code}</pre>
+          </div>
+        </div>
+        
+        <div class="panel-section">
+          <div class="panel-section-title">Learn More</div>
+          <a href="#" class="tutorial-link">
+            📖 ${data.tutorial}
+          </a>
+        </div>
+      `;
+      
+      // Ensure panel is visible
+      if (panelCollapsed) {
+        togglePanel();
+      }
+    }
+    
+    // Toggle Fourier expanded view
+    function toggleFourierExpanded() {
+      fourierExpanded = !fourierExpanded;
+      document.getElementById('fourier-expanded').classList.toggle('visible', fourierExpanded);
+    }
+    
+    // Toggle panel
+    function togglePanel() {
+      panelCollapsed = !panelCollapsed;
+      document.getElementById('side-panel').classList.toggle('collapsed', panelCollapsed);
+      document.getElementById('panel-arrow').textContent = panelCollapsed ? '‹' : '›';
+    }
+    
+    // Initialize
+    document.getElementById('architecture-card').classList.add('show-math');
+  </script>
+</body>
+</html>

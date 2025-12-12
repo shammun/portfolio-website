@@ -1,0 +1,252 @@
+{
+  "paper_id": "fno-paper",
+  "title": "Fourier Neural Operator for Parametric PDEs",
+  "short_title": "FNO from Scratch",
+  "authors": [
+    "Zongyi Li",
+    "Nikola Kovachki",
+    "Kamyar Azizzadenesheli",
+    "Burigede Liu",
+    "Kaushik Bhattacharya",
+    "Andrew Stuart",
+    "Anima Anandkumar"
+  ],
+  "arxiv": "2010.08895",
+  "github": "https://github.com/neuraloperator/neuraloperator",
+  "year": 2020,
+  "venue": "ICLR 2021",
+  "series_info": {
+    "title": "Understanding FNO from Scratch",
+    "description": "A comprehensive, interactive tutorial on Fourier Neural Operators. We start from mathematical foundations and build up to a complete implementation, then apply it to a real-world urban climate prediction problem.",
+    "total_chunks": 7,
+    "estimated_time": "8-12 hours",
+    "difficulty": "intermediate",
+    "last_updated": "2024-12"
+  },
+  "prerequisites": [
+    "Linear algebra (matrices, eigenvalues)",
+    "Calculus (derivatives, integrals)",
+    "Fourier analysis basics (helpful but we cover it)",
+    "Python and NumPy",
+    "Basic neural network concepts",
+    "PyTorch basics (for some sections)"
+  ],
+  "learning_outcomes": [
+    "Understand the mathematical theory behind neural operators",
+    "Implement FNO from scratch in Python",
+    "Know when and why to use FNO vs other architectures",
+    "Apply FNO to real scientific problems",
+    "Evaluate and benchmark neural operator models properly"
+  ],
+  "chunks": [
+    {
+      "id": "chunk1",
+      "title": "Mathematical Foundations",
+      "subtitle": "The mathematics you need before diving into FNO",
+      "order": 1,
+      "estimated_time": "45 min",
+      "description": "Covers function spaces, operators, PDEs basics, and the mathematical framework for understanding neural operators.",
+      "files": {
+        "theory": "theory.md",
+        "code": "code.py"
+      },
+      "topics": [
+        "Function spaces",
+        "Linear and nonlinear operators",
+        "PDEs and their solutions",
+        "Why traditional methods struggle"
+      ]
+    },
+    {
+      "id": "chunk2",
+      "title": "Fourier Theory for Neural Networks",
+      "subtitle": "How Fourier transforms enable efficient global operations",
+      "order": 2,
+      "estimated_time": "60 min",
+      "description": "Deep dive into Fourier transforms, the convolution theorem, and why operating in frequency space is powerful.",
+      "files": {
+        "theory": "theory.md",
+        "code": "code.py"
+      },
+      "topics": [
+        "Discrete Fourier Transform",
+        "FFT algorithm",
+        "Convolution theorem",
+        "Frequency domain operations"
+      ]
+    },
+    {
+      "id": "chunk3",
+      "title": "Neural Operator Framework",
+      "subtitle": "Learning mappings between function spaces",
+      "order": 3,
+      "estimated_time": "45 min",
+      "description": "The general framework for neural operators - learning operators instead of functions.",
+      "files": {
+        "theory": "theory.md",
+        "code": "code.py"
+      },
+      "topics": [
+        "Operator learning vs function learning",
+        "Resolution invariance",
+        "Kernel integral operators",
+        "Discretization and mesh independence"
+      ]
+    },
+    {
+      "id": "chunk4",
+      "title": "FNO Architecture",
+      "subtitle": "Building the Fourier Neural Operator layer by layer",
+      "order": 4,
+      "estimated_time": "90 min",
+      "description": "Complete implementation of FNO - lifting, Fourier layers, and projection. The core of the tutorial.",
+      "files": {
+        "theory": "theory.md",
+        "code": "code.py"
+      },
+      "topics": [
+        "Lifting layer",
+        "Spectral convolution",
+        "Fourier layer structure",
+        "Skip connections",
+        "Projection layer",
+        "Complete FNO implementation"
+      ]
+    },
+    {
+      "id": "chunk5",
+      "title": "Training Methodology",
+      "subtitle": "How to train neural operators effectively",
+      "order": 5,
+      "estimated_time": "60 min",
+      "description": "Loss functions, optimizers, data generation, and training strategies specific to neural operators.",
+      "files": {
+        "theory": "theory.md",
+        "code": "code.py"
+      },
+      "topics": [
+        "Loss functions for operators",
+        "Data generation strategies",
+        "Training loop implementation",
+        "Hyperparameter selection",
+        "Common pitfalls"
+      ]
+    },
+    {
+      "id": "chunk6",
+      "title": "Applications and Benchmarks",
+      "subtitle": "FNO on standard PDE benchmarks",
+      "order": 6,
+      "estimated_time": "60 min",
+      "description": "Apply FNO to Burgers equation, Darcy flow, and Navier-Stokes. Compare with baselines.",
+      "files": {
+        "theory": "theory.md",
+        "code": "code.py"
+      },
+      "topics": [
+        "Burgers equation",
+        "Darcy flow",
+        "Navier-Stokes",
+        "Comparison with CNN, U-Net",
+        "Computational efficiency"
+      ]
+    },
+    {
+      "id": "chunk7",
+      "title": "Urban Climate Case Study",
+      "subtitle": "Applying FNO to real-world climate prediction",
+      "order": 7,
+      "estimated_time": "3-4 hours",
+      "description": "A comprehensive case study applying everything we learned to predict urban land surface temperature. This is the capstone project.",
+      "is_extended": true,
+      "sections": [
+        {
+          "id": "section1",
+          "title": "Data Engineering",
+          "description": "Processing ECOSTRESS, ERA5, and urban morphology data",
+          "files": {
+            "theory": "theory.md",
+            "code": [
+              "part1_ecostress.py",
+              "part2_era5.py",
+              "part3_urban.py",
+              "part4_integration.py"
+            ]
+          }
+        },
+        {
+          "id": "section2",
+          "title": "Model Adaptation",
+          "description": "Adapting FNO architecture for climate prediction",
+          "files": {
+            "theory": "theory.md",
+            "code": "code.py"
+          }
+        },
+        {
+          "id": "section3",
+          "title": "Physics-Informed Extensions",
+          "description": "Adding physical constraints to improve predictions",
+          "files": {
+            "theory": "theory.md",
+            "code": "code.py"
+          }
+        },
+        {
+          "id": "section4",
+          "title": "Multi-Resolution & Transfer Learning",
+          "description": "Handling different resolutions and transferring knowledge",
+          "files": {
+            "theory": "theory.md",
+            "code": "code.py"
+          }
+        },
+        {
+          "id": "section5",
+          "title": "Interpretability",
+          "description": "Understanding what the model learns",
+          "files": {
+            "theory": "theory.md",
+            "code": "code.py"
+          }
+        },
+        {
+          "id": "section6",
+          "title": "Evaluation and Benchmarking",
+          "description": "Rigorous evaluation methodology for real-world applications",
+          "files": {
+            "code": [
+              "part1_splitting.py",
+              "part2_baselines.py",
+              "part3_metrics.py",
+              "part4_statistics.py",
+              "part5_ablations.py",
+              "part6_reproducibility.py",
+              "part7_pipeline.py"
+            ]
+          }
+        }
+      ],
+      "topics": [
+        "Real satellite data processing",
+        "Climate data integration",
+        "Physics-informed learning",
+        "Production-ready evaluation",
+        "Thesis-quality methodology"
+      ]
+    }
+  ],
+  "related_papers": [
+    {
+      "title": "Neural Operator: Learning Maps Between Function Spaces",
+      "arxiv": "2108.08481",
+      "relation": "Follow-up survey paper"
+    },
+    {
+      "title": "Physics-Informed Neural Networks",
+      "arxiv": "1711.10561",
+      "relation": "Related physics-informed approach"
+    }
+  ],
+  "citation": "@inproceedings{li2021fourier,\n  title={Fourier Neural Operator for Parametric Partial Differential Equations},\n  author={Li, Zongyi and Kovachki, Nikola and Azizzadenesheli, Kamyar and Liu, Burigede and Bhattacharya, Kaushik and Stuart, Andrew and Anandkumar, Anima},\n  booktitle={International Conference on Learning Representations},\n  year={2021}\n}"
+}

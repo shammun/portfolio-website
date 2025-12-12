@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FNO Tutorial Prerequisites</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+    
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    
+    /* Title */
+    .title {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    
+    .title h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 10px;
+    }
+    
+    .title p {
+      font-size: 15px;
+      color: #64748b;
+    }
+    
+    /* Readiness score */
+    .readiness-card {
+      background: white;
+      border-radius: 20px;
+      padding: 20px 30px;
+      box-shadow: 0 8px 30px rgba(99, 102, 241, 0.1);
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    
+    .readiness-label {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    .readiness-score {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .score-circle {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: conic-gradient(
+        #7c3aed var(--progress, 0%),
+        #e2e8f0 var(--progress, 0%)
+      );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    
+    .score-circle::before {
+      content: '';
+      width: 54px;
+      height: 54px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+    }
+    
+    .score-value {
+      position: relative;
+      font-size: 20px;
+      font-weight: 700;
+      color: #7c3aed;
+    }
+    
+    .score-text {
+      font-size: 14px;
+      color: #1e293b;
+      font-weight: 600;
+    }
+    
+    .score-subtext {
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    .legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    
+    .legend-dot.essential { background: linear-gradient(135deg, #f97316, #dc2626); }
+    .legend-dot.helpful { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+    .legend-dot.optional { background: #94a3b8; }
+    
+    /* Mind map container */
+    .mindmap-container {
+      position: relative;
+      min-height: 600px;
+    }
+    
+    /* SVG for connection lines */
+    .connections-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .connection-line {
+      stroke: #e2e8f0;
+      stroke-width: 3;
+      fill: none;
+    }
+    
+    /* Central node */
+    .central-node {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 160px;
+      height: 160px;
+      background: linear-gradient(135deg, #a78bfa, #7c3aed);
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 12px 40px rgba(124, 58, 237, 0.4);
+      z-index: 10;
+      cursor: default;
+    }
+    
+    .central-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+    
+    .central-label {
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+    }
+    
+    .central-sublabel {
+      font-size: 11px;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+    
+    /* Branch nodes */
+    .branch-node {
+      position: absolute;
+      width: 200px;
+      background: white;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.12);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 5;
+      border: 2px solid transparent;
+    }
+    
+    .branch-node:hover {
+      transform: scale(1.05);
+      box-shadow: 0 12px 35px rgba(99, 102, 241, 0.2);
+    }
+    
+    .branch-node.expanded {
+      width: 280px;
+      z-index: 20;
+    }
+    
+    .branch-node.checked {
+      border-color: #10b981;
+    }
+    
+    /* Branch header */
+    .branch-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .branch-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    
+    .branch-icon.linear-algebra { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+    .branch-icon.calculus { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+    .branch-icon.fourier { background: linear-gradient(135deg, #ede9fe, #ddd6fe); }
+    .branch-icon.python { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+    .branch-icon.pytorch { background: linear-gradient(135deg, #ffedd5, #fed7aa); }
+    .branch-icon.pdes { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); }
+    
+    .branch-title-group {
+      flex-grow: 1;
+      min-width: 0;
+    }
+    
+    .branch-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 2px;
+    }
+    
+    .branch-importance {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .branch-importance.essential { color: #dc2626; }
+    .branch-importance.helpful { color: #7c3aed; }
+    .branch-importance.optional { color: #94a3b8; }
+    
+    /* Checkbox */
+    .branch-checkbox {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .branch-checkbox:hover {
+      border-color: #10b981;
+    }
+    
+    .branch-checkbox.checked {
+      background: #10b981;
+      border-color: #10b981;
+      color: white;
+    }
+    
+    .branch-checkbox svg {
+      width: 14px;
+      height: 14px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .branch-checkbox.checked svg {
+      opacity: 1;
+    }
+    
+    /* Expanded content */
+    .branch-details {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    
+    .branch-node.expanded .branch-details {
+      max-height: 300px;
+    }
+    
+    .branch-details-inner {
+      padding-top: 15px;
+      border-top: 1px solid #f1f5f9;
+      margin-top: 15px;
+    }
+    
+    .detail-section {
+      margin-bottom: 12px;
+    }
+    
+    .detail-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    
+    .subtopics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    
+    .subtopic-tag {
+      padding: 4px 10px;
+      background: #f1f5f9;
+      border-radius: 10px;
+      font-size: 11px;
+      color: #475569;
+    }
+    
+    .proficiency {
+      font-size: 13px;
+      color: #1e293b;
+      font-weight: 500;
+    }
+    
+    .resource-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: #f8fafc;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #3b82f6;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    
+    .resource-link:hover {
+      background: #dbeafe;
+    }
+    
+    .covered-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: #d1fae5;
+      border-radius: 10px;
+      font-size: 11px;
+      color: #065f46;
+      font-weight: 500;
+    }
+    
+    /* Expand indicator */
+    .expand-indicator {
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 10px;
+    }
+    
+    .branch-node.expanded .expand-indicator {
+      display: none;
+    }
+    
+    /* Positioning for branches */
+    .branch-node[data-branch="linear-algebra"] {
+      top: 10%;
+      left: 5%;
+    }
+    
+    .branch-node[data-branch="calculus"] {
+      top: 10%;
+      right: 5%;
+    }
+    
+    .branch-node[data-branch="fourier"] {
+      top: 45%;
+      left: 0%;
+    }
+    
+    .branch-node[data-branch="python"] {
+      top: 45%;
+      right: 0%;
+    }
+    
+    .branch-node[data-branch="pytorch"] {
+      bottom: 10%;
+      left: 15%;
+    }
+    
+    .branch-node[data-branch="pdes"] {
+      bottom: 10%;
+      right: 15%;
+    }
+    
+    @media (max-width: 900px) {
+      .mindmap-container {
+        min-height: auto;
+      }
+      
+      .central-node {
+        position: relative;
+        left: auto;
+        top: auto;
+        transform: none;
+        margin: 0 auto 30px;
+      }
+      
+      .branch-node {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        width: 100% !important;
+        margin-bottom: 15px;
+      }
+      
+      .connections-svg {
+        display: none;
+      }
+    }
+    
+    /* Summary card */
+    .summary-card {
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.1);
+      margin-top: 30px;
+      text-align: center;
+    }
+    
+    .summary-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 15px;
+    }
+    
+    .summary-message {
+      font-size: 14px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+    
+    .summary-message strong {
+      color: #7c3aed;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #a78bfa, #7c3aed);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 15px;
+      text-decoration: none;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">
+      <h1>FNO Tutorial Prerequisites</h1>
+      <p>Check off topics you're comfortable with to assess your readiness</p>
+    </div>
+    
+    <!-- Readiness Score -->
+    <div class="readiness-card">
+      <div class="readiness-score">
+        <div class="score-circle" id="score-circle" style="--progress: 0%">
+          <span class="score-value" id="score-value">0%</span>
+        </div>
+        <div>
+          <div class="score-text">Readiness Score</div>
+          <div class="score-subtext" id="score-subtext">Check prerequisites below</div>
+        </div>
+      </div>
+      
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot essential"></div>
+          <span>Essential</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot helpful"></div>
+          <span>Helpful</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot optional"></div>
+          <span>Nice to Have</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mind Map -->
+    <div class="mindmap-container" id="mindmap">
+      <!-- SVG Connections -->
+      <svg class="connections-svg" id="connections-svg">
+        <!-- Lines drawn by JS -->
+      </svg>
+      
+      <!-- Central Node -->
+      <div class="central-node">
+        <div class="central-icon">🧠</div>
+        <div class="central-label">FNO Tutorial</div>
+        <div class="central-sublabel">Neural Operators</div>
+      </div>
+      
+      <!-- Branch: Linear Algebra -->
+      <div class="branch-node" data-branch="linear-algebra" data-weight="20" onclick="toggleExpand(this)">
+        <div class="branch-header">
+          <div class="branch-icon linear-algebra">
+            <span style="font-family: Georgia; font-style: italic;">M</span>
+          </div>
+          <div class="branch-title-group">
+            <div class="branch-title">Linear Algebra</div>
+            <div class="branch-importance essential">Essential</div>
+          </div>
+          <div class="branch-checkbox" onclick="event.stopPropagation(); toggleCheck(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="branch-details">
+          <div class="branch-details-inner">
+            <div class="detail-section">
+              <div class="detail-label">Sub-topics</div>
+              <div class="subtopics">
+                <span class="subtopic-tag">Matrices</span>
+                <span class="subtopic-tag">Eigenvalues</span>
+                <span class="subtopic-tag">Vector spaces</span>
+                <span class="subtopic-tag">Linear transforms</span>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Proficiency Needed</div>
+              <div class="proficiency">Comfortable with matrix operations</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Resource</div>
+              <a href="https://www.3blue1brown.com/topics/linear-algebra" target="_blank" class="resource-link">
+                📺 3Blue1Brown
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="expand-indicator">Click to expand</div>
+      </div>
+      
+      <!-- Branch: Calculus -->
+      <div class="branch-node" data-branch="calculus" data-weight="20" onclick="toggleExpand(this)">
+        <div class="branch-header">
+          <div class="branch-icon calculus">
+            <span style="font-family: Georgia; font-style: italic; font-size: 26px;">∫</span>
+          </div>
+          <div class="branch-title-group">
+            <div class="branch-title">Calculus</div>
+            <div class="branch-importance essential">Essential</div>
+          </div>
+          <div class="branch-checkbox" onclick="event.stopPropagation(); toggleCheck(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="branch-details">
+          <div class="branch-details-inner">
+            <div class="detail-section">
+              <div class="detail-label">Sub-topics</div>
+              <div class="subtopics">
+                <span class="subtopic-tag">Derivatives</span>
+                <span class="subtopic-tag">Integrals</span>
+                <span class="subtopic-tag">Multivariable</span>
+                <span class="subtopic-tag">Chain rule</span>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Proficiency Needed</div>
+              <div class="proficiency">Solid understanding of derivatives & integrals</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Resource</div>
+              <a href="https://www.khanacademy.org/math/calculus-1" target="_blank" class="resource-link">
+                📚 Khan Academy
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="expand-indicator">Click to expand</div>
+      </div>
+      
+      <!-- Branch: Fourier Analysis -->
+      <div class="branch-node" data-branch="fourier" data-weight="15" onclick="toggleExpand(this)">
+        <div class="branch-header">
+          <div class="branch-icon fourier">
+            <span style="font-size: 20px;">〜</span>
+          </div>
+          <div class="branch-title-group">
+            <div class="branch-title">Fourier Analysis</div>
+            <div class="branch-importance helpful">Helpful</div>
+          </div>
+          <div class="branch-checkbox" onclick="event.stopPropagation(); toggleCheck(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="branch-details">
+          <div class="branch-details-inner">
+            <div class="detail-section">
+              <div class="detail-label">Sub-topics</div>
+              <div class="subtopics">
+                <span class="subtopic-tag">Fourier series</span>
+                <span class="subtopic-tag">FFT</span>
+                <span class="subtopic-tag">Frequency domain</span>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Proficiency Needed</div>
+              <div class="proficiency">Basic intuition (we'll cover it!)</div>
+            </div>
+            <div class="detail-section">
+              <span class="covered-badge">✓ Covered in Chunk 1</span>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Resource</div>
+              <a href="https://www.3blue1brown.com/lessons/fourier-transforms" target="_blank" class="resource-link">
+                📺 3Blue1Brown
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="expand-indicator">Click to expand</div>
+      </div>
+      
+      <!-- Branch: Python -->
+      <div class="branch-node" data-branch="python" data-weight="20" onclick="toggleExpand(this)">
+        <div class="branch-header">
+          <div class="branch-icon python">
+            <span style="font-size: 20px;">🐍</span>
+          </div>
+          <div class="branch-title-group">
+            <div class="branch-title">Python</div>
+            <div class="branch-importance essential">Essential</div>
+          </div>
+          <div class="branch-checkbox" onclick="event.stopPropagation(); toggleCheck(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="branch-details">
+          <div class="branch-details-inner">
+            <div class="detail-section">
+              <div class="detail-label">Sub-topics</div>
+              <div class="subtopics">
+                <span class="subtopic-tag">NumPy</span>
+                <span class="subtopic-tag">Data structures</span>
+                <span class="subtopic-tag">Classes</span>
+                <span class="subtopic-tag">Functions</span>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Proficiency Needed</div>
+              <div class="proficiency">Intermediate (comfortable with NumPy)</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Resource</div>
+              <a href="https://numpy.org/doc/stable/user/quickstart.html" target="_blank" class="resource-link">
+                📖 NumPy Quickstart
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="expand-indicator">Click to expand</div>
+      </div>
+      
+      <!-- Branch: PyTorch -->
+      <div class="branch-node" data-branch="pytorch" data-weight="15" onclick="toggleExpand(this)">
+        <div class="branch-header">
+          <div class="branch-icon pytorch">
+            <span style="font-size: 20px;">🔥</span>
+          </div>
+          <div class="branch-title-group">
+            <div class="branch-title">PyTorch</div>
+            <div class="branch-importance essential">Essential</div>
+          </div>
+          <div class="branch-checkbox" onclick="event.stopPropagation(); toggleCheck(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="branch-details">
+          <div class="branch-details-inner">
+            <div class="detail-section">
+              <div class="detail-label">Sub-topics</div>
+              <div class="subtopics">
+                <span class="subtopic-tag">Tensors</span>
+                <span class="subtopic-tag">Autograd</span>
+                <span class="subtopic-tag">nn.Module</span>
+                <span class="subtopic-tag">Training loops</span>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Proficiency Needed</div>
+              <div class="proficiency">Basic (built simple models before)</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Resource</div>
+              <a href="https://pytorch.org/tutorials/beginner/basics/intro.html" target="_blank" class="resource-link">
+                📖 PyTorch Tutorials
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="expand-indicator">Click to expand</div>
+      </div>
+      
+      <!-- Branch: PDEs -->
+      <div class="branch-node" data-branch="pdes" data-weight="10" onclick="toggleExpand(this)">
+        <div class="branch-header">
+          <div class="branch-icon pdes">
+            <span style="font-family: Georgia; font-style: italic; font-size: 16px;">∂u/∂t</span>
+          </div>
+          <div class="branch-title-group">
+            <div class="branch-title">PDEs</div>
+            <div class="branch-importance optional">Nice to Have</div>
+          </div>
+          <div class="branch-checkbox" onclick="event.stopPropagation(); toggleCheck(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="branch-details">
+          <div class="branch-details-inner">
+            <div class="detail-section">
+              <div class="detail-label">Sub-topics</div>
+              <div class="subtopics">
+                <span class="subtopic-tag">Heat equation</span>
+                <span class="subtopic-tag">Wave equation</span>
+                <span class="subtopic-tag">Boundary conditions</span>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Proficiency Needed</div>
+              <div class="proficiency">Helpful but not required — we explain!</div>
+            </div>
+            <div class="detail-section">
+              <span class="covered-badge">✓ Covered in Tutorial</span>
+            </div>
+          </div>
+        </div>
+        <div class="expand-indicator">Click to expand</div>
+      </div>
+    </div>
+    
+    <!-- Summary -->
+    <div class="summary-card" id="summary-card">
+      <div class="summary-title">Your Readiness Assessment</div>
+      <div class="summary-message" id="summary-message">
+        Check off the prerequisites you're comfortable with to see your readiness score.
+        <br><br>
+        <strong>Essential topics</strong> are required to follow along. 
+        <strong>Helpful topics</strong> will make learning easier but are covered in the tutorial.
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Track checked items
+    const checkedItems = new Set();
+    
+    // Calculate and update score
+    function updateScore() {
+      let totalWeight = 0;
+      let checkedWeight = 0;
+      let essentialMissing = [];
+      
+      document.querySelectorAll('.branch-node').forEach(node => {
+        const branch = node.dataset.branch;
+        const weight = parseInt(node.dataset.weight);
+        const importance = node.querySelector('.branch-importance').textContent;
+        const title = node.querySelector('.branch-title').textContent;
+        const isChecked = checkedItems.has(branch);
+        
+        totalWeight += weight;
+        if (isChecked) {
+          checkedWeight += weight;
+        } else if (importance === 'Essential') {
+          essentialMissing.push(title);
+        }
+      });
+      
+      const percentage = Math.round((checkedWeight / totalWeight) * 100);
+      
+      // Update circle
+      const circle = document.getElementById('score-circle');
+      circle.style.setProperty('--progress', percentage + '%');
+      
+      // Update value
+      document.getElementById('score-value').textContent = percentage + '%';
+      
+      // Update subtext
+      const subtext = document.getElementById('score-subtext');
+      if (percentage === 100) {
+        subtext.textContent = "You're fully prepared!";
+      } else if (percentage >= 75) {
+        subtext.textContent = "Almost ready!";
+      } else if (percentage >= 50) {
+        subtext.textContent = "Getting there...";
+      } else {
+        subtext.textContent = "Check prerequisites below";
+      }
+      
+      // Update summary
+      const summary = document.getElementById('summary-message');
+      if (percentage === 100) {
+        summary.innerHTML = `
+          <span style="font-size: 24px;">🎉</span><br><br>
+          <strong>You're fully prepared!</strong> You have all the prerequisites to succeed in this tutorial.
+          <br><br>
+          <a href="#" class="btn">Start the Tutorial →</a>
+        `;
+      } else if (essentialMissing.length > 0) {
+        summary.innerHTML = `
+          You're missing some <strong>essential prerequisites</strong>: ${essentialMissing.join(', ')}.
+          <br><br>
+          We recommend brushing up on these topics before starting. Click each topic to see recommended resources.
+        `;
+      } else {
+        summary.innerHTML = `
+          You have all the <strong>essential prerequisites</strong>! 
+          The remaining topics are helpful but will be covered in the tutorial.
+          <br><br>
+          <a href="#" class="btn">Start the Tutorial →</a>
+        `;
+      }
+    }
+    
+    // Toggle checkbox
+    function toggleCheck(checkbox) {
+      const node = checkbox.closest('.branch-node');
+      const branch = node.dataset.branch;
+      
+      if (checkbox.classList.contains('checked')) {
+        checkbox.classList.remove('checked');
+        node.classList.remove('checked');
+        checkedItems.delete(branch);
+      } else {
+        checkbox.classList.add('checked');
+        node.classList.add('checked');
+        checkedItems.add(branch);
+      }
+      
+      updateScore();
+    }
+    
+    // Toggle expand
+    function toggleExpand(node) {
+      const wasExpanded = node.classList.contains('expanded');
+      
+      // Close all others
+      document.querySelectorAll('.branch-node').forEach(n => {
+        n.classList.remove('expanded');
+      });
+      
+      // Toggle this one
+      if (!wasExpanded) {
+        node.classList.add('expanded');
+      }
+    }
+    
+    // Draw connection lines (desktop only)
+    function drawConnections() {
+      if (window.innerWidth < 900) return;
+      
+      const svg = document.getElementById('connections-svg');
+      const container = document.getElementById('mindmap');
+      const containerRect = container.getBoundingClientRect();
+      
+      const central = document.querySelector('.central-node');
+      const centralRect = central.getBoundingClientRect();
+      const cx = centralRect.left + centralRect.width / 2 - containerRect.left;
+      const cy = centralRect.top + centralRect.height / 2 - containerRect.top;
+      
+      let paths = '';
+      
+      document.querySelectorAll('.branch-node').forEach(node => {
+        const rect = node.getBoundingClientRect();
+        const nx = rect.left + rect.width / 2 - containerRect.left;
+        const ny = rect.top + rect.height / 2 - containerRect.top;
+        
+        // Create curved path
+        const midX = (cx + nx) / 2;
+        const midY = (cy + ny) / 2;
+        
+        // Control point offset for curve
+        const dx = nx - cx;
+        const dy = ny - cy;
+        const cpx = midX - dy * 0.2;
+        const cpy = midY + dx * 0.2;
+        
+        paths += `<path class="connection-line" d="M${cx},${cy} Q${cpx},${cpy} ${nx},${ny}"/>`;
+      });
+      
+      svg.innerHTML = paths;
+    }
+    
+    // Initialize
+    drawConnections();
+    window.addEventListener('resize', drawConnections);
+    
+    // Redraw on expand/collapse
+    const observer = new MutationObserver(drawConnections);
+    document.querySelectorAll('.branch-node').forEach(node => {
+      observer.observe(node, { attributes: true, attributeFilter: ['class'] });
+    });
+  </script>
+</body>
+</html>

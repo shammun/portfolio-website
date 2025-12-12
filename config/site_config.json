@@ -1,0 +1,68 @@
+{
+  "site": {
+    "name": "Shammunul Islam",
+    "title": "Climate Scientist & ML Researcher",
+    "description": "Personal portfolio and interactive AI paper tutorials",
+    "url": "https://your-domain.com",
+    "language": "en",
+    "locale": "en_US"
+  },
+  
+  "navigation": {
+    "main": [
+      {"label": "Home", "href": "/", "order": 1},
+      {"label": "About", "href": "/about", "order": 2},
+      {"label": "AI Paper Implementations", "href": "/blog/ai-paper-implementations", "order": 3, "highlight": true},
+      {"label": "Research", "href": "/research", "order": 4},
+      {"label": "Projects", "href": "/projects", "order": 5},
+      {"label": "CV", "href": "/cv", "order": 6},
+      {"label": "Contact", "href": "/contact", "order": 7}
+    ],
+    "footer": [
+      {"label": "LinkedIn", "href": "LINKEDIN_URL", "icon": "linkedin"},
+      {"label": "GitHub", "href": "GITHUB_URL", "icon": "github"},
+      {"label": "Google Scholar", "href": "SCHOLAR_URL", "icon": "graduation-cap"},
+      {"label": "Email", "href": "mailto:EMAIL", "icon": "mail"}
+    ]
+  },
+  
+  "features": {
+    "dark_mode": true,
+    "code_execution": true,
+    "comments": false,
+    "analytics": true,
+    "search": true
+  },
+  
+  "seo": {
+    "default_title_template": "%s | Shammunul Islam",
+    "default_description": "Climate scientist and ML researcher. Interactive tutorials on AI papers with runnable code.",
+    "keywords": ["climate science", "machine learning", "neural operators", "FNO", "urban heat island", "remote sensing", "AI tutorials"],
+    "og_image": "/images/og-default.png",
+    "twitter_handle": "@YOUR_HANDLE"
+  },
+  
+  "theme": {
+    "primary_color": "#0369a1",
+    "accent_color": "#f97316",
+    "font_heading": "Inter",
+    "font_body": "Inter",
+    "font_code": "JetBrains Mono"
+  },
+  
+  "integrations": {
+    "analytics": {
+      "provider": "vercel",
+      "id": ""
+    },
+    "forms": {
+      "provider": "formspree",
+      "contact_form_id": ""
+    }
+  },
+  
+  "admin": {
+    "enabled": true,
+    "route": "/admin"
+  }
+}

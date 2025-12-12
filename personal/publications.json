@@ -1,0 +1,167 @@
+{
+  "publications": [
+    {
+      "type": "journal",
+      "title": "Climate change quadruples flood-causing extreme monsoon rainfall events in Bangladesh and northeast India",
+      "authors": [
+        "Fahad, A. A.",
+        "Hasan, M.",
+        "Sharmili, N.",
+        "Islam, S.",
+        "Swenson, E. T.",
+        "Roxy, M. K."
+      ],
+      "journal": "Quarterly Journal of the Royal Meteorological Society",
+      "year": 2024,
+      "volume": "150",
+      "issue": "760",
+      "pages": "1267-1287",
+      "doi": "https://doi.org/10.1002/qj.4645",
+      "abstract": "",
+      "pdf_url": "",
+      "tags": [
+        "climate change",
+        "extreme rainfall",
+        "monsoon",
+        "Bangladesh",
+        "India",
+        "flooding"
+      ]
+    },
+    {
+      "type": "journal",
+      "title": "Economic valuation of climate induced losses to aquaculture for evaluating climate information services in Bangladesh",
+      "authors": [
+        "Islam, S.",
+        "Hossain, P. R.",
+        "Braun, M.",
+        "Amjath-Babu, T. S.",
+        "Mohammed, E. Y.",
+        "Krupnik, T. J.",
+        "Chowdhury, A. H.",
+        "Thomas, M.",
+        "Mauerman, M."
+      ],
+      "journal": "Climate Risk Management",
+      "year": 2024,
+      "volume": "43",
+      "pages": "Article 100582",
+      "doi": "https://doi.org/10.1016/j.crm.2023.100582",
+      "abstract": "",
+      "pdf_url": "",
+      "tags": [
+        "climate services",
+        "aquaculture",
+        "economic valuation",
+        "Bangladesh",
+        "climate risk"
+      ]
+    },
+    {
+      "type": "journal",
+      "title": "The climate data tool: Enhancing climate services across Africa",
+      "authors": [
+        "Dinku, T.",
+        "Faniriantsoa, R.",
+        "Islam, S.",
+        "Nsengiyumva, G.",
+        "Grossi, A."
+      ],
+      "journal": "Frontiers in Climate",
+      "year": 2022,
+      "volume": "3",
+      "pages": "Article 787519",
+      "doi": "https://doi.org/10.3389/fclim.2021.787519",
+      "abstract": "",
+      "pdf_url": "",
+      "tags": [
+        "climate services",
+        "Africa",
+        "CDT",
+        "climate data",
+        "R package"
+      ]
+    }
+  ],
+  "books": [
+    {
+      "title": "Hands-on Geospatial Analysis with R and QGIS",
+      "subtitle": "A beginner's guide to manipulating, managing, and analyzing spatial data using R and QGIS 3.2.2",
+      "authors": [
+        "Shammunul Islam"
+      ],
+      "publisher": "Packt Publishing",
+      "year": 2018,
+      "isbn": "9781788991674",
+      "description": "A comprehensive guide to GIS and remote sensing using R and QGIS for spatial data analysis.",
+      "cover_image": "",
+      "purchase_url": "https://www.packtpub.com/en-us/product/hands-on-geospatial-analysis-with-r-and-qgis-9781788991674",
+      "tags": [
+        "GIS",
+        "QGIS",
+        "R",
+        "spatial analysis",
+        "remote sensing"
+      ]
+    },
+    {
+      "title": "Mastering Geospatial Development with QGIS 3.x",
+      "subtitle": "An in-depth guide to becoming proficient in spatial data analysis using QGIS 3.X",
+      "edition": "3rd",
+      "authors": [
+        "Shammunul Islam",
+        "Simon Miles",
+        "Kurt Menke",
+        "Richard Smith Jr.",
+        "Luigi Pirelli",
+        "John Van Hoesen"
+      ],
+      "publisher": "Packt Publishing",
+      "year": 2019,
+      "isbn": "9781788999892",
+      "description": "An advanced guide to mastering geospatial development with QGIS 3.x.",
+      "cover_image": "",
+      "purchase_url": "https://www.amazon.com/Mastering-Geospatial-Development-QGIS-depth/dp/1788999894",
+      "tags": [
+        "GIS",
+        "QGIS",
+        "geospatial development",
+        "spatial analysis"
+      ]
+    }
+  ],
+  "thesis": {
+    "type": "masters",
+    "title": "Predicting Land Surface Temperature using Machine Learning and Satellite Remote Sensing",
+    "university": "George Mason University",
+    "department": "Department of Atmospheric, Oceanic and Earth Sciences",
+    "year": 2025,
+    "advisor": "",
+    "abstract": "This thesis develops a Fourier Neural Operator (FNO) model to predict urban land surface temperature across New York City at 70-meter resolution. Using ECOSTRESS satellite observations, ERA5 reanalysis data, NDVI vegetation data, and urban morphology parameters, the model achieves superior spatial pattern accuracy compared to traditional machine learning approaches, demonstrating the value of physics-informed neural operators for urban climate applications.",
+    "defense_date": "November 2025",
+    "pdf_url": "",
+    "tags": [
+      "FNO",
+      "machine learning",
+      "urban heat island",
+      "ECOSTRESS",
+      "remote sensing",
+      "land surface temperature",
+      "neural operators"
+    ]
+  },
+  "presentations": [
+    {
+      "title": "Characterizing Spatiotemporal Drivers of Urban Surface Temperatures Using Remote Sensing and Machine Learning",
+      "authors": [
+        "Islam, S.",
+        "Ortiz, L."
+      ],
+      "event": "AGU25 (American Geophysical Union Annual Meeting)",
+      "location": "New Orleans, LA",
+      "date": "2025-12",
+      "type": "poster",
+      "slides_url": ""
+    }
+  ]
+}

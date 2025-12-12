@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNO Predicting Turbulent Flow Evolution</title>
+    <!-- Tailwind CSS for layout fidelity -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Typography from Style Guide */
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(to bottom right, #fafbff, #f5f7ff);
+            color: #1e293b;
+        }
+
+        .font-serif {
+            font-family: Georgia, serif;
+        }
+
+        /* Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #6366f1;
+            margin-top: -6px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+
+        /* Shadow Utilities */
+        .card-shadow {
+            box-shadow: 0 4px 16px -1px rgba(99, 102, 241, 0.12), 0 2px 4px -1px rgba(99, 102, 241, 0.06);
+        }
+
+        /* Animation classes */
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen w-full p-4 md:p-12 transition-colors duration-700">
+
+    <div class="max-w-6xl mx-auto space-y-12 fade-in">
+
+        <!-- Header -->
+        <header class="text-center space-y-3">
+            <div
+                class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
+                <!-- Activity Icon -->
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+                Sequence Diagram
+            </div>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-800">
+                FNO Predicting Turbulent Flow Evolution
+            </h1>
+            <p class="text-slate-500 font-medium">
+                Navier-Stokes Equation: 2D Vorticity Formulation
+            </p>
+            <div class="inline-block my-2">
+                <div
+                    class="font-serif text-xl md:text-2xl text-slate-700 italic px-6 py-3 bg-white rounded-xl border border-slate-100 shadow-sm">
+                    ∂ω/∂t + (u·∇)ω = ν∇²ω + f
+                </div>
+            </div>
+            <p class="text-slate-500 max-w-2xl mx-auto text-sm">
+                The Fourier Neural Operator learns the underlying physics of these equations,
+                predicting the entire time evolution <span class="font-serif italic">ω(x,y,t)</span> in a single forward
+                pass.
+            </p>
+        </header>
+
+        <!-- SEQUENCE ROW -->
+        <div class="relative">
+            <!-- Time Arrow Background -->
+            <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-100 -z-10 hidden md:block"></div>
+
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-8 items-start">
+
+                <!-- Frame 1 -->
+                <div class="relative group" id="frame-1"></div>
+
+                <!-- Frame 2 -->
+                <div class="relative" id="frame-2"></div>
+
+                <!-- Frame 3 -->
+                <div class="relative" id="frame-3"></div>
+
+                <!-- Frame 4 -->
+                <div class="relative" id="frame-4"></div>
+
+                <!-- Frame 5 -->
+                <div class="relative" id="frame-5"></div>
+            </div>
+
+            <div class="mt-4 text-center">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Time Evolution →</span>
+            </div>
+        </div>
+
+        <!-- COMPARISON / INTERACTIVE SECTION -->
+        <section class="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 card-shadow">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <!-- CheckCircle Icon -->
+                        <svg class="text-emerald-500" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                        Accuracy Verification
+                    </h3>
+                    <p class="text-sm text-slate-500 mt-1">
+                        Comparing FNO predictions against the ground truth numerical solver.
+                    </p>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                    <button id="play-btn"
+                        class="w-10 h-10 flex items-center justify-center rounded-lg bg-white shadow-sm border border-slate-200 text-slate-700 hover:text-indigo-600 transition-colors">
+                        <!-- Play Icon -->
+                        <svg id="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
+                            stroke="none">
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                        </svg>
+                        <!-- Pause Icon (Hidden by default) -->
+                        <svg id="icon-pause" class="hidden" width="18" height="18" viewBox="0 0 24 24"
+                            fill="currentColor" stroke="none">
+                            <rect x="6" y="4" width="4" height="16" />
+                            <rect x="14" y="4" width="4" height="16" />
+                        </svg>
+                    </button>
+                    <div class="flex flex-col gap-1 w-32 md:w-48">
+                        <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+                            <span>Simulation Time</span>
+                            <span id="time-display">t = 0.00</span>
+                        </div>
+                        <input id="time-slider" type="range" min="0" max="10" step="0.1" value="0"
+                            class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+                <!-- Ground Truth -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-600">Ground Truth (Solver)</span>
+                        <svg class="text-orange-400" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                    </div>
+                    <div
+                        class="aspect-square rounded-xl overflow-hidden border border-slate-200 shadow-inner bg-slate-50">
+                        <canvas id="canvas-ground-truth" width="300" height="300"
+                            class="w-full h-full object-cover"></canvas>
+                    </div>
+                    <div class="text-[10px] text-slate-400">
+                        Computed in: <span class="font-mono text-slate-600">~24 hours</span>
+                    </div>
+                </div>
+
+                <!-- FNO Prediction -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-indigo-600">FNO Prediction</span>
+                        <svg class="text-indigo-500" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path d="M2 22s5-4 10 0 10 0 10 0" />
+                        </svg>
+                    </div>
+                    <div
+                        class="aspect-square rounded-xl overflow-hidden border-2 border-indigo-100 shadow-lg bg-indigo-50/10">
+                        <canvas id="canvas-fno" width="300" height="300" class="w-full h-full object-cover"></canvas>
+                    </div>
+                    <div class="text-[10px] text-slate-400">
+                        Computed in: <span class="font-mono text-emerald-600 font-bold">0.3 seconds</span>
+                    </div>
+                </div>
+
+                <!-- Difference -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-600">Abs. Difference (×10)</span>
+                        <svg class="text-slate-400" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <polyline points="4 14 10 14 10 20" />
+                            <polyline points="20 10 14 10 14 4" />
+                            <line x1="14" y1="10" x2="21" y2="3" />
+                            <line x1="3" y1="21" x2="10" y2="14" />
+                        </svg>
+                    </div>
+                    <div
+                        class="aspect-square rounded-xl overflow-hidden border border-slate-200 bg-black shadow-inner relative">
+                        <canvas id="canvas-error" width="300" height="300" class="w-full h-full object-cover"></canvas>
+
+                        <!-- Error Scale Legend -->
+                        <div
+                            class="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded border border-white/10 flex flex-col gap-1">
+                            <div class="text-[9px] text-white/70 uppercase">Error Magnitude</div>
+                            <div class="h-1.5 w-20 rounded-full bg-gradient-to-r from-black via-yellow-500 to-red-500">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-slate-400">
+                        Relative L2 Error: <span class="font-mono text-slate-600">~1.2%</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        /**
+         * 1. LOGIC: 2D Turbulence Math (Vanilla JS)
+         */
+        function generateVorticityField(width, height, t) {
+            const size = width * height;
+            const data = new Float32Array(size);
+            // Simulation parameters (superposition of moving waves)
+            const scales = [
+                { k: 0.02, w: 0.5, speed: 0.2, amp: 1.0 },   // Large
+                { k: 0.05, w: 1.2, speed: 0.5, amp: 0.5 },   // Medium
+                { k: 0.12, w: 2.5, speed: 1.1, amp: 0.25 },  // Small
+            ];
+
+            let idx = 0;
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let value = 0;
+                    for (const scale of scales) {
+                        const dx = x + Math.cos(t * scale.speed) * 20;
+                        const dy = y + Math.sin(t * scale.speed) * 20;
+                        value += Math.sin(dx * scale.k + t * scale.w) * Math.cos(dy * scale.k - t * scale.w) * scale.amp;
+                    }
+                    data[idx++] = value;
+                }
+            }
+            return data;
+        }
+
+        /**
+         * 2. RENDERER: Canvas Drawing
+         */
+        function renderCanvas(canvasId, time, width = 150, height = 150, isError = false) {
+            const canvas = typeof canvasId === 'string' ? document.getElementById(canvasId) : canvasId;
+            if (!canvas) return;
+
+            // Ensure canvas dimensions match logic dimensions
+            if (canvas.width !== width) canvas.width = width;
+            if (canvas.height !== height) canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            const imgData = ctx.createImageData(width, height);
+
+            // Generate Fields
+            const field = generateVorticityField(width, height, time);
+            let fnoField = null;
+            if (isError) {
+                fnoField = generateVorticityField(width, height, time + 0.05); // Phase shift for error
+            }
+
+            // Pixel Manipulation
+            let p = 0; // pixel index
+            for (let i = 0; i < field.length; i++) {
+                let r, g, b;
+
+                if (isError) {
+                    // Error Heatmap (Black -> Yellow -> Red)
+                    const diff = Math.abs(field[i] - fnoField[i]) * 2;
+                    r = Math.min(255, diff * 255);
+                    g = Math.min(255, diff * 100);
+                    b = 0;
+                } else {
+                    // RdBu Colormap
+                    const val = field[i];
+                    const norm = Math.max(-1, Math.min(1, val / 1.75));
+
+                    if (norm < 0) {
+                        // Negative (Blue)
+                        const t = Math.abs(norm);
+                        r = 247 + (5 - 247) * t;
+                        g = 247 + (113 - 247) * t;
+                        b = 247 + (176 - 247) * t;
+                    } else {
+                        // Positive (Red)
+                        const t = norm;
+                        r = 247 + (202 - 247) * t;
+                        g = 247 + (0 - 247) * t;
+                        b = 247 + (32 - 247) * t;
+                    }
+                }
+
+                imgData.data[p++] = r;
+                imgData.data[p++] = g;
+                imgData.data[p++] = b;
+                imgData.data[p++] = 255; // Alpha
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        /**
+         * 3. COMPONENTS: HTML Generators for the Top Sequence
+         */
+        function createFrameCard(containerId, time, label, type = 'neutral') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            let borderColor = '#e2e8f0'; // neutral
+            let badge = '';
+            let arrow = '';
+
+            if (type === 'input') {
+                borderColor = '#fdba74'; // warm
+                badge = `<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-[10px] font-bold border border-orange-100">INPUT</div>`;
+                arrow = `<div class="hidden md:block absolute top-1/2 -right-6 text-slate-300 transform -translate-y-1/2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>`;
+            } else if (type === 'output') {
+                borderColor = '#6ee7b7'; // cool
+                badge = `<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-teal-50 text-teal-600 px-3 py-1 rounded-full text-[10px] font-bold border border-teal-100">OUTPUT</div>`;
+            }
+
+            const canvasId = `canvas-${containerId}`;
+
+            container.innerHTML = `
+        ${badge}
+        <div class="flex flex-col items-center gap-3 w-full">
+            <div class="rounded-lg overflow-hidden border-2 bg-white relative transition-shadow hover:shadow-lg w-full" style="border-color: ${borderColor}">
+                <canvas id="${canvasId}" width="150" height="150" class="w-full h-auto block"></canvas>
+                <div class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-serif italic text-slate-600 border border-slate-100">
+                   ${label.includes(":") ? label.split(":")[1] : label}
+                </div>
+            </div>
+            <div class="text-center">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  ${label.split(":")[0]}
+                </div>
+                <div class="text-xs text-slate-400 font-serif italic">
+                  ${label.includes(":") ? label.split(":")[1] : ""}
+                </div>
+            </div>
+        </div>
+        ${arrow}
+    `;
+
+            // Initial Draw
+            renderCanvas(canvasId, time, 150, 150, false);
+        }
+
+        /**
+         * 4. APP STATE & INITIALIZATION
+         */
+        let currentState = {
+            time: 0,
+            isPlaying: false,
+            animationId: null
+        };
+
+        function initApp() {
+            // Generate Static Sequence Frames
+            createFrameCard('frame-1', 0, "Input: t=0", 'input');
+            createFrameCard('frame-2', 2.5, "FNO: t=T/4");
+            createFrameCard('frame-3', 5.0, "FNO: t=T/2");
+            createFrameCard('frame-4', 7.5, "FNO: t=3T/4");
+            createFrameCard('frame-5', 10.0, "Output: t=T", 'output');
+
+            // Setup Interactive Elements
+            const playBtn = document.getElementById('play-btn');
+            const slider = document.getElementById('time-slider');
+            const timeDisplay = document.getElementById('time-display');
+            const iconPlay = document.getElementById('icon-play');
+            const iconPause = document.getElementById('icon-pause');
+
+            // Interactive Comparison Draw Function
+            const drawComparison = () => {
+                const t = currentState.time;
+                renderCanvas('canvas-ground-truth', t, 300, 300, false);
+                renderCanvas('canvas-fno', t, 300, 300, false);
+                renderCanvas('canvas-error', t, 300, 300, true);
+
+                slider.value = t;
+                timeDisplay.textContent = `t = ${t.toFixed(2)}`;
+            };
+
+            // Animation Loop
+            const loop = () => {
+                currentState.time = (currentState.time + 0.05) % 10;
+                drawComparison();
+                currentState.animationId = requestAnimationFrame(loop);
+            };
+
+            // Event Listeners
+            playBtn.addEventListener('click', () => {
+                currentState.isPlaying = !currentState.isPlaying;
+
+                if (currentState.isPlaying) {
+                    iconPlay.classList.add('hidden');
+                    iconPause.classList.remove('hidden');
+                    loop();
+                } else {
+                    iconPlay.classList.remove('hidden');
+                    iconPause.classList.add('hidden');
+                    cancelAnimationFrame(currentState.animationId);
+                }
+            });
+
+            slider.addEventListener('input', (e) => {
+                currentState.time = parseFloat(e.target.value);
+                drawComparison();
+                // Pause if dragging manually
+                if (currentState.isPlaying) {
+                    currentState.isPlaying = false;
+                    iconPlay.classList.remove('hidden');
+                    iconPause.classList.add('hidden');
+                    cancelAnimationFrame(currentState.animationId);
+                }
+            });
+
+            // Initial Draw
+            drawComparison();
+        }
+
+        // Run when DOM is ready
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+
+</html>

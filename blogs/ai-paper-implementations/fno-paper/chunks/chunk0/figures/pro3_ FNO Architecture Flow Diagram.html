@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FNO Architecture - Interactive Diagram</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+    
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    /* Title */
+    .title {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .title h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+    
+    .title p {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    /* Flowchart */
+    .flowchart {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+    
+    /* Component cards */
+    .component {
+      width: 100%;
+      max-width: 500px;
+      border-radius: 16px;
+      padding: 20px 24px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      border: 2px solid transparent;
+    }
+    
+    .component:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+    }
+    
+    .component.active {
+      transform: translateY(-2px);
+    }
+    
+    .component-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .component-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .component-info {
+      flex: 1;
+    }
+    
+    .component-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+    
+    .component-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .component-math {
+      font-family: Georgia, serif;
+      font-size: 14px;
+      font-style: italic;
+    }
+    
+    .component-details {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.4s ease;
+      padding: 0 0;
+    }
+    
+    .component.active .component-details {
+      max-height: 300px;
+      padding: 16px 0 0 0;
+    }
+    
+    .details-content {
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #475569;
+    }
+    
+    .details-content ul {
+      margin: 8px 0 0 20px;
+    }
+    
+    .details-content li {
+      margin-bottom: 4px;
+    }
+    
+    .expand-hint {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      color: #94a3b8;
+      transition: transform 0.3s ease;
+    }
+    
+    .component.active .expand-hint {
+      transform: translateY(-50%) rotate(180deg);
+    }
+    
+    /* Input styling */
+    .input-component {
+      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+      border-color: #fdba74;
+    }
+    
+    .input-component .component-icon {
+      background: #fff7ed;
+      border: 2px solid #fdba74;
+    }
+    
+    .input-component .component-title {
+      color: #ea580c;
+    }
+    
+    .input-component .component-math {
+      color: #c2410c;
+    }
+    
+    /* Lifting styling */
+    .lifting-component {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border-color: #93c5fd;
+    }
+    
+    .lifting-component .component-icon {
+      background: #dbeafe;
+      border: 2px solid #60a5fa;
+    }
+    
+    .lifting-component .component-title {
+      color: #1e40af;
+    }
+    
+    .lifting-component .component-math {
+      color: #3b82f6;
+    }
+    
+    /* Fourier styling */
+    .fourier-component {
+      background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+      border-color: #a78bfa;
+    }
+    
+    .fourier-component .component-icon {
+      background: #ddd6fe;
+      border: 2px solid #a78bfa;
+    }
+    
+    .fourier-component .component-title {
+      color: #5b21b6;
+    }
+    
+    .fourier-component .component-math {
+      color: #7c3aed;
+    }
+    
+    /* Projection styling */
+    .projection-component {
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      border-color: #6ee7b7;
+    }
+    
+    .projection-component .component-icon {
+      background: #d1fae5;
+      border: 2px solid #34d399;
+    }
+    
+    .projection-component .component-title {
+      color: #047857;
+    }
+    
+    .projection-component .component-math {
+      color: #10b981;
+    }
+    
+    /* Output styling */
+    .output-component {
+      background: linear-gradient(135deg, #ecfdf5 0%, #ccfbf1 100%);
+      border-color: #5eead4;
+    }
+    
+    .output-component .component-icon {
+      background: #ccfbf1;
+      border: 2px solid #2dd4bf;
+    }
+    
+    .output-component .component-title {
+      color: #0d9488;
+    }
+    
+    .output-component .component-math {
+      color: #14b8a6;
+    }
+    
+    /* Arrows */
+    .arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 0;
+      color: #94a3b8;
+    }
+    
+    .arrow-line {
+      width: 3px;
+      height: 30px;
+      background: linear-gradient(to bottom, #cbd5e1, #94a3b8);
+      border-radius: 2px;
+    }
+    
+    .arrow-head {
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 10px solid #94a3b8;
+    }
+    
+    /* Fourier layers container */
+    .fourier-container {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+    }
+    
+    .fourier-layers {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .fourier-bracket {
+      position: absolute;
+      right: -60px;
+      top: 10px;
+      bottom: 10px;
+      width: 50px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .bracket-line {
+      width: 20px;
+      height: 100%;
+      border: 2.5px solid #a78bfa;
+      border-left: none;
+      border-radius: 0 12px 12px 0;
+    }
+    
+    .bracket-label {
+      position: absolute;
+      right: -50px;
+      text-align: left;
+      font-size: 12px;
+      color: #7c3aed;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    
+    .bracket-label span {
+      display: block;
+      font-size: 11px;
+      color: #a78bfa;
+      font-weight: 400;
+    }
+    
+    /* Mini heatmap */
+    .mini-heatmap {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 2px;
+      width: 45px;
+      height: 36px;
+    }
+    
+    .heat-cell {
+      border-radius: 2px;
+      transition: transform 0.2s ease;
+    }
+    
+    .component:hover .heat-cell {
+      transform: scale(1.1);
+    }
+    
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+      padding: 16px 24px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid;
+    }
+    
+    /* Tooltip */
+    .tooltip {
+      position: fixed;
+      background: #1e293b;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 100;
+      max-width: 200px;
+    }
+    
+    .tooltip.visible {
+      opacity: 1;
+    }
+    
+    /* Pulse animation for layers */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .fourier-component.highlight {
+      animation: pulse 1s ease-in-out;
+    }
+    
+    /* Step through controls */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .control-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .control-btn.primary {
+      background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+      color: white;
+    }
+    
+    .control-btn.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+    
+    .control-btn.secondary {
+      background: white;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .control-btn.secondary:hover {
+      background: #f8fafc;
+    }
+    
+    /* Step indicator */
+    .step-indicator {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #64748b;
+    }
+    
+    .step-indicator span {
+      color: #7c3aed;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">
+      <h1>Fourier Neural Operator (FNO)</h1>
+      <p>Interactive Architecture Overview — Click components to learn more</p>
+    </div>
+    
+    <div class="flowchart">
+      <!-- Input -->
+      <div class="component input-component" data-step="1" data-tooltip="Initial conditions fed into the network">
+        <div class="component-header">
+          <div class="component-icon">
+            <div class="mini-heatmap">
+              <div class="heat-cell" style="background: #fef3c7;"></div>
+              <div class="heat-cell" style="background: #fcd34d;"></div>
+              <div class="heat-cell" style="background: #f97316;"></div>
+              <div class="heat-cell" style="background: #f97316;"></div>
+              <div class="heat-cell" style="background: #fcd34d;"></div>
+              <div class="heat-cell" style="background: #fcd34d;"></div>
+              <div class="heat-cell" style="background: #f97316;"></div>
+              <div class="heat-cell" style="background: #dc2626;"></div>
+              <div class="heat-cell" style="background: #f97316;"></div>
+              <div class="heat-cell" style="background: #fcd34d;"></div>
+              <div class="heat-cell" style="background: #fef3c7;"></div>
+              <div class="heat-cell" style="background: #fcd34d;"></div>
+              <div class="heat-cell" style="background: #f97316;"></div>
+              <div class="heat-cell" style="background: #fcd34d;"></div>
+              <div class="heat-cell" style="background: #fef3c7;"></div>
+            </div>
+          </div>
+          <div class="component-info">
+            <div class="component-label">INPUT</div>
+            <div class="component-title">Input Function a(x)</div>
+            <div class="component-math">Initial condition / Parameters</div>
+          </div>
+        </div>
+        <span class="expand-hint">▼</span>
+        <div class="component-details">
+          <div class="details-content">
+            <strong>What it represents:</strong>
+            <ul>
+              <li>Initial conditions of the PDE (e.g., initial temperature distribution)</li>
+              <li>Boundary conditions</li>
+              <li>PDE coefficients or forcing terms</li>
+            </ul>
+            <p style="margin-top: 12px;"><strong>Shape:</strong> (batch, x, y, d) where d is input channels</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-head"></div>
+      </div>
+      
+      <!-- Lifting Layer -->
+      <div class="component lifting-component" data-step="2" data-tooltip="Projects input to higher dimensional space">
+        <div class="component-header">
+          <div class="component-icon">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <rect x="2" y="8" width="6" height="14" rx="2" fill="#60a5fa"/>
+              <path d="M12,15 L18,15" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow)"/>
+              <rect x="22" y="4" width="6" height="22" rx="2" fill="#3b82f6"/>
+            </svg>
+          </div>
+          <div class="component-info">
+            <div class="component-label">LAYER 1</div>
+            <div class="component-title">Lifting Layer</div>
+            <div class="component-math">Pointwise MLP: ℝᵈ → ℝʷⁱᵈᵗʰ</div>
+          </div>
+        </div>
+        <span class="expand-hint">▼</span>
+        <div class="component-details">
+          <div class="details-content">
+            <strong>Purpose:</strong> Lift input from d dimensions to a higher dimensional representation (width).
+            <ul>
+              <li>Typically a 2-layer MLP applied pointwise</li>
+              <li>Common width: 32, 64, or 128 channels</li>
+              <li>Enables the network to learn richer representations</li>
+            </ul>
+            <p style="margin-top: 12px;"><strong>Code:</strong> <code>nn.Linear(d, width)</code></p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-head"></div>
+      </div>
+      
+      <!-- Fourier Layers -->
+      <div class="fourier-container">
+        <div class="fourier-layers">
+          <div class="component fourier-component" data-step="3" data-tooltip="Spectral convolution in Fourier space">
+            <div class="component-header">
+              <div class="component-icon">
+                <span style="font-family: Georgia; font-size: 24px; color: #7c3aed;">ℱ</span>
+              </div>
+              <div class="component-info">
+                <div class="component-title">Fourier Layer 1</div>
+                <div class="component-math">FFT → Linear → iFFT + Bypass</div>
+              </div>
+            </div>
+            <span class="expand-hint">▼</span>
+            <div class="component-details">
+              <div class="details-content">
+                <strong>Spectral Convolution:</strong>
+                <ul>
+                  <li><strong>FFT:</strong> Transform to frequency domain</li>
+                  <li><strong>Linear:</strong> Multiply with learnable weights R</li>
+                  <li><strong>iFFT:</strong> Transform back to spatial domain</li>
+                  <li><strong>Bypass:</strong> Add local linear transform W·x</li>
+                </ul>
+                <p style="margin-top: 12px;"><strong>Formula:</strong> σ(Wv + K(v)) where K is spectral conv</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="component fourier-component" data-step="4" data-tooltip="Spectral convolution in Fourier space">
+            <div class="component-header">
+              <div class="component-icon">
+                <span style="font-family: Georgia; font-size: 24px; color: #7c3aed;">ℱ</span>
+              </div>
+              <div class="component-info">
+                <div class="component-title">Fourier Layer 2</div>
+                <div class="component-math">FFT → Linear → iFFT + Bypass</div>
+              </div>
+            </div>
+            <span class="expand-hint">▼</span>
+            <div class="component-details">
+              <div class="details-content">
+                <strong>Key insight:</strong> Convolution in spatial domain = multiplication in frequency domain.
+                <ul>
+                  <li>Much more efficient for global operations</li>
+                  <li>Captures long-range dependencies</li>
+                  <li>Only keeps first k Fourier modes (truncation)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="component fourier-component" data-step="5" data-tooltip="Spectral convolution in Fourier space">
+            <div class="component-header">
+              <div class="component-icon">
+                <span style="font-family: Georgia; font-size: 24px; color: #7c3aed;">ℱ</span>
+              </div>
+              <div class="component-info">
+                <div class="component-title">Fourier Layer 3</div>
+                <div class="component-math">FFT → Linear → iFFT + Bypass</div>
+              </div>
+            </div>
+            <span class="expand-hint">▼</span>
+            <div class="component-details">
+              <div class="details-content">
+                <strong>Mode truncation:</strong> Only k_max lowest frequency modes are kept.
+                <ul>
+                  <li>Higher modes often represent noise</li>
+                  <li>Reduces computational cost significantly</li>
+                  <li>Typical: k_max = 12 to 20 modes</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="component fourier-component" data-step="6" data-tooltip="Spectral convolution in Fourier space">
+            <div class="component-header">
+              <div class="component-icon">
+                <span style="font-family: Georgia; font-size: 24px; color: #7c3aed;">ℱ</span>
+              </div>
+              <div class="component-info">
+                <div class="component-title">Fourier Layer 4</div>
+                <div class="component-math">FFT → Linear → iFFT + Bypass</div>
+              </div>
+            </div>
+            <span class="expand-hint">▼</span>
+            <div class="component-details">
+              <div class="details-content">
+                <strong>Activation:</strong> GELU or ReLU applied after each layer.
+                <ul>
+                  <li>Non-linearity enables learning complex mappings</li>
+                  <li>Applied in spatial domain (after iFFT)</li>
+                  <li>Final layer often has no activation</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="fourier-bracket">
+          <div class="bracket-line"></div>
+          <div class="bracket-label">
+            ×L layers
+            <span>(typically 4)</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-head"></div>
+      </div>
+      
+      <!-- Projection Layer -->
+      <div class="component projection-component" data-step="7" data-tooltip="Projects back to output dimension">
+        <div class="component-header">
+          <div class="component-icon">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <rect x="2" y="4" width="6" height="22" rx="2" fill="#34d399"/>
+              <path d="M12,15 L18,15" stroke="#10b981" stroke-width="2"/>
+              <rect x="22" y="8" width="6" height="14" rx="2" fill="#6ee7b7"/>
+            </svg>
+          </div>
+          <div class="component-info">
+            <div class="component-label">FINAL LAYER</div>
+            <div class="component-title">Projection Layer</div>
+            <div class="component-math">Pointwise MLP: ℝʷⁱᵈᵗʰ → ℝᵒᵘᵗ</div>
+          </div>
+        </div>
+        <span class="expand-hint">▼</span>
+        <div class="component-details">
+          <div class="details-content">
+            <strong>Purpose:</strong> Project from high-dimensional space back to output dimension.
+            <ul>
+              <li>Typically a 2-layer MLP applied pointwise</li>
+              <li>Maps width channels to output channels (e.g., 1 for scalar field)</li>
+              <li>No activation on final output</li>
+            </ul>
+            <p style="margin-top: 12px;"><strong>Code:</strong> <code>nn.Linear(width, out)</code></p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-head"></div>
+      </div>
+      
+      <!-- Output -->
+      <div class="component output-component" data-step="8" data-tooltip="The predicted PDE solution">
+        <div class="component-header">
+          <div class="component-icon">
+            <div class="mini-heatmap">
+              <div class="heat-cell" style="background: #99f6e4;"></div>
+              <div class="heat-cell" style="background: #5eead4;"></div>
+              <div class="heat-cell" style="background: #5eead4;"></div>
+              <div class="heat-cell" style="background: #5eead4;"></div>
+              <div class="heat-cell" style="background: #99f6e4;"></div>
+              <div class="heat-cell" style="background: #99f6e4;"></div>
+              <div class="heat-cell" style="background: #2dd4bf;"></div>
+              <div class="heat-cell" style="background: #14b8a6;"></div>
+              <div class="heat-cell" style="background: #2dd4bf;"></div>
+              <div class="heat-cell" style="background: #99f6e4;"></div>
+              <div class="heat-cell" style="background: #ecfdf5;"></div>
+              <div class="heat-cell" style="background: #99f6e4;"></div>
+              <div class="heat-cell" style="background: #5eead4;"></div>
+              <div class="heat-cell" style="background: #99f6e4;"></div>
+              <div class="heat-cell" style="background: #ecfdf5;"></div>
+            </div>
+          </div>
+          <div class="component-info">
+            <div class="component-label">OUTPUT</div>
+            <div class="component-title">Solution u(x)</div>
+            <div class="component-math">PDE Solution</div>
+          </div>
+        </div>
+        <span class="expand-hint">▼</span>
+        <div class="component-details">
+          <div class="details-content">
+            <strong>What it represents:</strong>
+            <ul>
+              <li>The predicted solution to the PDE</li>
+              <li>Evaluated at the same grid points as input</li>
+              <li>Can be at any resolution (resolution-invariant!)</li>
+            </ul>
+            <p style="margin-top: 12px;"><strong>Key advantage:</strong> Once trained, inference takes only milliseconds!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Controls -->
+    <div class="controls">
+      <button class="control-btn secondary" onclick="resetAll()">Reset All</button>
+      <button class="control-btn primary" onclick="stepThrough()">Step Through ▶</button>
+      <button class="control-btn secondary" onclick="expandAll()">Expand All</button>
+    </div>
+    
+    <div class="step-indicator">
+      Step <span id="current-step">0</span> of <span>8</span>
+    </div>
+    
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(135deg, #fff7ed, #ffedd5); border-color: #fdba74;"></div>
+        <span>Input/Output</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border-color: #93c5fd;"></div>
+        <span>Lifting</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(135deg, #ede9fe, #ddd6fe); border-color: #a78bfa;"></div>
+        <span>Fourier Layers</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-color: #6ee7b7;"></div>
+        <span>Projection</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Tooltip -->
+  <div class="tooltip" id="tooltip"></div>
+  
+  <script>
+    // Toggle component details
+    document.querySelectorAll('.component').forEach(component => {
+      component.addEventListener('click', function() {
+        // Toggle active state
+        this.classList.toggle('active');
+      });
+      
+      // Tooltip
+      component.addEventListener('mouseenter', function(e) {
+        const tooltip = document.getElementById('tooltip');
+        tooltip.textContent = this.dataset.tooltip;
+        tooltip.classList.add('visible');
+      });
+      
+      component.addEventListener('mousemove', function(e) {
+        const tooltip = document.getElementById('tooltip');
+        tooltip.style.left = e.pageX + 15 + 'px';
+        tooltip.style.top = e.pageY + 15 + 'px';
+      });
+      
+      component.addEventListener('mouseleave', function() {
+        const tooltip = document.getElementById('tooltip');
+        tooltip.classList.remove('visible');
+      });
+    });
+    
+    // Step through functionality
+    let currentStep = 0;
+    
+    function stepThrough() {
+      const components = document.querySelectorAll('.component');
+      
+      // Reset all
+      components.forEach(c => c.classList.remove('active', 'highlight'));
+      
+      // Increment step
+      currentStep++;
+      if (currentStep > 8) currentStep = 1;
+      
+      // Highlight and expand current step
+      const current = document.querySelector(`[data-step="${currentStep}"]`);
+      if (current) {
+        current.classList.add('active', 'highlight');
+        current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      
+      // Update indicator
+      document.getElementById('current-step').textContent = currentStep;
+    }
+    
+    function resetAll() {
+      document.querySelectorAll('.component').forEach(c => {
+        c.classList.remove('active', 'highlight');
+      });
+      currentStep = 0;
+      document.getElementById('current-step').textContent = currentStep;
+    }
+    
+    function expandAll() {
+      document.querySelectorAll('.component').forEach(c => {
+        c.classList.add('active');
+      });
+      currentStep = 8;
+      document.getElementById('current-step').textContent = currentStep;
+    }
+  </script>
+</body>
+</html>
