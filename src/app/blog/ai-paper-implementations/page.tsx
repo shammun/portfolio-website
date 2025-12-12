@@ -6,7 +6,6 @@ import {
   BookOpen,
   ArrowRight,
   Code,
-  Play,
   Brain,
 } from "lucide-react";
 
@@ -99,12 +98,6 @@ const features = [
       "Complete Python implementations you can modify and experiment with",
   },
   {
-    icon: Play,
-    title: "Interactive",
-    description:
-      "Run code directly in your browser with real-time visualizations",
-  },
-  {
     icon: Brain,
     title: "Deep Understanding",
     description:
@@ -134,7 +127,7 @@ export default function AIPaperImplementationsPage() {
         </div>
 
         {/* Features */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-16">
+        <div className="grid gap-4 sm:grid-cols-3 mb-16">
           {features.map((feature) => (
             <div
               key={feature.title}
