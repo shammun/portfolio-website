@@ -24,7 +24,7 @@ const paperSeries = [
     venue: "ICLR 2021",
     arxiv: "2010.08895",
     description:
-      "A comprehensive, interactive tutorial on Fourier Neural Operators. Learn how to solve PDEs using neural networks that operate in Fourier space.",
+      "A comprehensive tutorial with hands-on approach covering all the necessary theory and their implementation in Python on Fourier Neural Operators. Learn how to solve PDEs using neural networks that operate in Fourier space.",
     totalChunks: 7,
     estimatedTime: "8-12 hours",
     difficulty: "Intermediate",
