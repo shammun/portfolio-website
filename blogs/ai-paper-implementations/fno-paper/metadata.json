@@ -18,7 +18,7 @@
   "series_info": {
     "title": "Understanding FNO from Scratch",
     "description": "A comprehensive, interactive tutorial on Fourier Neural Operators. We start from mathematical foundations and build up to a complete implementation, then apply it to a real-world urban climate prediction problem.",
-    "total_chunks": 7,
+    "total_chunks": 8,
     "estimated_time": "8-12 hours",
     "difficulty": "intermediate",
     "last_updated": "2024-12"
@@ -39,6 +39,23 @@
     "Evaluate and benchmark neural operator models properly"
   ],
   "chunks": [
+    {
+      "id": "chunk0",
+      "title": "Introduction",
+      "subtitle": "Overview of FNO and what you'll learn",
+      "order": 0,
+      "estimated_time": "15 min",
+      "description": "Welcome to the FNO tutorial series. Learn what problem FNO solves, see the architecture overview, and understand the roadmap for this comprehensive tutorial.",
+      "files": {
+        "theory": "chunk0.md"
+      },
+      "topics": [
+        "What is FNO?",
+        "Why neural operators?",
+        "Architecture overview",
+        "Tutorial roadmap"
+      ]
+    },
     {
       "id": "chunk1",
       "title": "Mathematical Foundations",
