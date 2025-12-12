@@ -22,8 +22,8 @@ const socialLinks = [
   },
   {
     name: "Email (GMU)",
-    value: "sislam27@mason.edu",
-    href: "mailto:sislam27@mason.edu",
+    value: "sislam27@gmu.edu",
+    href: "mailto:sislam27@gmu.edu",
     icon: Mail,
   },
   {
