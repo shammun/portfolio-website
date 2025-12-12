@@ -1,6 +1,7 @@
 "use client";
 
-import { Maximize2, ExternalLink } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface InteractiveVisualizationProps {
@@ -11,7 +12,7 @@ interface InteractiveVisualizationProps {
   className?: string;
 }
 
-// Simple iframe wrapper without complex state management
+// Auto-resizing iframe wrapper for embedded HTML visualizations
 export function InteractiveVisualization({
   src,
   title,
@@ -19,6 +20,53 @@ export function InteractiveVisualization({
   height = "800px",
   className,
 }: InteractiveVisualizationProps) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [iframeHeight, setIframeHeight] = useState<string>(height);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const resizeIframe = () => {
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (iframeDoc) {
+          // Get the full content height
+          const body = iframeDoc.body;
+          const html = iframeDoc.documentElement;
+
+          if (body && html) {
+            const contentHeight = Math.max(
+              body.scrollHeight,
+              body.offsetHeight,
+              html.clientHeight,
+              html.scrollHeight,
+              html.offsetHeight
+            );
+
+            // Add some padding and set the height
+            if (contentHeight > 100) {
+              setIframeHeight(`${contentHeight + 20}px`);
+            }
+          }
+        }
+      } catch (e) {
+        // Cross-origin restriction - use default height
+        console.log("Could not auto-resize iframe:", e);
+      }
+    };
+
+    // Resize on load
+    iframe.addEventListener("load", resizeIframe);
+
+    // Also try after a short delay for dynamic content
+    const timeoutId = setTimeout(resizeIframe, 500);
+
+    return () => {
+      iframe.removeEventListener("load", resizeIframe);
+      clearTimeout(timeoutId);
+    };
+  }, [src]);
 
   return (
     <figure className={cn("my-8 not-prose", className)}>
@@ -53,14 +101,20 @@ export function InteractiveVisualization({
           </div>
         </div>
 
-        {/* Iframe Container */}
-        <div className="relative" style={{ height, minHeight: "400px" }}>
+        {/* Iframe Container - auto-resizing */}
+        <div className="relative overflow-visible">
           <iframe
+            ref={iframeRef}
             src={src}
-            className="w-full h-full border-0"
-            style={{ minHeight: "400px" }}
+            className="w-full border-0"
+            style={{
+              height: iframeHeight,
+              minHeight: "400px",
+              overflow: "visible"
+            }}
             title={title || "Interactive Visualization"}
             loading="lazy"
+            scrolling="no"
           />
         </div>
       </div>
