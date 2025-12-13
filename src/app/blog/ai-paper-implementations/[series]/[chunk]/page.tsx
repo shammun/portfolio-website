@@ -58,6 +58,12 @@ export default async function ChunkPage({ params }: PageProps) {
     `![$1](${imageBasePath}/$2)`
   );
 
+  // Fix chunk-prefixed image names (like chunk3_01_architecture.png)
+  processedContent = processedContent.replace(
+    /!\[([^\]]*)\]\((chunk\d+_[^)]+\.png)\)/g,
+    `![$1](${imageBasePath}/$2)`
+  );
+
   // Serialize MDX with math and code highlighting
   const mdxSource = await serialize(processedContent, {
     mdxOptions: {
