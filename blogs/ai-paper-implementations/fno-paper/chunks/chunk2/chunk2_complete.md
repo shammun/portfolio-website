@@ -302,7 +302,7 @@ What does each Fourier mode represent physically?
 - **k=1 (1 oscillation)**: Wavelength = Domain size — Large-scale gradient
 - **k=2-4 (Low frequency)**: Wavelength = ~1-5 km — Park/water body effects
 - **k=5-12 (Medium frequency)**: Wavelength = ~100m-1km — Neighborhood patterns
-- **k>12 (High frequency)**: Wavelength = <100m — Building-scale (often noise)
+- **k>12 (High frequency)**: Wavelength less than 100m - Building-scale (often noise)
 
 When FNO multiplies $\hat{v}(k)$ by $R(k)$:
 - **$|R(k)|$** controls how much of frequency $k$ passes through
