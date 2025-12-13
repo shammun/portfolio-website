@@ -121,8 +121,7 @@ export default function AIPaperImplementationsPage() {
           <p className="text-lg text-muted-foreground">
             Learn foundational AI papers by understanding the theory and
             implementing the code yourself. Each tutorial breaks down complex
-            papers into digestible chunks with interactive Python code you can run
-            in your browser.
+            papers into digestible chunks with Python code.
           </p>
         </div>
 
