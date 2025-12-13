@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const projects = [
   {
     id: "fno-lst-prediction",
-    title: "Urban Heat Island Prediction with FNO",
+    title: "Predicting Land Surface Temperature using Meteorological, Environmental, and Urban Morphological Factors",
     description:
       "Fourier Neural Operator model for predicting land surface temperature across New York City at 70m resolution using ECOSTRESS satellite data.",
     longDescription:
@@ -81,6 +81,27 @@ const projects = [
     status: "completed",
     featured: false,
     tags: ["Climate", "R", "Statistics", "CMIP6"],
+    year: 2024,
+  },
+  {
+    id: "dsa-practice",
+    title: "Data Structures & Algorithms Practice",
+    description:
+      "Comprehensive solutions to LeetCode problems and algorithm implementations, covering fundamental CS concepts as part of ongoing practice.",
+    status: "active",
+    featured: false,
+    github: "https://github.com/shammun/phitron_cse_fundamentals",
+    tags: ["Algorithms", "Data Structures", "LeetCode", "Problem Solving"],
+    year: 2024,
+  },
+  {
+    id: "unet-lst-prediction",
+    title: "Predicting Land Surface Temperature using modified UNet",
+    description:
+      "I applied UNet with spatial and channel attention to predict land surface temperature anomaly using meteorological, environmental, and urban morphological factors.",
+    status: "active",
+    featured: false,
+    tags: ["PyTorch", "UNet", "Attention", "Remote Sensing", "Climate"],
     year: 2024,
   },
 ];
