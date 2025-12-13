@@ -149,7 +149,7 @@ def spectral_conv_1d_basic(v, R):
     """
     Most basic spectral convolution - single channel, 1D.
     
-    This is the CORE FNO operation: FFT → multiply by R → IFFT
+    This is the CORE FNO operation: FFT, multiply by R, IFFT
     
     Parameters:
     -----------
@@ -234,7 +234,7 @@ Modes k >= 12 (including k=15) are automatically zeroed!
 
 ### What You're Looking At
 
-This figure demonstrates the **core FNO operation** (FFT → Multiply by R → IFFT) on a 1D signal.
+This figure demonstrates the **core FNO operation** (FFT, Multiply by R, IFFT) on a 1D signal.
 
 **Top Row (Input Analysis):**
 
@@ -258,8 +258,8 @@ This figure demonstrates the **core FNO operation** (FFT → Multiply by R → I
 ### Key Lessons
 
 - **k=15 disappears in all outputs**: Mode truncation automatically filters high frequencies
-- **Different R → different outputs**: The network **learns** which frequencies matter for your task
-- **Identity R ≠ identity function**: Truncation alone changes the signal (k≥k_max zeroed)
+- **Different R means different outputs**: The network **learns** which frequencies matter for your task
+- **Identity R is not identity function**: Truncation alone changes the signal (k>=k_max zeroed)
 - **One multiplication per frequency**: O(N log N) complexity via FFT, not O(N²)
 
 **For Urban Temperature:** FNO will learn R weights that preserve city-wide heat patterns (low k) while filtering sensor noise (high k).
@@ -298,7 +298,7 @@ What does each Fourier mode represent physically?
 
 **Mode interpretation for urban temperature:**
 
-- **k=0 (Mean/DC)**: Wavelength = ∞ — City-wide average
+- **k=0 (Mean/DC)**: Wavelength = infinity - City-wide average
 - **k=1 (1 oscillation)**: Wavelength = Domain size — Large-scale gradient
 - **k=2-4 (Low frequency)**: Wavelength = ~1-5 km — Park/water body effects
 - **k=5-12 (Medium frequency)**: Wavelength = ~100m-1km — Neighborhood patterns
@@ -406,8 +406,8 @@ for k, err in zip(k_max_values, errors):
     print(f"  k_max = {k:3d}: MSE = {err:.6f}")
 
 # Key insight
-print(f"\n→ k_max=16 captures 99.9% of the signal!")
-print(f"→ k_max=8 is often sufficient for smooth functions")
+print(f"\nNote: k_max=16 captures 99.9% of the signal!")
+print(f"Note: k_max=8 is often sufficient for smooth functions")
 ```
 
 ---
@@ -440,7 +440,7 @@ This figure shows how mode truncation affects 2D spatial fields — directly rel
 
 - **k_max=4** (MSE=0.0325): Only largest patterns captured (like city-wide UHI gradient)
 - **k_max=8** (MSE=0.0100): Adds neighborhood-scale features
-- **k_max=16** (MSE≈0): Full reconstruction for this signal
+- **k_max=16** (MSE~0): Full reconstruction for this signal
 
 **Critical Insight:** The MSE drops rapidly with increasing k_max, then plateaus. This means:
 - Most energy is in low frequencies (smooth physics!)
@@ -603,8 +603,8 @@ Mode truncation zeros out high frequencies. This means:
 3. The spectral path acts as a **low-pass filter**
 
 But many physical phenomena have BOTH:
-- Smooth large-scale structure ✓ (captured by spectral path)
-- Sharp local features ✗ (lost by truncation!)
+- Smooth large-scale structure (yes - captured by spectral path)
+- Sharp local features (no - lost by truncation!)
 
 ## 4.2 The Solution: Add a Local Linear Transform
 
@@ -823,7 +823,7 @@ x_act = np.linspace(-3, 3, 100)
 print("\nKey differences:")
 print("  ReLU: Sharp kink at 0, gradient is 0 or 1")
 print("  GELU: Smooth everywhere, gradient varies smoothly")
-print("  → GELU is better for learning smooth PDE solutions")
+print("  GELU is better for learning smooth PDE solutions")
 ```
 
 ---
@@ -841,7 +841,7 @@ This figure compares ReLU and GELU activation functions — the nonlinear "switc
 - **ReLU (blue):** The classic max(0, x). Zero for all negative inputs, then linear (slope=1) for positive inputs. There's a **sharp corner at x=0**.
 
 - **GELU (red):** Smooth S-curve transition. Notable features:
-  - Slightly negative for small negative inputs (~-0.17 at x≈-0.5)
+  - Slightly negative for small negative inputs (~-0.17 at x~-0.5)
   - Smoothly transitions to linear for large positive x
   - No sharp corners anywhere
 
@@ -862,7 +862,7 @@ This figure compares ReLU and GELU activation functions — the nonlinear "switc
 **GELU:**
 - At x=0: Smooth transition
 - Negative inputs: Gradient > 0 (neurons stay alive)
-- Smoothness: C^∞ (infinitely differentiable)
+- Smoothness: C-infinity (infinitely differentiable)
 - Best for: Smooth function approximation (like PDEs)
 
 **Why This Matters for PDEs:**
@@ -1092,8 +1092,8 @@ for res in resolutions:
     print(f"  Input range:  [{v.min():.3f}, {v.max():.3f}]")
     print(f"  Output range: [{w.min():.3f}, {w.max():.3f}]")
 
-print("\n→ The SAME learned transformation works at ANY resolution!")
-print("→ Train on 64×64, deploy on 256×256 (zero-shot super-resolution)")
+print("\nThe SAME learned transformation works at ANY resolution!")
+print("Train on 64x64, deploy on 256x256 (zero-shot super-resolution)")
 ```
 
 ---
@@ -1150,7 +1150,7 @@ This is fundamentally different from CNNs, where a 3×3 kernel trained on 64×64
 
 This is one of FNO's most remarkable capabilities:
 
-> Train on 64×64 → Evaluate on 256×256 with NO retraining
+> Train on 64x64, evaluate on 256x256 with NO retraining
 
 From the FNO paper: *"It can do zero-shot super-resolution: trained on a lower resolution directly evaluated on a higher resolution."*
 
@@ -1168,9 +1168,9 @@ For your urban temperature work:
 From the FNO paper: *"We construct our Fourier neural operator by stacking four Fourier integral operator layers."*
 
 The standard architecture:
-1. **Lifting:** Map input channels → hidden dimension (d_v=32)
+1. **Lifting:** Map input channels to hidden dimension (d_v=32)
 2. **4 Fourier Layers:** Each preserves spatial dimensions
-3. **Projection:** Map hidden dimension → output channels
+3. **Projection:** Map hidden dimension to output channels
 
 > **Full Architecture Tutorial:** The NVIDIA Modulus documentation provides production-grade FNO implementations with detailed explanations for Darcy flow and Navier-Stokes problems.
 >
@@ -1371,11 +1371,11 @@ $$v_{t+1}(x) = \sigma\left( W v_t(x) + \mathcal{K}v_t(x) + b \right)$$
 
 ## What You've Learned
 
-- **Spectral Convolution**: FFT → multiply by R → IFFT = O(N log N) global convolution
+- **Spectral Convolution**: FFT, multiply by R, IFFT = O(N log N) global convolution
 - **Mode Truncation**: Keep only k_max modes; physics is smooth; regularization for free
 - **Weight Tensor R**: Complex-valued, per-frequency channel mixing matrices
 - **Local Path W**: 1×1 conv recovers high-frequency capability
-- **Resolution Invariance**: Same R works at any grid size → zero-shot super-resolution
+- **Resolution Invariance**: Same R works at any grid size - enables zero-shot super-resolution
 
 ## Hyperparameter Guidelines
 
@@ -1433,7 +1433,7 @@ From the FNO paper experiments:
 
 All figures generated from the code in this tutorial:
 
-- **Figure 1** (`01_spectral_conv_1d_basic.png`): Core operation: FFT → R → IFFT
+- **Figure 1** (`01_spectral_conv_1d_basic.png`): Core operation: FFT, R, IFFT
 - **Figure 2** (`02_mode_truncation_2d.png`): Why truncation works for smooth fields
 - **Figure 3** (`03_why_both_paths.png`): Spectral vs local paths
 - **Figure 4** (`04_activation_functions.png`): GELU vs ReLU for PDEs
@@ -1465,16 +1465,16 @@ All external images used in this tutorial are from freely-licensed sources:
 You now have complete understanding of the Fourier Layer!
 
 **Chunk 3** will build the full FNO architecture:
-- Lifting layer: Input features → hidden dimension
-- Projection layer: Hidden dimension → output
+- Lifting layer: Input features to hidden dimension
+- Projection layer: Hidden dimension to output
 - Complete forward pass
 - Training with PyTorch
 
 **Tutorial Navigation:**
 
-- **[← Part 1](../chunk1/chunk1_complete.md)** — Fourier Foundations: DFT, convolution theorem
+- **[Previous: Part 1](../chunk1/chunk1_complete.md)** - Fourier Foundations: DFT, convolution theorem
 - **Part 2** — Core Innovation: *(You are here)* Spectral convolution
-- **[Part 3 →](../chunk3/chunk3_complete.md)** — Complete Architecture: Lifting, Fourier layers, projection
+- **[Next: Part 3](../chunk3/chunk3_complete.md)** - Complete Architecture: Lifting, Fourier layers, projection
 
 
 
