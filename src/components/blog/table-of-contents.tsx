@@ -7,6 +7,7 @@ interface TOCItem {
   id: string;
   text: string;
   level: number;
+  uniqueKey: string;
 }
 
 interface TableOfContentsProps {
@@ -21,14 +22,32 @@ export function TableOfContents({ content }: TableOfContentsProps) {
     // Extract headings from content
     const headingRegex = /^(#{1,4})\s+(.+)$/gm;
     const matches: TOCItem[] = [];
+    const idCounts: Record<string, number> = {};
     let match;
 
     while ((match = headingRegex.exec(content)) !== null) {
       const level = match[1].length;
       const text = match[2].trim();
-      const id = text.toLowerCase().replace(/[^\w]+/g, "-");
+      // Generate ID: lowercase, replace non-word chars with hyphens, strip leading/trailing hyphens
+      let id = text
+        .toLowerCase()
+        .replace(/[^\w]+/g, "-")
+        .replace(/^-+|-+$/g, "");
 
-      matches.push({ id, text, level });
+      // Handle empty IDs
+      if (!id) {
+        id = "heading";
+      }
+
+      // Track duplicates and make IDs unique
+      if (idCounts[id] !== undefined) {
+        idCounts[id]++;
+        const uniqueId = `${id}-${idCounts[id]}`;
+        matches.push({ id, text, level, uniqueKey: uniqueId });
+      } else {
+        idCounts[id] = 0;
+        matches.push({ id, text, level, uniqueKey: id });
+      }
     }
 
     setHeadings(matches);
@@ -70,7 +89,7 @@ export function TableOfContents({ content }: TableOfContentsProps) {
       <ul className="space-y-2 text-sm">
         {headings.map((heading) => (
           <li
-            key={heading.id}
+            key={heading.uniqueKey}
             style={{ paddingLeft: `${(heading.level - 1) * 12}px` }}
           >
             <a

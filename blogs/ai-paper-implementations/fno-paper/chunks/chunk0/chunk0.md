@@ -117,13 +117,6 @@ Where:
 - **Efficient computation** — O(n log n) via FFT, not O(n²)
 - **Continuous representation** — Approximates operators between function spaces
 
-<InteractiveVisualization
-  src="/blog-images/fno-paper/chunk0/pro10_storyboard.html"
-  title="Fourier Transform Explainer"
-  caption="Understanding the Fourier Transform: From signal decomposition to frequency domain"
-  height="800px"
-/>
-
 ---
 
 ## 📊 Results: Why FNO Matters

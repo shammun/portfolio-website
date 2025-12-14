@@ -666,17 +666,19 @@ pre, code {
 
 /* Code block content styling */
 .code-block-content pre {
-  background: #f8fafc !important;
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
 }
 
 .dark .code-block-content pre {
   background: #1e293b !important;
+  color: #e2e8f0 !important;
 }
 
 /* Ensure syntax highlighting is visible */
 .code-block-content code {
   display: block;
-  color: #334155;
+  color: #1e293b;
 }
 
 .dark .code-block-content code {
@@ -699,7 +701,7 @@ pre, code {
 }
 
 .code-block-content [data-line]:hover {
-  background: rgba(100, 116, 139, 0.1);
+  background: rgba(100, 116, 139, 0.2);
 }
 
 .code-block-content [data-highlighted-line] {
