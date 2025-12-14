@@ -46,14 +46,14 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-muted">
+    <footer className="border-t border-border bg-card">
       <div className="container-default py-12">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           {/* Brand */}
           <div className="md:col-span-2">
             <Link
               href="/"
-              className="text-lg font-semibold text-foreground hover:text-primary hover:no-underline"
+              className="text-lg font-bold text-foreground hover:text-primary hover:no-underline"
             >
               Shammunul Islam
             </Link>
@@ -71,7 +71,7 @@ export function Footer() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-card transition-colors"
+                  className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   aria-label={link.name}
                 >
                   <link.icon className="h-5 w-5" />
@@ -82,7 +82,7 @@ export function Footer() {
 
           {/* Navigation */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground">
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
               Navigation
             </h3>
             <ul className="mt-3 space-y-2">
@@ -101,7 +101,7 @@ export function Footer() {
 
           {/* Blog */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground">
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
               Tutorials
             </h3>
             <ul className="mt-3 space-y-2">

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { Metadata } from "next";
 import {
   Mail,
   MapPin,
@@ -103,7 +102,9 @@ export default function ContactPage() {
 
               {formState === "success" ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+                  <div className="w-12 h-12 rounded-full bg-cool-light flex items-center justify-center mb-4">
+                    <CheckCircle className="h-6 w-6 text-cool-text" />
+                  </div>
                   <h3 className="text-lg font-semibold text-foreground mb-2">
                     Message Sent!
                   </h3>
@@ -214,7 +215,7 @@ export default function ContactPage() {
                   >
                     {formState === "loading" ? (
                       <>
-                        <span className="animate-spin">⏳</span>
+                        <span className="animate-spin">...</span>
                         Sending...
                       </>
                     ) : (
@@ -234,7 +235,7 @@ export default function ContactPage() {
             {/* Location */}
             <div className="card">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <div className="icon-container-primary">
                   <MapPin className="h-5 w-5" />
                 </div>
                 <h2 className="text-xl font-semibold text-foreground">
@@ -263,9 +264,9 @@ export default function ContactPage() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors group"
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors group hover:no-underline"
                   >
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <div className="icon-container-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <link.icon className="h-5 w-5" />
                     </div>
                     <div>
@@ -278,17 +279,17 @@ export default function ContactPage() {
             </div>
 
             {/* Open To */}
-            <div className="card bg-primary/5 border-primary/20">
+            <div className="card-featured">
               <h2 className="text-xl font-semibold text-foreground mb-4">
                 Open To
               </h2>
               <ul className="space-y-2 text-muted-foreground">
                 <li className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="w-2 h-2 rounded-full bg-teal" />
                   Research Collaborations
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="w-2 h-2 rounded-full bg-orange" />
                   Speaking Opportunities
                 </li>
                 <li className="flex items-center gap-2">

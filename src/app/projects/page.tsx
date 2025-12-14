@@ -127,7 +127,7 @@ export default function ProjectsPage() {
         {/* Featured Projects */}
         <section className="mb-16">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <div className="icon-container-cool">
               <Star className="h-6 w-6" />
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -139,14 +139,14 @@ export default function ProjectsPage() {
             {featuredProjects.map((project) => (
               <div
                 key={project.id}
-                className="card border-primary/30 bg-primary/5 group"
+                className="card-featured group"
               >
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span
-                    className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                    className={`badge badge-sm ${
                       project.status === "active"
-                        ? "bg-green-500 text-white"
-                        : "bg-muted text-muted-foreground"
+                        ? "badge-cool"
+                        : "badge-muted"
                     }`}
                   >
                     {project.status === "active" ? "Active" : "Completed"}
@@ -167,7 +167,7 @@ export default function ProjectsPage() {
                   {project.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary"
+                      className="badge badge-sm badge-primary"
                     >
                       {tag}
                     </span>
@@ -180,7 +180,7 @@ export default function ProjectsPage() {
                       href={project.github}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm text-foreground hover:text-primary transition-colors"
+                      className="inline-flex items-center gap-1 text-sm text-foreground hover:text-primary transition-colors hover:no-underline"
                     >
                       <Github className="h-4 w-4" />
                       GitHub
@@ -189,7 +189,7 @@ export default function ProjectsPage() {
                   {project.demo && (
                     <Link
                       href={project.demo}
-                      className="inline-flex items-center gap-1 text-sm text-foreground hover:text-primary transition-colors"
+                      className="inline-flex items-center gap-1 text-sm text-foreground hover:text-primary transition-colors hover:no-underline"
                     >
                       <ExternalLink className="h-4 w-4" />
                       Demo
@@ -204,7 +204,7 @@ export default function ProjectsPage() {
         {/* Other Projects */}
         <section className="mb-16">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <div className="icon-container-primary">
               <Code className="h-6 w-6" />
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -217,10 +217,10 @@ export default function ProjectsPage() {
               <div key={project.id} className="card group">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <span
-                    className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                    className={`badge badge-sm ${
                       project.status === "active"
-                        ? "bg-green-500 text-white"
-                        : "bg-muted text-muted-foreground"
+                        ? "badge-cool"
+                        : "badge-muted"
                     }`}
                   >
                     {project.status === "active" ? "Active" : "Completed"}
@@ -241,7 +241,7 @@ export default function ProjectsPage() {
                   {project.tags.slice(0, 3).map((tag) => (
                     <span
                       key={tag}
-                      className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground"
+                      className="badge badge-sm badge-muted"
                     >
                       {tag}
                     </span>
@@ -254,7 +254,7 @@ export default function ProjectsPage() {
                       href={project.github}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+                      className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors hover:no-underline"
                     >
                       <Github className="h-4 w-4" />
                       Code
@@ -265,7 +265,7 @@ export default function ProjectsPage() {
                       href={project.demo}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+                      className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors hover:no-underline"
                     >
                       <ExternalLink className="h-4 w-4" />
                       Demo
@@ -278,7 +278,7 @@ export default function ProjectsPage() {
         </section>
 
         {/* GitHub CTA */}
-        <div className="text-center py-12 px-6 rounded-2xl bg-muted">
+        <div className="text-center py-12 px-6 rounded-[16px] bg-card shadow-soft">
           <h2 className="text-2xl font-bold text-foreground mb-4">
             More on GitHub
           </h2>

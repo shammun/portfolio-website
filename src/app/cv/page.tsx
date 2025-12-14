@@ -19,6 +19,7 @@ const highlights = [
   {
     icon: GraduationCap,
     title: "Education",
+    color: "cool",
     items: [
       "MS Climate Science - George Mason University (2025)",
       "MA Climate & Society - Columbia University (2014)",
@@ -28,6 +29,7 @@ const highlights = [
   {
     icon: Briefcase,
     title: "Current Roles",
+    color: "warm",
     items: [
       "Local Climate Action Fellow - Virginia Climate Center",
       "MS Thesis: Urban Heat Island Prediction using FNO",
@@ -36,6 +38,7 @@ const highlights = [
   {
     icon: BookOpen,
     title: "Publications",
+    color: "primary",
     items: [
       "2 Books on GIS & Remote Sensing (Packt Publishing)",
       "3 Peer-reviewed Journal Articles",
@@ -45,6 +48,7 @@ const highlights = [
   {
     icon: Award,
     title: "Expertise",
+    color: "violet",
     items: [
       "Climate Data Science and Remote Sensing",
       "Analytics Application Development",
@@ -52,6 +56,21 @@ const highlights = [
     ],
   },
 ];
+
+const getIconContainerClass = (color: string) => {
+  switch (color) {
+    case "cool":
+      return "icon-container-cool";
+    case "warm":
+      return "icon-container-warm";
+    case "primary":
+      return "icon-container-primary";
+    case "violet":
+      return "icon-container-primary";
+    default:
+      return "icon-container-primary";
+  }
+};
 
 export default function CVPage() {
   return (
@@ -89,7 +108,7 @@ export default function CVPage() {
           {highlights.map((section) => (
             <div key={section.title} className="card">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <div className={getIconContainerClass(section.color)}>
                   <section.icon className="h-5 w-5" />
                 </div>
                 <h2 className="text-xl font-semibold text-foreground">
@@ -114,15 +133,15 @@ export default function CVPage() {
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-4 mb-12">
           {[
-            { label: "Years Experience", value: "10+" },
-            { label: "Publications", value: "5" },
-            { label: "Books Authored", value: "2" },
+            { label: "Years Experience", value: "10+", color: "primary" },
+            { label: "Publications", value: "5", color: "teal" },
+            { label: "Books Authored", value: "2", color: "orange" },
           ].map((stat) => (
             <div
               key={stat.label}
-              className="text-center p-6 rounded-xl bg-muted"
+              className="text-center p-6 rounded-[16px] bg-card shadow-soft"
             >
-              <p className="text-3xl font-bold text-primary mb-1">{stat.value}</p>
+              <p className={`text-3xl font-bold mb-1 text-${stat.color}`}>{stat.value}</p>
               <p className="text-sm text-muted-foreground">{stat.label}</p>
             </div>
           ))}
@@ -135,38 +154,38 @@ export default function CVPage() {
           </h2>
           <div className="flex flex-wrap gap-2">
             {[
-              "Python",
-              "PyTorch",
-              "TensorFlow",
-              "R",
-              "Neural Operators",
-              "FNO",
-              "PINNs",
-              "Google Earth Engine",
-              "QGIS",
-              "ERA5",
-              "CMIP6",
-              "ECOSTRESS",
-              "Remote Sensing",
-              "Statistical Downscaling",
-              "GIS",
-              "PostGIS",
-              "Docker",
-              "AWS",
-              "GCP",
-            ].map((skill) => (
+              { skill: "Python", type: "primary" },
+              { skill: "PyTorch", type: "primary" },
+              { skill: "TensorFlow", type: "primary" },
+              { skill: "R", type: "primary" },
+              { skill: "Neural Operators", type: "warm" },
+              { skill: "FNO", type: "warm" },
+              { skill: "PINNs", type: "warm" },
+              { skill: "Google Earth Engine", type: "cool" },
+              { skill: "QGIS", type: "cool" },
+              { skill: "ERA5", type: "cool" },
+              { skill: "CMIP6", type: "cool" },
+              { skill: "ECOSTRESS", type: "cool" },
+              { skill: "Remote Sensing", type: "violet" },
+              { skill: "Statistical Downscaling", type: "violet" },
+              { skill: "GIS", type: "violet" },
+              { skill: "PostGIS", type: "violet" },
+              { skill: "Docker", type: "muted" },
+              { skill: "AWS", type: "muted" },
+              { skill: "GCP", type: "muted" },
+            ].map((item) => (
               <span
-                key={skill}
-                className="px-3 py-1 text-sm rounded-full bg-card border border-border text-foreground hover:border-primary transition-colors"
+                key={item.skill}
+                className={`badge badge-sm badge-${item.type}`}
               >
-                {skill}
+                {item.skill}
               </span>
             ))}
           </div>
         </div>
 
         {/* CTA */}
-        <div className="text-center py-12 px-6 rounded-2xl bg-muted">
+        <div className="text-center py-12 px-6 rounded-[16px] bg-card shadow-soft">
           <h2 className="text-2xl font-bold text-foreground mb-4">
             Want to know more?
           </h2>

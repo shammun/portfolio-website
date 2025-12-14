@@ -12,7 +12,7 @@ export default function HomePage() {
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        {/* Background gradient */}
+        {/* Background gradient - subtle violet */}
         <div className="absolute inset-0 gradient-hero opacity-5" />
 
         <div className="container-default relative py-20 md:py-32">
@@ -23,7 +23,7 @@ export default function HomePage() {
             </h1>
 
             <p className="mt-6 text-xl md:text-2xl text-muted-foreground leading-relaxed">
-              MSc Candidate in Climate Science · Columbia Climate &amp; Society Alum
+              Exploring Climate Dynamics and AI
             </p>
 
             <p className="mt-4 text-lg text-muted-foreground leading-relaxed max-w-2xl">
@@ -53,12 +53,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Section */}
-      <section className="py-16 md:py-24 bg-muted">
+      {/* Featured Section - What I Do */}
+      <section className="py-16 md:py-24 bg-card">
         <div className="container-default">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-              What I Do
+            <span className="section-label">What I Do</span>
+            <h2 className="mt-2 text-3xl md:text-4xl font-bold text-foreground">
+              Bridging AI Research &amp; Climate Science
             </h2>
             <p className="mt-4 text-muted-foreground">
               Bridging the gap between cutting-edge AI research and climate
@@ -67,10 +68,10 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Card 1: AI Paper Tutorials */}
+            {/* Card 1: AI Paper Tutorials - Cool/Teal theme */}
             <div className="card group">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <div className="icon-container-cool">
                   <Sparkles className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground">
@@ -83,17 +84,17 @@ export default function HomePage() {
               </p>
               <Link
                 href="/blog/ai-paper-implementations"
-                className="inline-flex items-center gap-2 text-primary font-medium group-hover:gap-3 transition-all"
+                className="inline-flex items-center gap-2 text-teal font-medium group-hover:gap-3 transition-all hover:no-underline"
               >
                 Start Learning
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
 
-            {/* Card 2: Research */}
+            {/* Card 2: Research - Warm/Orange theme */}
             <div className="card group">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-accent/10 text-accent">
+                <div className="icon-container-warm">
                   <FlaskConical className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground">
@@ -106,17 +107,17 @@ export default function HomePage() {
               </p>
               <Link
                 href="/research"
-                className="inline-flex items-center gap-2 text-primary font-medium group-hover:gap-3 transition-all"
+                className="inline-flex items-center gap-2 text-orange font-medium group-hover:gap-3 transition-all hover:no-underline"
               >
                 View Publications
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
 
-            {/* Card 3: Projects */}
+            {/* Card 3: Projects - Primary/Purple theme */}
             <div className="card group">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                <div className="icon-container-primary">
                   <Code className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground">
@@ -129,7 +130,7 @@ export default function HomePage() {
               </p>
               <Link
                 href="/projects"
-                className="inline-flex items-center gap-2 text-primary font-medium group-hover:gap-3 transition-all"
+                className="inline-flex items-center gap-2 text-primary font-medium group-hover:gap-3 transition-all hover:no-underline"
               >
                 Browse Projects
                 <ArrowRight className="h-4 w-4" />
@@ -144,7 +145,7 @@ export default function HomePage() {
         <div className="container-default">
           <div className="grid gap-8 lg:grid-cols-2 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <div className="badge badge-cool mb-4">
                 <Sparkles className="h-4 w-4" />
                 Featured Tutorial
               </div>
@@ -168,8 +169,8 @@ export default function HomePage() {
                     key={i}
                     className="flex items-start gap-3 text-muted-foreground"
                   >
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center text-xs">
-                      ✓
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cool-light text-cool-text flex items-center justify-center text-xs font-bold">
+                      &#10003;
                     </span>
                     {item}
                   </li>
@@ -179,7 +180,7 @@ export default function HomePage() {
               <div className="mt-8">
                 <Link
                   href="/blog/ai-paper-implementations/fno-paper"
-                  className="btn btn-primary"
+                  className="btn btn-teal"
                 >
                   Start the Tutorial
                   <ArrowRight className="h-5 w-5" />
@@ -187,9 +188,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Code preview card */}
+            {/* Code preview card with purple-tinted shadow */}
             <div className="relative">
-              <div className="bg-[#1E1E1E] rounded-xl p-6 shadow-xl">
+              <div className="bg-[#1E1E1E] rounded-[16px] p-6 shadow-soft-lg">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-3 h-3 rounded-full bg-red-500" />
                   <div className="w-3 h-3 rounded-full bg-yellow-500" />
@@ -221,7 +222,7 @@ export default function HomePage() {
         return torch.fft.irfft2(out_ft)`}</code>
                 </pre>
               </div>
-              {/* Decorative elements */}
+              {/* Decorative blur - purple themed */}
               <div className="absolute -z-10 top-4 left-4 right-4 bottom-4 bg-primary/20 rounded-xl blur-xl" />
             </div>
           </div>
@@ -229,7 +230,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-muted">
+      <section className="py-16 md:py-24 bg-card">
         <div className="container-default text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
             Let&apos;s Connect

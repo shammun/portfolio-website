@@ -22,12 +22,12 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md shadow-soft">
       <nav className="container-default flex h-16 items-center justify-between">
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 text-lg font-semibold text-foreground hover:text-primary hover:no-underline transition-colors"
+          className="flex items-center gap-2 text-lg font-bold text-foreground hover:text-primary hover:no-underline transition-colors"
         >
           <span className="hidden sm:inline">Shammunul Islam</span>
           <span className="sm:hidden">SI</span>
@@ -46,9 +46,9 @@ export function Header() {
                 className={cn(
                   "px-3 py-2 text-sm font-medium rounded-lg transition-colors hover:no-underline",
                   isActive
-                    ? "text-primary bg-muted"
+                    ? "text-primary bg-primary/10"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                  item.highlight && !isActive && "text-accent"
+                  item.highlight && !isActive && "text-teal"
                 )}
               >
                 {item.name}
@@ -80,7 +80,7 @@ export function Header() {
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-background">
+        <div className="md:hidden border-t border-border bg-card">
           <div className="container-default py-4 space-y-1">
             {navigation.map((item) => {
               const isActive = pathname === item.href ||
@@ -93,9 +93,9 @@ export function Header() {
                   className={cn(
                     "block px-4 py-3 text-base font-medium rounded-lg transition-colors hover:no-underline",
                     isActive
-                      ? "text-primary bg-muted"
+                      ? "text-primary bg-primary/10"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                    item.highlight && !isActive && "text-accent"
+                    item.highlight && !isActive && "text-teal"
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                 >

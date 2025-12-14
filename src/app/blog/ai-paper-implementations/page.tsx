@@ -7,6 +7,9 @@ import {
   ArrowRight,
   Code,
   Brain,
+  GraduationCap,
+  FlaskConical,
+  Laptop,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -90,20 +93,36 @@ const features = [
     title: "Clear Theory",
     description:
       "Mathematical concepts explained step-by-step with intuitive explanations",
+    color: "cool",
   },
   {
     icon: Code,
     title: "Working Code",
     description:
       "Complete Python implementations you can modify and experiment with",
+    color: "primary",
   },
   {
     icon: Brain,
     title: "Deep Understanding",
     description:
       "Learn the 'why' behind the 'how' for lasting comprehension",
+    color: "warm",
   },
 ];
+
+const getIconContainerClass = (color: string) => {
+  switch (color) {
+    case "cool":
+      return "icon-container-cool";
+    case "warm":
+      return "icon-container-warm";
+    case "primary":
+      return "icon-container-primary";
+    default:
+      return "icon-container-primary";
+  }
+};
 
 export default function AIPaperImplementationsPage() {
   return (
@@ -111,7 +130,7 @@ export default function AIPaperImplementationsPage() {
       <div className="container-default">
         {/* Header */}
         <div className="max-w-3xl mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+          <div className="badge badge-cool mb-4">
             <Sparkles className="h-4 w-4" />
             Interactive Tutorials
           </div>
@@ -130,9 +149,9 @@ export default function AIPaperImplementationsPage() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="p-4 rounded-xl border border-border bg-card"
+              className="card"
             >
-              <div className="p-2 rounded-lg bg-primary/10 text-primary w-fit mb-3">
+              <div className={`${getIconContainerClass(feature.color)} w-fit mb-3`}>
                 <feature.icon className="h-5 w-5" />
               </div>
               <h3 className="font-semibold text-foreground mb-1">
@@ -147,25 +166,30 @@ export default function AIPaperImplementationsPage() {
 
         {/* Published Tutorials */}
         <section className="mb-16">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-6">
-            Available Tutorials
-          </h2>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="icon-container-cool">
+              <BookOpen className="h-6 w-6" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+              Available Tutorials
+            </h2>
+          </div>
 
           <div className="space-y-6">
             {paperSeries.map((paper) => (
               <Link
                 key={paper.id}
                 href={`/blog/ai-paper-implementations/${paper.id}`}
-                className="block"
+                className="block hover:no-underline"
               >
-                <div className="card border-primary/30 bg-primary/5 hover:border-primary transition-colors group">
+                <div className="card-featured group">
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     {paper.featured && (
-                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
+                      <span className="badge badge-sm badge-primary">
                         Featured
                       </span>
                     )}
-                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-500 text-white">
+                    <span className="badge badge-sm badge-cool">
                       Published
                     </span>
                     <span className="text-sm text-muted-foreground">
@@ -176,8 +200,8 @@ export default function AIPaperImplementationsPage() {
                   <h3 className="text-2xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
                     {paper.title}
                   </h3>
-                  <p className="text-primary font-medium mb-3">
-                    {paper.authors} • arXiv:{paper.arxiv}
+                  <p className="text-teal font-medium mb-3">
+                    {paper.authors} - arXiv:{paper.arxiv}
                   </p>
                   <p className="text-muted-foreground mb-4">{paper.description}</p>
 
@@ -190,7 +214,7 @@ export default function AIPaperImplementationsPage() {
                       <Clock className="h-4 w-4" />
                       {paper.estimatedTime}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs">
+                    <span className="badge badge-sm badge-muted">
                       {paper.difficulty}
                     </span>
                   </div>
@@ -199,7 +223,7 @@ export default function AIPaperImplementationsPage() {
                     {paper.topics.map((topic) => (
                       <span
                         key={topic}
-                        className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary"
+                        className="badge badge-sm badge-primary"
                       >
                         {topic}
                       </span>
@@ -218,9 +242,14 @@ export default function AIPaperImplementationsPage() {
 
         {/* Coming Soon */}
         <section className="mb-16">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-6">
-            Coming Soon
-          </h2>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="icon-container-warm">
+              <Clock className="h-6 w-6" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+              Coming Soon
+            </h2>
+          </div>
           <p className="text-muted-foreground mb-6">
             These papers are planned for future tutorials. Stay tuned!
           </p>
@@ -229,14 +258,14 @@ export default function AIPaperImplementationsPage() {
             {plannedPapers.map((paper, index) => (
               <div
                 key={index}
-                className="p-4 rounded-xl border border-border bg-card opacity-75"
+                className="card opacity-75"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span
-                    className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                    className={`badge badge-sm ${
                       paper.priority === "high"
-                        ? "bg-accent/20 text-accent"
-                        : "bg-muted text-muted-foreground"
+                        ? "badge-warm"
+                        : "badge-muted"
                     }`}
                   >
                     {paper.priority === "high" ? "High Priority" : "Planned"}
@@ -256,13 +285,15 @@ export default function AIPaperImplementationsPage() {
         </section>
 
         {/* Target Audience */}
-        <section className="py-12 px-6 rounded-2xl bg-muted">
-          <h2 className="text-2xl font-bold text-foreground mb-4 text-center">
+        <section className="py-12 px-6 rounded-[16px] bg-card shadow-soft">
+          <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
             Who Are These Tutorials For?
           </h2>
-          <div className="grid gap-4 sm:grid-cols-3 max-w-3xl mx-auto">
+          <div className="grid gap-6 sm:grid-cols-3 max-w-3xl mx-auto">
             <div className="text-center">
-              <div className="text-3xl mb-2">🎓</div>
+              <div className="icon-container-cool mx-auto mb-3">
+                <GraduationCap className="h-6 w-6" />
+              </div>
               <h3 className="font-semibold text-foreground mb-1">
                 Graduate Students
               </h3>
@@ -271,14 +302,18 @@ export default function AIPaperImplementationsPage() {
               </p>
             </div>
             <div className="text-center">
-              <div className="text-3xl mb-2">🔬</div>
+              <div className="icon-container-warm mx-auto mb-3">
+                <FlaskConical className="h-6 w-6" />
+              </div>
               <h3 className="font-semibold text-foreground mb-1">Researchers</h3>
               <p className="text-sm text-muted-foreground">
                 Looking to apply neural operators to their domain
               </p>
             </div>
             <div className="text-center">
-              <div className="text-3xl mb-2">💻</div>
+              <div className="icon-container-primary mx-auto mb-3">
+                <Laptop className="h-6 w-6" />
+              </div>
               <h3 className="font-semibold text-foreground mb-1">
                 ML Practitioners
               </h3>

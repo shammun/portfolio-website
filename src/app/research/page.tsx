@@ -150,10 +150,10 @@ export default function ResearchPage() {
           </p>
         </div>
 
-        {/* Current Research */}
+        {/* Current Research - Primary/Purple theme */}
         <section className="mb-16">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <div className="icon-container-primary">
               <Award className="h-6 w-6" />
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -161,13 +161,13 @@ export default function ResearchPage() {
             </h2>
           </div>
 
-          <div className="card border-primary/30 bg-primary/5">
+          <div className="card-featured">
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
+              <span className="badge badge-sm badge-primary">
                 {thesis.type}
               </span>
-              <span className="text-sm text-muted-foreground">
-                <Calendar className="inline h-3 w-3 mr-1" />
+              <span className="badge badge-sm badge-muted">
+                <Calendar className="h-3 w-3" />
                 {thesis.status}
               </span>
             </div>
@@ -175,14 +175,14 @@ export default function ResearchPage() {
               {thesis.title}
             </h3>
             <p className="text-sm text-primary mb-3">
-              {thesis.university} • {thesis.department}
+              {thesis.university} - {thesis.department}
             </p>
             <p className="text-muted-foreground mb-4">{thesis.abstract}</p>
             <div className="flex flex-wrap gap-2">
               {thesis.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary"
+                  className="badge badge-sm badge-primary"
                 >
                   {tag}
                 </span>
@@ -191,10 +191,10 @@ export default function ResearchPage() {
           </div>
         </section>
 
-        {/* Peer-Reviewed Publications */}
+        {/* Peer-Reviewed Publications - Warm/Orange theme */}
         <section className="mb-16">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <div className="icon-container-warm">
               <FileText className="h-6 w-6" />
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -206,11 +206,11 @@ export default function ResearchPage() {
             {publications.map((pub, index) => (
               <div key={index} className="card">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-accent text-accent-foreground">
+                  <span className="badge badge-sm badge-warm">
                     Journal Article
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    <Calendar className="inline h-3 w-3 mr-1" />
+                  <span className="badge badge-sm badge-muted">
+                    <Calendar className="h-3 w-3" />
                     {pub.year}
                   </span>
                 </div>
@@ -221,7 +221,7 @@ export default function ResearchPage() {
                   <Users className="inline h-3 w-3 mr-1" />
                   {pub.authors.join(", ")}
                 </p>
-                <p className="text-sm text-primary mb-3">
+                <p className="text-sm text-orange font-medium mb-3">
                   <em>{pub.journal}</em>, {pub.volume}, {pub.pages}
                 </p>
                 <div className="flex flex-wrap items-center gap-4">
@@ -238,7 +238,7 @@ export default function ResearchPage() {
                     {pub.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground"
+                        className="badge badge-sm badge-muted"
                       >
                         {tag}
                       </span>
@@ -250,10 +250,10 @@ export default function ResearchPage() {
           </div>
         </section>
 
-        {/* Books */}
+        {/* Books - Cool/Teal theme */}
         <section className="mb-16">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <div className="icon-container-cool">
               <BookOpen className="h-6 w-6" />
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -265,11 +265,11 @@ export default function ResearchPage() {
             {books.map((book, index) => (
               <div key={index} className="card">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-500 text-white">
+                  <span className="badge badge-sm badge-cool">
                     Book
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    <Calendar className="inline h-3 w-3 mr-1" />
+                  <span className="badge badge-sm badge-muted">
+                    <Calendar className="h-3 w-3" />
                     {book.year}
                   </span>
                 </div>
@@ -283,8 +283,8 @@ export default function ResearchPage() {
                   <Users className="inline h-3 w-3 mr-1" />
                   {book.authors.join(", ")}
                 </p>
-                <p className="text-sm text-primary mb-3">
-                  {book.publisher} • ISBN: {book.isbn}
+                <p className="text-sm text-teal font-medium mb-3">
+                  {book.publisher} - ISBN: {book.isbn}
                 </p>
                 <div className="flex flex-wrap items-center gap-4">
                   <a
@@ -302,10 +302,10 @@ export default function ResearchPage() {
           </div>
         </section>
 
-        {/* Presentations */}
+        {/* Presentations - Violet theme */}
         <section className="mb-16">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <div className="icon-container-primary">
               <Award className="h-6 w-6" />
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -317,10 +317,10 @@ export default function ResearchPage() {
             {presentations.map((pres, index) => (
               <div key={index} className="card">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-500 text-white">
+                  <span className="badge badge-sm badge-cool">
                     {pres.type}
                   </span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="badge badge-sm badge-muted">
                     {pres.date}
                   </span>
                 </div>
@@ -331,8 +331,8 @@ export default function ResearchPage() {
                   <Users className="inline h-3 w-3 mr-1" />
                   {pres.authors.join(", ")}
                 </p>
-                <p className="text-sm text-primary">
-                  {pres.event} • {pres.location}
+                <p className="text-sm text-primary font-medium">
+                  {pres.event} - {pres.location}
                 </p>
               </div>
             ))}
@@ -340,7 +340,7 @@ export default function ResearchPage() {
         </section>
 
         {/* CTA */}
-        <div className="text-center py-12 px-6 rounded-2xl bg-muted">
+        <div className="text-center py-12 px-6 rounded-[16px] bg-card shadow-soft">
           <h2 className="text-2xl font-bold text-foreground mb-4">
             Interested in Collaboration?
           </h2>

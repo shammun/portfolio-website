@@ -43,7 +43,7 @@ function generateHeadingId(children: ReactNode): string | undefined {
   return text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").trim();
 }
 
-// Language display names and icons
+// Language display names and icons - matching Clean Educational colors
 const languageConfig: Record<string, { name: string; color: string }> = {
   python: { name: "Python", color: "#3776ab" },
   py: { name: "Python", color: "#3776ab" },
@@ -53,10 +53,10 @@ const languageConfig: Record<string, { name: string; color: string }> = {
   ts: { name: "TypeScript", color: "#3178c6" },
   bash: { name: "Bash", color: "#4eaa25" },
   shell: { name: "Shell", color: "#4eaa25" },
-  json: { name: "JSON", color: "#292929" },
+  json: { name: "JSON", color: "#8b5cf6" },
   html: { name: "HTML", color: "#e34c26" },
   css: { name: "CSS", color: "#264de4" },
-  sql: { name: "SQL", color: "#f29111" },
+  sql: { name: "SQL", color: "#f97316" },
   markdown: { name: "Markdown", color: "#083fa1" },
   md: { name: "Markdown", color: "#083fa1" },
   yaml: { name: "YAML", color: "#cb171e" },
@@ -67,13 +67,13 @@ const languageConfig: Record<string, { name: string; color: string }> = {
   c: { name: "C", color: "#555555" },
 };
 
-// Heading components
+// Heading components with Clean Educational styling
 function H1({ children, id, ...props }: { children?: ReactNode; id?: string; className?: string }) {
   const headingId = id || generateHeadingId(children);
   return (
     <h1
       id={headingId}
-      className="scroll-mt-24 text-2xl sm:text-3xl font-bold text-foreground mt-12 mb-6 pb-3 border-b border-border/50"
+      className="scroll-mt-24 text-2xl sm:text-3xl font-bold text-foreground mt-12 mb-6 pb-3 border-b border-border"
       {...props}
     >
       {children}
@@ -120,7 +120,7 @@ function H4({ children, id, ...props }: { children?: ReactNode; id?: string; cla
   );
 }
 
-// Code Block Component - preserves syntax highlighting from rehype-pretty-code
+// Code Block Component - Clean Educational style with purple-tinted shadow
 function CodeBlock({ children, className, ...props }: { children?: ReactNode; className?: string }) {
   const language = detectLanguage(children);
   const codeContent = extractTextContent(children).trim();
@@ -131,29 +131,29 @@ function CodeBlock({ children, className, ...props }: { children?: ReactNode; cl
 
   return (
     <div className="my-6 group">
-      {/* Code Container */}
-      <div className="rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600 shadow-sm">
+      {/* Code Container with Clean Educational shadow */}
+      <div className="rounded-[16px] overflow-hidden border border-border shadow-soft">
         {/* Header Bar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-slate-200 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
+        <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
           <div className="flex items-center gap-3">
-            <FileCode className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+            <FileCode className="h-4 w-4 text-muted-foreground" />
             <span
-              className="text-xs font-semibold px-2 py-0.5 rounded"
+              className="text-xs font-semibold px-2 py-0.5 rounded-[8px]"
               style={{
-                backgroundColor: langConfig?.color ? `${langConfig.color}20` : '#64748b20',
-                color: langConfig?.color || '#475569'
+                backgroundColor: langConfig?.color ? `${langConfig.color}20` : 'var(--muted)',
+                color: langConfig?.color || 'var(--muted-foreground)'
               }}
             >
               {displayLang}
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-muted-foreground">
               {lineCount} {lineCount === 1 ? 'line' : 'lines'}
             </span>
           </div>
 
           <button
             onClick={() => navigator.clipboard.writeText(codeContent)}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-300 hover:bg-slate-400 dark:bg-slate-600 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-card hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
             title="Copy code"
           >
             <Copy className="h-3.5 w-3.5" />
@@ -164,7 +164,7 @@ function CodeBlock({ children, className, ...props }: { children?: ReactNode; cl
         {/* Code Content - Render children directly to preserve syntax highlighting */}
         <div className="overflow-x-auto code-block-content">
           <pre
-            className="p-4 text-sm leading-6 font-mono bg-slate-50 dark:bg-slate-800"
+            className="p-4 text-sm leading-6 font-mono bg-card"
             {...props}
           >
             {children}
@@ -175,7 +175,7 @@ function CodeBlock({ children, className, ...props }: { children?: ReactNode; cl
   );
 }
 
-// Inline code - Clean styling
+// Inline code - Clean Educational styling
 function InlineCode({ children, className, ...props }: { children?: ReactNode; className?: string }) {
   if (className?.includes("language-")) {
     return <code className={className} {...props}>{children}</code>;
@@ -183,7 +183,7 @@ function InlineCode({ children, className, ...props }: { children?: ReactNode; c
 
   return (
     <code
-      className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1.5 py-0.5 rounded text-[0.9em] font-mono"
+      className="bg-muted text-foreground px-1.5 py-0.5 rounded-[4px] text-[0.9em] font-mono"
       {...props}
     >
       {children}
@@ -191,7 +191,7 @@ function InlineCode({ children, className, ...props }: { children?: ReactNode; c
   );
 }
 
-// Custom link component
+// Custom link component with primary color
 function CustomLink({ href, children, ...props }: { href?: string; children?: ReactNode; className?: string }) {
   const isExternal = href?.startsWith("http");
 
@@ -221,7 +221,7 @@ function CustomLink({ href, children, ...props }: { href?: string; children?: Re
   );
 }
 
-// Custom image component (simplified without hooks for SSR compatibility)
+// Custom image component with Clean Educational styling
 function CustomImage({ src, alt, ...props }: { src?: string; alt?: string; className?: string }) {
   if (!src) return null;
 
@@ -230,7 +230,7 @@ function CustomImage({ src, alt, ...props }: { src?: string; alt?: string; class
 
   return (
     <figure className="my-8">
-      <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shadow-sm">
+      <div className="relative rounded-[16px] overflow-hidden border border-border bg-card shadow-soft">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imageSrc}
@@ -249,11 +249,11 @@ function CustomImage({ src, alt, ...props }: { src?: string; alt?: string; class
   );
 }
 
-// Blockquote - styled as a callout
+// Blockquote - styled as callout with primary accent
 function Blockquote({ children, ...props }: { children?: ReactNode; className?: string }) {
   return (
     <blockquote
-      className="my-6 px-5 py-4 border-l-4 border-primary/60 bg-primary/5 rounded-r-lg text-muted-foreground"
+      className="my-6 px-5 py-4 border-l-4 border-primary bg-primary/5 rounded-r-[8px] text-muted-foreground"
       {...props}
     >
       {children}
@@ -261,10 +261,10 @@ function Blockquote({ children, ...props }: { children?: ReactNode; className?: 
   );
 }
 
-// Table components with improved styling
+// Table components with Clean Educational styling
 function Table({ children, ...props }: { children?: ReactNode; className?: string }) {
   return (
-    <div className="my-8 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+    <div className="my-8 overflow-x-auto rounded-[16px] border border-border shadow-soft">
       <table className="w-full text-sm" {...props}>
         {children}
       </table>
@@ -273,11 +273,11 @@ function Table({ children, ...props }: { children?: ReactNode; className?: strin
 }
 
 function TableHead({ children, ...props }: { children?: ReactNode; className?: string }) {
-  return <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700" {...props}>{children}</thead>;
+  return <thead className="bg-muted border-b border-border" {...props}>{children}</thead>;
 }
 
 function TableRow({ children, ...props }: { children?: ReactNode; className?: string }) {
-  return <tr className="border-b border-slate-200 dark:border-slate-700/50 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" {...props}>{children}</tr>;
+  return <tr className="border-b border-border last:border-b-0 hover:bg-muted/50 transition-colors" {...props}>{children}</tr>;
 }
 
 function TableCell({ children, ...props }: { children?: ReactNode; className?: string }) {
@@ -288,10 +288,10 @@ function TableHeader({ children, ...props }: { children?: ReactNode; className?:
   return <th className="px-4 py-3 text-left font-semibold text-foreground" {...props}>{children}</th>;
 }
 
-// List components
+// List components with primary accent markers
 function UnorderedList({ children, ...props }: { children?: ReactNode; className?: string }) {
   return (
-    <ul className="my-4 ml-6 list-disc space-y-2 marker:text-primary/60" {...props}>
+    <ul className="my-4 ml-6 list-disc space-y-2 marker:text-primary" {...props}>
       {children}
     </ul>
   );
@@ -299,7 +299,7 @@ function UnorderedList({ children, ...props }: { children?: ReactNode; className
 
 function OrderedList({ children, ...props }: { children?: ReactNode; className?: string }) {
   return (
-    <ol className="my-4 ml-6 list-decimal space-y-2 marker:text-primary/60 marker:font-semibold" {...props}>
+    <ol className="my-4 ml-6 list-decimal space-y-2 marker:text-primary marker:font-semibold" {...props}>
       {children}
     </ol>
   );
@@ -336,12 +336,12 @@ function Paragraph({ children, ...props }: { children?: ReactNode; className?: s
   );
 }
 
-// Horizontal rule
+// Horizontal rule - decorative Clean Educational style
 function HorizontalRule(props: { className?: string }) {
   return (
     <div className="my-10 flex items-center gap-4">
       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-      <div className="w-2 h-2 rounded-full bg-border" />
+      <div className="w-2 h-2 rounded-full bg-primary/40" />
       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </div>
   );
