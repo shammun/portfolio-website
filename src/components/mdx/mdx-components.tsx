@@ -2,10 +2,25 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { type ReactNode, isValidElement, Children } from "react";
 import { Copy, ExternalLink, FileCode } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { InteractiveVisualization } from "@/components/blog/interactive-visualization";
+
+// Dynamic import with SSR disabled to prevent hooks issues during server rendering
+const InteractiveVisualization = dynamic(
+  () => import("@/components/blog/interactive-visualization").then(mod => mod.InteractiveVisualization),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="my-8 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse" style={{ height: "400px" }}>
+        <div className="flex items-center justify-center h-full text-muted-foreground">
+          Loading visualization...
+        </div>
+      </div>
+    )
+  }
+);
 
 // Helper function to extract text content from React children
 function extractTextContent(node: ReactNode): string {

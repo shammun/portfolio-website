@@ -100,70 +100,81 @@ export default async function ChunkPage({ params }: PageProps) {
 
       <div className="py-12 md:py-20">
         <div className="container-wide">
-          {/* Breadcrumb */}
-          <div className="flex flex-wrap items-center gap-2 mb-8 text-sm">
-            <Link
-              href="/blog/ai-paper-implementations"
-              className="text-muted-foreground hover:text-primary"
-            >
-              AI Papers
-            </Link>
-            <span className="text-muted-foreground">/</span>
-            <Link
-              href={`/blog/ai-paper-implementations/${series}`}
-              className="text-muted-foreground hover:text-primary"
-            >
-              {seriesMetadata.short_title}
-            </Link>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-primary">{chunkData.metadata.title}</span>
+          {/* Header Section */}
+          <div className="mb-12 border-b border-border pb-10">
+            {/* Breadcrumb and Back Link Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
+              <nav aria-label="Breadcrumb" className="flex text-sm">
+                <ol className="flex items-center space-x-2 text-muted-foreground">
+                  <li>
+                    <Link href="/blog/ai-paper-implementations" className="hover:text-foreground transition-colors">
+                      AI Papers
+                    </Link>
+                  </li>
+                  <li className="text-border">/</li>
+                  <li>
+                    <Link href={`/blog/ai-paper-implementations/${series}`} className="hover:text-foreground transition-colors">
+                      {seriesMetadata.short_title}
+                    </Link>
+                  </li>
+                  <li className="text-border">/</li>
+                  <li>
+                    <span className="text-foreground font-medium truncate max-w-[150px] sm:max-w-none">
+                      {chunkData.metadata.title}
+                    </span>
+                  </li>
+                </ol>
+              </nav>
+              <Link
+                href={`/blog/ai-paper-implementations/${series}`}
+                className="group inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1.5 transition-transform group-hover:-translate-x-1" />
+                Back to {seriesMetadata.short_title}
+              </Link>
+            </div>
+
+            {/* Chapter Info */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold tracking-wider text-primary uppercase bg-primary/5 px-2 py-1 rounded">
+                  Chapter {chunkData.metadata.order}
+                </span>
+                <span className="text-border">•</span>
+                <div className="flex items-center text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <Clock className="h-4 w-4 mr-1.5" />
+                  {chunkData.metadata.estimated_time}
+                </div>
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
+                {chunkData.metadata.title}
+              </h1>
+
+              {chunkData.metadata.subtitle && (
+                <p className="text-xl text-muted-foreground font-light leading-relaxed max-w-3xl">
+                  {chunkData.metadata.subtitle}
+                </p>
+              )}
+
+              {chunkData.metadata.topics && chunkData.metadata.topics.length > 0 && (
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  {chunkData.metadata.topics.map((topic) => (
+                    <span
+                      key={topic}
+                      className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-muted text-muted-foreground border border-border transition-colors hover:bg-muted/80"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid gap-12 xl:grid-cols-[1fr_250px]">
             {/* Main Content */}
             <div>
-              {/* Header */}
-              <div className="mb-8">
-                <Link
-                  href={`/blog/ai-paper-implementations/${series}`}
-                  className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-4"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to {seriesMetadata.short_title}
-                </Link>
-
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                  <span>Chapter {chunkData.metadata.order}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {chunkData.metadata.estimated_time}
-                  </span>
-                </div>
-
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-                  {chunkData.metadata.title}
-                </h1>
-
-                {chunkData.metadata.subtitle && (
-                  <p className="text-xl text-muted-foreground">
-                    {chunkData.metadata.subtitle}
-                  </p>
-                )}
-
-                {chunkData.metadata.topics && chunkData.metadata.topics.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {chunkData.metadata.topics.map((topic) => (
-                      <span
-                        key={topic}
-                        className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary"
-                      >
-                        {topic}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
 
               {/* MDX Content */}
               <article className="max-w-none">

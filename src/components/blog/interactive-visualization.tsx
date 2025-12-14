@@ -22,6 +22,12 @@ export function InteractiveVisualization({
 }: InteractiveVisualizationProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeHeight, setIframeHeight] = useState<string>(height);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure component only renders on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -67,6 +73,27 @@ export function InteractiveVisualization({
       clearTimeout(timeoutId);
     };
   }, [src]);
+
+  // Show placeholder during SSR and initial mount
+  if (!isMounted) {
+    return (
+      <figure className={cn("my-8 not-prose", className)}>
+        <div
+          className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 animate-pulse"
+          style={{ height: height, minHeight: "400px" }}
+        >
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            Loading visualization...
+          </div>
+        </div>
+        {caption && (
+          <figcaption className="text-sm text-muted-foreground text-center mt-3 italic">
+            {caption}
+          </figcaption>
+        )}
+      </figure>
+    );
+  }
 
   return (
     <figure className={cn("my-8 not-prose", className)}>
