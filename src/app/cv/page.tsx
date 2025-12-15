@@ -32,7 +32,7 @@ const highlights = [
     color: "warm",
     items: [
       "Local Climate Action Fellow - Virginia Climate Center",
-      "MS Thesis: Urban Heat Island Prediction using FNO",
+      "MS Thesis: Urban Heat Island Prediction Using Machine Learning",
     ],
   },
   {
