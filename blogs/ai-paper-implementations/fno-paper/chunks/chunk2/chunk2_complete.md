@@ -782,11 +782,9 @@ where $\Phi(x)$ is the CDF of standard normal distribution.
 
 Here's a comparison of common activation functions used in neural networks:
 
-![Activation Functions Comparison](https://upload.wikimedia.org/wikipedia/commons/6/6f/Activation_tanh.svg)
+![Activation Functions Comparison](/blog-images/fno-paper/chunk2/04_activation_functions.png)
 
-*The tanh activation function, which is smooth and centered at zero. GELU is similar in smoothness but has better gradient properties for deep networks.*
-
-**Image Credit:** Wikimedia Commons, CC BY-SA 4.0, via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Activation_tanh.svg)
+*Common activation functions including ReLU, tanh, and GELU. GELU is preferred in FNO for its smoothness and better gradient properties for deep networks.*
 
 ---
 
