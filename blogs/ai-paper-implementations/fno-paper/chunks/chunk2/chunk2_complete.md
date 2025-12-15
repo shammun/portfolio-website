@@ -635,11 +635,9 @@ This is shown in Figure 2 of the FNO paper, where both paths are applied in para
 
 The spectral path (with truncation) acts as a low-pass filter, while the local path preserves all frequencies:
 
-![Low-pass and High-pass Filtering](https://upload.wikimedia.org/wikipedia/commons/6/6a/Bandpass_filter.svg)
+![Why Both Paths Matter](/blog-images/fno-paper/chunk2/03_why_both_paths.png)
 
-*Different frequency filters: low-pass (keeps smooth, large-scale features), high-pass (keeps sharp edges), and band-pass. FNO's spectral path is effectively a learnable low-pass filter, while the local path W provides uniform frequency response.*
-
-**Image Credit:** Wikimedia Commons, CC BY-SA 3.0, via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Bandpass_filter.svg)
+*FNO's spectral path is effectively a learnable low-pass filter (keeps smooth, large-scale features), while the local path W provides uniform frequency response to capture sharp edges and local details.*
 
 ---
 
