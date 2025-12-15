@@ -21,7 +21,7 @@ const highlights = [
     title: "Education",
     color: "cool",
     items: [
-      "MS Climate Science - George Mason University (2025)",
+      "MSc Climate Science - George Mason University (2025)",
       "MA Climate & Society - Columbia University (2014)",
       "BSc Statistics - SUST, Bangladesh",
     ],
