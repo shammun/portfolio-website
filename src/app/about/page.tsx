@@ -46,7 +46,7 @@ const researchInterests = [
 
 const education = [
   {
-    degree: "MS in Climate Science",
+    degree: "MSc in Climate Science",
     school: "George Mason University",
     years: "2023 - Present",
     details: [
@@ -62,6 +62,12 @@ const education = [
       "Full scholarship recipient",
       "Research with Dr. Andrew Robertson at IRI on decadal prediction",
     ],
+  },
+  {
+    degree: "Master of Development Studies",
+    school: "University of Dhaka",
+    years: "2011 - 2012",
+    details: [],
   },
   {
     degree: "BSc in Statistics",
