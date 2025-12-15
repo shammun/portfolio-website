@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Shammunul Islam | Climate Scientist & ML Researcher",
+    default: "Shammunul Islam | Climate Science & AI Explorer",
     template: "%s | Shammunul Islam",
   },
   description:
@@ -40,13 +40,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "Shammunul Islam",
-    title: "Shammunul Islam | Climate Scientist & ML Researcher",
+    title: "Shammunul Islam | Climate Science & AI Explorer",
     description:
       "Climate scientist and ML researcher. Interactive tutorials on AI papers with runnable code.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Shammunul Islam | Climate Scientist & ML Researcher",
+    title: "Shammunul Islam | Climate Science & AI Explorer",
     description:
       "Climate scientist and ML researcher. Interactive tutorials on AI papers with runnable code.",
   },
