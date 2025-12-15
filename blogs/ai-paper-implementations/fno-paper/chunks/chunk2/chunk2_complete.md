@@ -511,7 +511,7 @@ From the FNO paper (Equation 5): *"Multiplication by the weight tensor R ∈ $\m
 
 Since Fourier coefficients are complex, the weights R must also be complex. Here's how complex numbers represent both magnitude and phase:
 
-![Complex Number Representation](/blog-images/fno-paper/chunk2/complex_number_illustration.png)
+![Complex Number Representation](/blog-images/fno-paper/chunk2/complex_number_illustration.svg)
 
 *A complex number z = a + bi can be represented in the complex plane. The magnitude |z| determines amplitude scaling, while the angle θ determines phase shift. FNO learns both!*
 
@@ -1044,7 +1044,7 @@ From the FNO paper: *"The Fourier layers are discretization-invariant because th
 
 The same Fourier modes represent the same physical frequencies regardless of grid resolution:
 
-![Sampling and Aliasing](/blog-images/fno-paper/chunk2/aliasing_sines.png)
+![Sampling and Aliasing](/blog-images/fno-paper/chunk2/aliasing_sines.svg)
 
 *When sampling a continuous signal at different resolutions, the low-frequency components remain consistent. This is why FNO can transfer: the first k_max modes are the same physical frequencies at any resolution.*
 
