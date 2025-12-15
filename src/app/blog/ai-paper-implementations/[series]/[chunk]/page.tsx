@@ -6,10 +6,25 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypePrettyCode from "rehype-pretty-code";
 import { Clock, ArrowLeft } from "lucide-react";
-import { getSeriesMetadata, getChunkContent, getChunkIds } from "@/lib/content";
+import { getSeriesMetadata, getChunkContent, getChunkIds, getAllSeries } from "@/lib/content";
 import { MDXContent } from "@/components/mdx/mdx-content";
 import { ChunkNavigation } from "@/components/blog/chunk-navigation";
 import { TableOfContents } from "@/components/blog/table-of-contents";
+
+// Generate static params for all series/chunk combinations
+export async function generateStaticParams() {
+  const allSeries = await getAllSeries();
+  const params: { series: string; chunk: string }[] = [];
+
+  for (const series of allSeries) {
+    const chunkIds = getChunkIds(series.paper_id);
+    for (const chunkId of chunkIds) {
+      params.push({ series: series.paper_id, chunk: chunkId });
+    }
+  }
+
+  return params;
+}
 
 interface PageProps {
   params: Promise<{ series: string; chunk: string }>;
@@ -30,8 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-// Dynamic rendering to handle MDX processing at request time
-export const dynamic = "force-dynamic";
+// Use static generation - pages are pre-rendered at build time
 
 export default async function ChunkPage({ params }: PageProps) {
   const { series, chunk } = await params;
