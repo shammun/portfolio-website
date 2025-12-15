@@ -134,7 +134,7 @@ Where:
 
 The following diagram shows the complete FNO architecture from Li et al. (2021):
 
-![FNO Architecture - Figure 1 from Li et al. 2021](https://ar5iv.labs.arxiv.org/html/2010.08895/assets/x1.png)
+![FNO Architecture - Figure 1 from Li et al. 2021](/blog-images/fno-paper/chunk2/fno_architecture_paper.png)
 
 *Figure 1 from the original FNO paper (arXiv:2010.08895). **Top:** The Fourier layer architecture showing the parallel spectral and local paths. **Bottom:** Example Navier-Stokes flow predictions demonstrating zero-shot super-resolution.*
 
@@ -916,7 +916,7 @@ This figure compares ReLU and GELU activation functions — the nonlinear "switc
 
 Here's a detailed view of the Fourier layer from the architecture:
 
-![Fourier Layer Detail](https://ar5iv.labs.arxiv.org/html/2010.08895/assets/x1.png)
+![Fourier Layer Detail](/blog-images/fno-paper/chunk2/fno_architecture_paper.png)
 
 *The Fourier layer consists of: (1) FFT to convert to frequency domain, (2) Linear transform on truncated modes, (3) IFFT back to spatial domain, (4) Add with local linear transform W, (5) Apply activation σ. This figure is from the original FNO paper.*
 
