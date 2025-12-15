@@ -353,11 +353,9 @@ For your LST prediction: temperature varies smoothly at 70m resolution. The high
 
 Mode truncation in 2D works similarly to 1D. Here's how a 2D FFT decomposes an image:
 
-![2D FFT of an Image](https://upload.wikimedia.org/wikipedia/commons/6/61/Fourier2D.png)
+![2D Mode Truncation](/blog-images/fno-paper/chunk2/02_mode_truncation_2d.png)
 
-*Left: Original image in spatial domain. Right: 2D Fourier transform (frequency domain). The center represents low frequencies (large-scale patterns), while edges represent high frequencies (fine details). FNO keeps only the center region!*
-
-**Image Credit:** Wikimedia Commons, Public Domain, via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Fourier2D.png)
+*Mode truncation in 2D: The center of the frequency domain represents low frequencies (large-scale patterns), while edges represent high frequencies (fine details). FNO keeps only the center region!*
 
 ---
 
