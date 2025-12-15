@@ -383,7 +383,7 @@ export default async function BookPage({ params }: Props) {
               </p>
 
               <a
-                href="/books/llm-from-scratch/index.html"
+                href="/books/llm-from-scratch/chapters-index.html"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white dark:bg-card border border-[#6ee7b7]/40 hover:border-[#14b8a6] hover:shadow-md transition-all duration-200"

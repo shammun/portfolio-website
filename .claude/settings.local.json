@@ -20,7 +20,28 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(timeout 60 bash -c 'npm run dev &\nDEV_PID=$!\nsleep 15\ncurl -s -o /dev/null -w \"\"%{http_code}\"\" \"\"http://localhost:3000/blog/ai-paper-implementations/fno-paper/chunk2\"\" || echo \"\"curl failed\"\"\nkill $DEV_PID 2>/dev/null')",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(git push)",
+      "Bash(cd:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nApply Clean Educational style guide across all pages\n\n- Update globals.css with new color palette: purple primary, teal/orange semantic colors, purple-tinted shadows\n- Add soft blue-tinted background gradient (#fafbff to #f5f7ff)\n- Update card styling with 16px border radius and shadow-soft utility\n- Add badge, icon-container, and button component styles\n- Update header and footer with consistent styling\n- Apply semantic color coding to all pages (cool/teal for education/output, warm/orange for experience/input, purple for actions)\n- Update MDX components with Clean Educational styling\n- Replace emojis with Lucide icons on AI Papers page\n- Update home page subtitle text\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(del \"C:\\Users\\sislam27\\Work\\Climate Dynamics PHD\\portfolio-website\\.next\\dev\\lock\")",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 51156 -Force\")",
+      "Bash(powershell:*)",
+      "Bash(npm ls:*)",
+      "Bash(node:*)",
+      "Bash(dir:*)",
+      "Bash(ren:*)",
+      "Bash(python fix_css.py:*)",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''public/books'' -Recurse | Measure-Object -Property Length -Sum | Select-Object @{Name=''SizeMB'';Expression={[math]::Round($_Sum/1MB,2)}}\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''public/books'' -Recurse | Sort-Object Length -Descending | Select-Object -First 15 @{Name=''SizeMB'';Expression={[math]::Round($_Length/1MB,2)}}, FullName\")",
+      "Bash(sort:*)",
+      "Bash(if [ -f index.html ])",
+      "Bash(then mv index.html chapters-index.html)",
+      "Bash(else echo \"File not found in source\")",
+      "Bash(fi:*)"
     ]
   }
 }
