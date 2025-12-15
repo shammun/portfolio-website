@@ -59,8 +59,8 @@ export function Footer() {
             </Link>
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
               Graduate student in climate science at George Mason University.
-              Building interactive tutorials on AI papers and applying machine
-              learning to urban climate problems.
+              Building interactive tutorials on AI books and papers, climate
+              science, statistics, remote sensing, and related topics.
             </p>
 
             {/* Social Links */}
