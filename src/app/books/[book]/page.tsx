@@ -12,6 +12,13 @@ import {
   FileText,
 } from "lucide-react";
 
+// Generate static params for all books
+export async function generateStaticParams() {
+  return [
+    { book: "llm-from-scratch" },
+  ];
+}
+
 // Book data - can be moved to a separate data file later
 const booksData: Record<string, BookData> = {
   "llm-from-scratch": {
