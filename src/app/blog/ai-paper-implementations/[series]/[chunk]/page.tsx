@@ -5,9 +5,9 @@ import { serialize } from "next-mdx-remote/serialize";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypePrettyCode from "rehype-pretty-code";
-import { Clock, BookOpen, ArrowLeft } from "lucide-react";
+import { Clock, ArrowLeft } from "lucide-react";
 import { getSeriesMetadata, getChunkContent, getChunkIds } from "@/lib/content";
-import { MDXRenderer } from "@/components/mdx/mdx-renderer";
+import { MDXContent } from "@/components/mdx/mdx-content";
 import { ChunkNavigation } from "@/components/blog/chunk-navigation";
 import { TableOfContents } from "@/components/blog/table-of-contents";
 
@@ -178,7 +178,7 @@ export default async function ChunkPage({ params }: PageProps) {
 
               {/* MDX Content */}
               <article className="max-w-none">
-                <MDXRenderer source={mdxSource} />
+                <MDXContent source={mdxSource} />
               </article>
 
               {/* Navigation */}

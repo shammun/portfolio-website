@@ -144,7 +144,7 @@ The paper demonstrates FNO on three benchmark PDEs with remarkable results:
   src="/blog-images/fno-paper/chunk0/pro13_navier-stokes_prediciton.html"
   title="Navier-Stokes Prediction"
   caption="FNO predicting turbulent flow evolution — 10,000× faster than traditional simulation"
-  height="750px"
+  height="1300px"
 />
 
 ### Key Finding: Resolution Invariance
