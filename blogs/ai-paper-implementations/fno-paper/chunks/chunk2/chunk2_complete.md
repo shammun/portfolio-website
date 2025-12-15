@@ -44,7 +44,7 @@ Before diving in, ensure you're comfortable with Fourier transforms. These resou
 
 The Fourier transform converts signals between time/space domain and frequency domain. This fundamental concept underlies everything in FNO.
 
-![Fourier Transform Time and Frequency Domains](https://upload.wikimedia.org/wikipedia/commons/5/50/Fourier_transform_time_and_frequency_domains.gif)
+![Fourier Transform Time and Frequency Domains](/blog-images/fno-paper/chunk2/fourier_transform_domains.gif)
 
 *The Fourier transform takes an input function (red, time domain) and converts it into a new function (blue, frequency domain). Each spike in the frequency domain represents a sinusoidal component of the original signal.*
 
@@ -56,7 +56,7 @@ The Fourier transform converts signals between time/space domain and frequency d
 
 As we add more frequency components, we can approximate increasingly complex functions:
 
-![Fourier Series Square Wave Approximation](https://upload.wikimedia.org/wikipedia/commons/e/e8/Periodic_identity_function.gif)
+![Fourier Series Square Wave Approximation](/blog-images/fno-paper/chunk2/fourier_series_square_wave.gif)
 
 *A square wave can be approximated by summing sinusoids. With more terms (higher frequencies), the approximation improves. This is why mode truncation works: smooth functions need fewer terms!*
 
@@ -284,7 +284,7 @@ A single spectral convolution sees **everywhere at once** with FFT efficiency!
 
 This visualization shows how the same signal appears in time domain (left) versus frequency domain (right):
 
-![Time Domain vs Frequency Domain](https://upload.wikimedia.org/wikipedia/commons/6/61/FFT-Time-Frequency-View.png)
+![Time Domain vs Frequency Domain](/blog-images/fno-paper/chunk2/fft_time_frequency_view.png)
 
 *Left: A signal in the time domain showing amplitude over time. Right: The same signal in the frequency domain showing which frequencies are present. The FFT converts between these representations.*
 
@@ -511,7 +511,7 @@ From the FNO paper (Equation 5): *"Multiplication by the weight tensor R ∈ $\m
 
 Since Fourier coefficients are complex, the weights R must also be complex. Here's how complex numbers represent both magnitude and phase:
 
-![Complex Number Representation](https://upload.wikimedia.org/wikipedia/commons/a/af/Complex_number_illustration.svg)
+![Complex Number Representation](/blog-images/fno-paper/chunk2/complex_number_illustration.png)
 
 *A complex number z = a + bi can be represented in the complex plane. The magnitude |z| determines amplitude scaling, while the angle θ determines phase shift. FNO learns both!*
 
@@ -1044,7 +1044,7 @@ From the FNO paper: *"The Fourier layers are discretization-invariant because th
 
 The same Fourier modes represent the same physical frequencies regardless of grid resolution:
 
-![Sampling and Aliasing](https://upload.wikimedia.org/wikipedia/commons/2/28/AliasingSines.svg)
+![Sampling and Aliasing](/blog-images/fno-paper/chunk2/aliasing_sines.png)
 
 *When sampling a continuous signal at different resolutions, the low-frequency components remain consistent. This is why FNO can transfer: the first k_max modes are the same physical frequencies at any resolution.*
 
