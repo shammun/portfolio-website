@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 700">
+  <!-- Styles -->
+  <style>
+    .stage-title {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .stage-subtitle {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
+    .step-box {
+      fill: #f0f0f0;
+      stroke: #333;
+      stroke-width: 2px;
+      rx: 10;
+      ry: 10;
+    }
+    .step-box:hover {
+      fill: #e0e0e0;
+      stroke: #000;
+      stroke-width: 3px;
+      cursor: pointer;
+    }
+    .step-text {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      pointer-events: none;
+    }
+    .arrow {
+      stroke: #333;
+      stroke-width: 2px;
+      fill: none;
+      marker-end: url(#arrowhead);
+    }
+    .highlighted-box {
+      fill: #a2d2ff;
+      stroke: #333;
+      stroke-width: 2px;
+      rx: 10;
+      ry: 10;
+    }
+    .highlighted-box:hover {
+      fill: #90c2ff;
+      stroke: #000;
+      stroke-width: 3px;
+      cursor: pointer;
+    }
+    .note-box {
+      fill: #fff;
+      stroke: #888;
+      stroke-width: 1px;
+      stroke-dasharray: 5,2;
+      rx: 5;
+      ry: 5;
+    }
+    .note-text {
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      font-style: italic;
+    }
+    .stage-box {
+      fill: #f5f5f5;
+      stroke: #ccc;
+      stroke-width: 1px;
+      rx: 5;
+      ry: 5;
+      opacity: 0.6;
+    }
+  </style>
+
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+            refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
+    </marker>
+  </defs>
+
+  <!-- Main title -->
+  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold">
+    The Three-Stage Process for Instruction Fine-Tuning an LLM
+  </text>
+
+  <!-- Note about dataset prep -->
+  <rect class="note-box" x="500" y="45" width="200" height="60" />
+  <text class="note-text" x="600" y="70" text-anchor="middle">We start with downloading,</text>
+  <text class="note-text" x="600" y="85" text-anchor="middle">inspecting, and preparing</text>
+  <text class="note-text" x="600" y="100" text-anchor="middle">the dataset that we will use</text>
+
+  <!-- Stage 1 background - increased height -->
+  <rect class="stage-box" x="50" y="120" width="700" height="170" />
+  
+  <!-- Stage 1 title - positioned at the top of the stage box -->
+  <text class="stage-title" x="70" y="145">Stage 1:</text>
+  <text class="stage-subtitle" x="70" y="165">Preparing the dataset</text>
+
+  <!-- Stage 1 steps - positioned lower in the stage box -->
+  <rect class="highlighted-box" x="190" y="180" width="120" height="80" id="step1" />
+  <text class="step-text" x="250" y="210" text-anchor="middle" font-weight="bold">1) Dataset</text>
+  <text class="step-text" x="250" y="230" text-anchor="middle">download and</text>
+  <text class="step-text" x="250" y="250" text-anchor="middle">formatting</text>
+
+  <rect class="step-box" x="360" y="180" width="120" height="80" id="step2" />
+  <text class="step-text" x="420" y="210" text-anchor="middle" font-weight="bold">2) Batching the</text>
+  <text class="step-text" x="420" y="230" text-anchor="middle">dataset</text>
+
+  <rect class="step-box" x="530" y="180" width="120" height="80" id="step3" />
+  <text class="step-text" x="590" y="210" text-anchor="middle" font-weight="bold">3) Creating</text>
+  <text class="step-text" x="590" y="230" text-anchor="middle">data loaders</text>
+
+  <!-- Connecting line to step 1 -->
+  <path d="M550 105 L280 180" stroke="#888" stroke-width="1" fill="none" />
+
+  <!-- Stage 2 background - increased spacing and height -->
+  <rect class="stage-box" x="50" y="320" width="700" height="170" />
+  
+  <!-- Stage 2 title - positioned at the top of the stage box -->
+  <text class="stage-title" x="70" y="345">Stage 2:</text>
+  <text class="stage-subtitle" x="70" y="365">Fine-tuning the LLM</text>
+
+  <!-- Stage 2 steps - positioned lower in the stage box -->
+  <rect class="step-box" x="190" y="380" width="120" height="80" id="step4" />
+  <text class="step-text" x="250" y="410" text-anchor="middle" font-weight="bold">4) Loading a</text>
+  <text class="step-text" x="250" y="430" text-anchor="middle">pretrained LLM</text>
+
+  <rect class="step-box" x="360" y="380" width="120" height="80" id="step5" />
+  <text class="step-text" x="420" y="410" text-anchor="middle" font-weight="bold">5) Instruction</text>
+  <text class="step-text" x="420" y="430" text-anchor="middle">fine-tuning the</text>
+  <text class="step-text" x="420" y="450" text-anchor="middle">LLM</text>
+
+  <rect class="step-box" x="530" y="380" width="120" height="80" id="step6" />
+  <text class="step-text" x="590" y="410" text-anchor="middle" font-weight="bold">6) Inspecting</text>
+  <text class="step-text" x="590" y="430" text-anchor="middle">the modeling</text>
+  <text class="step-text" x="590" y="450" text-anchor="middle">loss</text>
+
+  <!-- Stage 3 background - increased spacing and height -->
+  <rect class="stage-box" x="50" y="520" width="700" height="170" />
+  
+  <!-- Stage 3 title - positioned at the top of the stage box -->
+  <text class="stage-title" x="70" y="545">Stage 3:</text>
+  <text class="stage-subtitle" x="70" y="565">Evaluating the LLM</text>
+
+  <!-- Stage 3 steps - positioned lower in the stage box -->
+  <rect class="step-box" x="190" y="580" width="120" height="80" id="step7" />
+  <text class="step-text" x="250" y="610" text-anchor="middle" font-weight="bold">7) Extracting</text>
+  <text class="step-text" x="250" y="630" text-anchor="middle">responses</text>
+
+  <rect class="step-box" x="360" y="580" width="120" height="80" id="step8" />
+  <text class="step-text" x="420" y="610" text-anchor="middle" font-weight="bold">8) Qualitative</text>
+  <text class="step-text" x="420" y="630" text-anchor="middle">evaluation</text>
+
+  <rect class="step-box" x="530" y="580" width="120" height="80" id="step9" />
+  <text class="step-text" x="590" y="610" text-anchor="middle" font-weight="bold">9) Scoring the</text>
+  <text class="step-text" x="590" y="630" text-anchor="middle">responses</text>
+
+  <!-- Arrows within Stage 1 -->
+  <path class="arrow" d="M310 220 L360 220" />
+  <path class="arrow" d="M480 220 L530 220" />
+
+  <!-- Arrow from Stage 1 to Stage 2 -->
+  <path class="arrow" d="M420 270 L420 320" />
+
+  <!-- Arrows within Stage 2 -->
+  <path class="arrow" d="M310 420 L360 420" />
+  <path class="arrow" d="M480 420 L530 420" />
+
+  <!-- Arrow from Stage 2 to Stage 3 -->
+  <path class="arrow" d="M420 470 L420 520" />
+
+  <!-- Arrows within Stage 3 -->
+  <path class="arrow" d="M310 620 L360 620" />
+  <path class="arrow" d="M480 620 L530 620" />
+
+  <!-- JavaScript to add interactivity -->
+  <script type="text/javascript">
+  <![CDATA[
+    // Get all step boxes
+    const steps = document.querySelectorAll('[id^="step"]');
+    
+    // Add click event to each step
+    steps.forEach(step => {
+      step.addEventListener('click', function() {
+        // Reset all steps to default style
+        steps.forEach(s => {
+          if (s.id === 'step1') {
+            s.setAttribute('class', 'highlighted-box');
+          } else {
+            s.setAttribute('class', 'step-box');
+          }
+        });
+        
+        // Highlight clicked step
+        if (this.id !== 'step1') {
+          this.setAttribute('class', 'highlighted-box');
+        }
+      });
+    });
+  ]]>
+  </script>
+</svg>

@@ -1,0 +1,276 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650">
+  <!-- Styles -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    .title {
+      font-family: 'Inter', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      fill: #333;
+    }
+    
+    .subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      fill: #555;
+    }
+    
+    .description {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      fill: #444;
+    }
+    
+    .annotation {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      fill: #333;
+    }
+    
+    .json-key {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      fill: #0066cc;
+    }
+    
+    .json-string {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      fill: #008800;
+    }
+    
+    .json-syntax {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      fill: #333;
+    }
+    
+    .prompt-text {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      fill: #333;
+    }
+    
+    .section-title {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      fill: #333;
+    }
+    
+    .token {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      fill: #993399;
+    }
+    
+    .box {
+      fill: #ffffff;
+      stroke: #cccccc;
+      stroke-width: 2px;
+      rx: 10;
+      ry: 10;
+    }
+    
+    .json-box {
+      fill: #f8f9fa;
+      stroke: #aaaaaa;
+      stroke-width: 2px;
+      rx: 10;
+      ry: 10;
+    }
+    
+    .alpaca-box {
+      fill: #f0f7ff;
+      stroke: #99ccff;
+      stroke-width: 2px;
+      rx: 10;
+      ry: 10;
+    }
+    
+    .phi3-box {
+      fill: #fff7f0;
+      stroke: #ffcc99;
+      stroke-width: 2px;
+      rx: 10;
+      ry: 10;
+    }
+    
+    .arrow {
+      fill: none;
+      stroke: #666;
+      stroke-width: 2px;
+      marker-end: url(#arrowhead);
+    }
+    
+    .highlight {
+      fill: #ffff88;
+      opacity: 0;
+    }
+    
+    .highlight:hover {
+      opacity: 0.4;
+      cursor: pointer;
+    }
+    
+    .overlay-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      fill: #333;
+      pointer-events: none;
+      opacity: 0;
+    }
+  </style>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+            refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" class="title">Comparison of prompt styles for instruction fine-tuning in LLMs</text>
+  <text x="450" y="55" text-anchor="middle" class="description">
+    The Alpaca style (left) uses a structured format with defined sections for instruction, input, and response,
+  </text>
+  <text x="450" y="75" text-anchor="middle" class="description">
+    while the Phi-3 style (right) employs a simpler format with designated &lt;|user|&gt; and &lt;|assistant|&gt; tokens.
+  </text>
+  
+  <!-- Dataset entry annotation -->
+  <text x="220" y="105" text-anchor="middle" class="annotation">An entry in the</text>
+  <text x="220" y="125" text-anchor="middle" class="annotation">instruction dataset</text>
+  
+  <!-- Arrow from annotation to JSON -->
+  <path d="M220 135 L220 165" class="arrow" />
+  
+  <!-- JSON data box -->
+  <rect x="100" y="170" width="650" height="100" class="json-box" />
+  
+  <!-- JSON content -->
+  <text x="120" y="195" class="json-syntax">{</text>
+  <text x="145" y="195" class="json-key">"instruction"</text>
+  <text x="230" y="195" class="json-syntax">:</text>
+  <text x="245" y="195" class="json-string">"Identify the correct spelling of the following word."</text>
+  <text x="665" y="195" class="json-syntax">,</text>
+  
+  <text x="145" y="220" class="json-key">"input"</text>
+  <text x="190" y="220" class="json-syntax">:</text>
+  <text x="205" y="220" class="json-string">"Ocassion"</text>
+  <text x="270" y="220" class="json-syntax">,</text>
+  
+  <text x="145" y="245" class="json-key">"output"</text>
+  <text x="200" y="245" class="json-syntax">:</text>
+  <text x="215" y="245" class="json-string">"The correct spelling is 'Occasion.'"</text>
+  
+  <text x="120" y="270" class="json-syntax">}</text>
+  
+  <!-- Formatting annotation -->
+  <text x="110" y="290" text-anchor="middle" class="annotation">One way to format</text>
+  <text x="110" y="310" text-anchor="middle" class="annotation">the data entry to</text>
+  <text x="110" y="330" text-anchor="middle" class="annotation">train the LLM</text>
+  
+  <!-- Arrow from annotation to formats -->
+  <path d="M110 340 L110 450" class="arrow" />
+  
+  <!-- Arrows from JSON to formats -->
+  <path d="M220 290 L220 350" class="arrow" />
+  <path d="M630 290 L630 350" class="arrow" />
+  
+  <!-- Format labels -->
+  <text x="235" y="350" text-anchor="middle" class="subtitle">Apply Alpaca prompt style template.</text>
+  <text x="630" y="350" text-anchor="middle" class="subtitle">Apply Phi-3 prompt style template.</text>
+  
+  <!-- Alpaca format box -->
+  <rect x="50" y="360" width="370" height="260" class="alpaca-box" />
+  
+  <!-- Alpaca content -->
+  <text x="70" y="385" class="prompt-text">Below is an instruction that</text>
+  <text x="70" y="405" class="prompt-text">describes a task. Write a response</text>
+  <text x="70" y="425" class="prompt-text">that appropriately completes the</text>
+  <text x="70" y="445" class="prompt-text">request.</text>
+  
+  <text x="70" y="475" class="section-title">### Instruction:</text>
+  <text x="70" y="495" class="prompt-text">Identify the correct spelling of the</text>
+  <text x="70" y="515" class="prompt-text">following word.</text>
+  
+  <text x="70" y="545" class="section-title">### Input:</text>
+  <text x="70" y="565" class="prompt-text">Ocassion</text>
+  
+  <text x="70" y="595" class="section-title">### Response:</text>
+  <text x="70" y="615" class="prompt-text">The correct spelling is 'Occasion'.</text>
+  
+  <!-- Phi-3 format box -->
+  <rect x="480" y="360" width="370" height="260" class="phi3-box" />
+  
+  <!-- Phi-3 content -->
+  <text x="500" y="385" class="token">&lt;|user|&gt;</text>
+  <text x="500" y="405" class="prompt-text">Identify the correct spelling of the</text>
+  <text x="500" y="425" class="prompt-text">following word: 'Ocassion'</text>
+  
+  <text x="500" y="455" class="token">&lt;|assistant|&gt;</text>
+  <text x="500" y="475" class="prompt-text">The correct spelling is 'Occasion'.</text>
+  
+  <!-- Interactive highlights -->
+  <rect x="145" y="175" width="525" height="25" class="highlight" id="instruction-highlight" />
+  <rect x="145" y="200" width="125" height="25" class="highlight" id="input-highlight" />
+  <rect x="145" y="225" width="355" height="25" class="highlight" id="output-highlight" />
+  
+  <rect x="70" y="455" width="350" height="60" class="highlight" id="alpaca-instruction-highlight" />
+  <rect x="70" y="525" width="350" height="40" class="highlight" id="alpaca-input-highlight" />
+  <rect x="70" y="575" width="350" height="40" class="highlight" id="alpaca-response-highlight" />
+  
+  <rect x="500" y="365" width="350" height="60" class="highlight" id="phi3-user-highlight" />
+  <rect x="500" y="435" width="350" height="40" class="highlight" id="phi3-assistant-highlight" />
+  
+  <!-- Overlay text for highlights -->
+  <text x="450" y="120" text-anchor="middle" class="overlay-text" id="instruction-text">This is the task to be performed</text>
+  <text x="450" y="120" text-anchor="middle" class="overlay-text" id="input-text">This is the input data for the task</text>
+  <text x="450" y="120" text-anchor="middle" class="overlay-text" id="output-text">This is the expected output</text>
+  
+  <text x="450" y="120" text-anchor="middle" class="overlay-text" id="alpaca-instruction-text">Instruction section in Alpaca format</text>
+  <text x="450" y="120" text-anchor="middle" class="overlay-text" id="alpaca-input-text">Input section in Alpaca format</text>
+  <text x="450" y="120" text-anchor="middle" class="overlay-text" id="alpaca-response-text">Response section in Alpaca format</text>
+  
+  <text x="450" y="120" text-anchor="middle" class="overlay-text" id="phi3-user-text">User message in Phi-3 format</text>
+  <text x="450" y="120" text-anchor="middle" class="overlay-text" id="phi3-assistant-text">Assistant response in Phi-3 format</text>
+  
+  <!-- JavaScript for interactivity -->
+  <script type="text/javascript">
+  <![CDATA[
+    // Function to show explanation on hover
+    function setupHighlight(highlightId, textId, explanation) {
+      const highlight = document.getElementById(highlightId);
+      const text = document.getElementById(textId);
+      
+      highlight.addEventListener('mouseover', function() {
+        text.textContent = explanation;
+        text.style.opacity = 1;
+      });
+      
+      highlight.addEventListener('mouseout', function() {
+        text.style.opacity = 0;
+      });
+    }
+    
+    // Set up all interactive highlights
+    setupHighlight('instruction-highlight', 'instruction-text', 'The "instruction" field contains the task description.');
+    setupHighlight('input-highlight', 'input-text', 'The "input" field contains the data to process.');
+    setupHighlight('output-highlight', 'output-text', 'The "output" field contains the expected response.');
+    
+    setupHighlight('alpaca-instruction-highlight', 'alpaca-instruction-text', 'Alpaca format uses "### Instruction:" to mark the task description.');
+    setupHighlight('alpaca-input-highlight', 'alpaca-input-text', 'Alpaca format uses "### Input:" to mark the input data.');
+    setupHighlight('alpaca-response-highlight', 'alpaca-response-text', 'Alpaca format uses "### Response:" to mark the expected output.');
+    
+    setupHighlight('phi3-user-highlight', 'phi3-user-text', 'Phi-3 format uses "<|user|>" to mark user input combining instruction and input.');
+    setupHighlight('phi3-assistant-highlight', 'phi3-assistant-text', 'Phi-3 format uses "<|assistant|>" to mark the assistant\'s response.');
+  ]]>
+  </script>
+</svg>

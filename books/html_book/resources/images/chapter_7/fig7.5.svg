@@ -1,0 +1,353 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 700" width="800" height="700" font-family="Arial, sans-serif">
+  <!-- Styles -->
+  <defs>
+    <linearGradient id="stageGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f8f9fc" />
+      <stop offset="100%" stop-color="#eef2f7" />
+    </linearGradient>
+    <linearGradient id="boxGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f5f8fb" />
+    </linearGradient>
+    <linearGradient id="highlightGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e1f5fe" />
+      <stop offset="100%" stop-color="#b3e5fc" />
+    </linearGradient>
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+      <feOffset dx="2" dy="2" result="offsetblur" />
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    
+    <!-- Arrowhead Marker -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7986cb" />
+    </marker>
+    
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&amp;family=Roboto:wght@400;500&amp;display=swap');
+      .stage-title { 
+        font-family: 'Poppins', sans-serif; 
+        font-size: 18px; 
+        font-weight: 600; 
+        fill: #2c3e50; 
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .box { 
+        stroke-width: 2px; 
+        rx: 10; 
+        ry: 10; 
+        filter: url(#dropShadow);
+      }
+      .box-text { 
+        font-family: 'Roboto', sans-serif; 
+        font-size: 14px; 
+        fill: #37474f; 
+      }
+      
+      /* Arrow Animation Styles */
+      .arrow { 
+        stroke: #7986cb; 
+        stroke-width: 2.5px;
+        stroke-dasharray: 500;
+        stroke-dashoffset: 500;
+        animation: dash 1.5s linear forwards;
+      }
+      
+      /* Special styling for complex paths (long arrows that turn corners) */
+      .complex-path {
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+      }
+      
+      @keyframes dash {
+        0% { 
+          stroke-dashoffset: 500; 
+          stroke-opacity: 0.3;
+        }
+        100% { 
+          stroke-dashoffset: 0; 
+          stroke-opacity: 1;
+        }
+      }
+      
+      /* Animation for complex paths */
+      @keyframes dashComplex {
+        0% { 
+          stroke-dashoffset: 1000; 
+          stroke-opacity: 0.3;
+        }
+        100% { 
+          stroke-dashoffset: 0; 
+          stroke-opacity: 1;
+        }
+      }
+      
+      .arrow-1 { animation: dash 1.5s linear forwards 0.1s, pulse-animation 2s infinite 1.5s; }
+      .arrow-2 { animation: dash 1.5s linear forwards 0.3s, pulse-animation 2s infinite 1.7s; }
+      .arrow-3 { animation: dashComplex 2s linear forwards 0.5s, pulse-animation 2s infinite 2.4s; }
+      .arrow-4 { animation: dash 1.5s linear forwards 0.7s, pulse-animation 2s infinite 2.1s; }
+      .arrow-5 { animation: dash 1.5s linear forwards 0.9s, pulse-animation 2s infinite 2.3s; }
+      .arrow-6 { animation: dashComplex 2s linear forwards 1.1s, pulse-animation 2s infinite 3.0s; }
+      .arrow-7 { animation: dash 1.5s linear forwards 1.3s, pulse-animation 2s infinite 2.7s; }
+      .arrow-8 { animation: dash 1.5s linear forwards 1.5s, pulse-animation 2s infinite 2.9s; }
+      
+      @keyframes pulse-animation {
+        0% { stroke-width: 2.5px; stroke-opacity: 1.0; }
+        50% { stroke-width: 4px; stroke-opacity: 0.8; }
+        100% { stroke-width: 2.5px; stroke-opacity: 1.0; }
+      }
+      
+      .note-text { 
+        font-family: 'Roboto', sans-serif; 
+        font-size: 14px; 
+        fill: #455a64; 
+      }
+      .stage-box { 
+        fill: url(#stageGradient); 
+        stroke: #cfd8dc; 
+        stroke-width: 1.5px; 
+        rx: 15; 
+        ry: 15; 
+        filter: url(#dropShadow);
+      }
+      .box-highlight { 
+        fill: url(#highlightGradient); 
+        stroke: #29b6f6; 
+      }
+      .stage-number { 
+        font-weight: 500; 
+        fill: #3949ab;
+      }
+      .checkmark { 
+        fill: #43a047; 
+        stroke: #43a047;
+      }
+      .note-box {
+        fill: #ffffff;
+        stroke: #e0e0e0;
+        filter: url(#dropShadow);
+      }
+      .note-title {
+        font-family: 'Poppins', sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        fill: #3949ab;
+      }
+    </style>
+  </defs>
+
+  <!-- Explanatory Notes -->
+  <g id="note1">
+    <rect x="100" y="30" width="300" height="90" rx="8" ry="8" class="note-box" />
+    <text x="110" y="50" class="note-text">In this section, we learn how to efficiently</text>
+    <text x="110" y="70" class="note-text">pad the data samples to equal lengths</text>
+    <text x="110" y="90" class="note-text">so we can assemble multiple instruction</text>
+    <text x="110" y="110" class="note-text">examples in a batch.</text>
+  </g>
+
+  <g id="note2">
+    <rect x="450" y="30" width="300" height="70" rx="8" ry="8" class="note-box" />
+    <text x="460" y="50" class="note-text">Then, we create the PyTorch</text>
+    <text x="460" y="70" class="note-text">data loaders we will use for</text>
+    <text x="460" y="90" class="note-text">fine-tuning the LLM.</text>
+  </g>
+
+  <!-- Background Containers for Stages -->
+  <rect x="50" y="150" width="700" height="150" class="stage-box" />
+  <rect x="50" y="330" width="700" height="150" class="stage-box" />
+  <rect x="50" y="510" width="700" height="150" class="stage-box" />
+
+  <!-- Stage Titles -->
+  <text x="70" y="175" class="stage-title">Stage 1: Preparing the dataset</text>
+  <text x="70" y="355" class="stage-title">Stage 2: Fine-tuning the LLM</text>
+  <text x="70" y="535" class="stage-title">Stage 3: Evaluating the LLM</text>
+
+  <!-- Stage 1 Boxes -->
+  <g id="box1" transform="translate(0,0)" cursor="pointer">
+    <rect x="80" y="190" width="150" height="80" class="box" fill="url(#boxGradient)" stroke="#cfd8dc" />
+    <text x="155" y="220" text-anchor="middle" class="box-text"><tspan x="155" class="stage-number">1)</tspan> Dataset</text>
+    <text x="155" y="240" text-anchor="middle" class="box-text">download and</text>
+    <text x="155" y="260" text-anchor="middle" class="box-text">formatting</text>
+    <circle cx="97" cy="220" r="12" fill="#f0f7ff" stroke="#cfd8dc" />
+    <path d="M92,220 L97,225 L102,215" class="checkmark" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <g id="box2" transform="translate(0,0)" cursor="pointer">
+    <rect x="290" y="190" width="150" height="80" class="box box-highlight" fill="url(#highlightGradient)" stroke="#29b6f6" />
+    <text x="365" y="225" text-anchor="middle" class="box-text"><tspan class="stage-number">2)</tspan> Batching the</text>
+    <text x="365" y="245" text-anchor="middle" class="box-text">dataset</text>
+  </g>
+
+  <g id="box3" transform="translate(0,0)" cursor="pointer">
+    <rect x="500" y="190" width="150" height="80" class="box" fill="url(#boxGradient)" stroke="#cfd8dc" />
+    <text x="575" y="225" text-anchor="middle" class="box-text"><tspan class="stage-number">3)</tspan> Creating</text>
+    <text x="575" y="245" text-anchor="middle" class="box-text">data loaders</text>
+  </g>
+
+  <!-- Stage 2 Boxes -->
+  <g id="box4" transform="translate(0,0)" cursor="pointer">
+    <rect x="80" y="370" width="150" height="80" class="box" fill="url(#boxGradient)" stroke="#cfd8dc" />
+    <text x="155" y="400" text-anchor="middle" class="box-text"><tspan class="stage-number">4)</tspan> Loading a</text>
+    <text x="155" y="420" text-anchor="middle" class="box-text">pretrained LLM</text>
+  </g>
+
+  <g id="box5" transform="translate(0,0)" cursor="pointer">
+    <rect x="290" y="370" width="150" height="80" class="box" fill="url(#boxGradient)" stroke="#cfd8dc" />
+    <text x="365" y="400" text-anchor="middle" class="box-text"><tspan class="stage-number">5)</tspan> Instruction</text>
+    <text x="365" y="420" text-anchor="middle" class="box-text">fine-tuning the LLM</text>
+  </g>
+
+  <g id="box6" transform="translate(0,0)" cursor="pointer">
+    <rect x="500" y="370" width="150" height="80" class="box" fill="url(#boxGradient)" stroke="#cfd8dc" />
+    <text x="575" y="400" text-anchor="middle" class="box-text"><tspan class="stage-number">6)</tspan> Inspecting</text>
+    <text x="575" y="420" text-anchor="middle" class="box-text">the modeling logs</text>
+  </g>
+
+  <!-- Stage 3 Boxes -->
+  <g id="box7" transform="translate(0,0)" cursor="pointer">
+    <rect x="80" y="550" width="150" height="80" class="box" fill="url(#boxGradient)" stroke="#cfd8dc" />
+    <text x="155" y="580" text-anchor="middle" class="box-text"><tspan class="stage-number">7)</tspan> Extracting</text>
+    <text x="155" y="600" text-anchor="middle" class="box-text">responses</text>
+  </g>
+
+  <g id="box8" transform="translate(0,0)" cursor="pointer">
+    <rect x="290" y="550" width="150" height="80" class="box" fill="url(#boxGradient)" stroke="#cfd8dc" />
+    <text x="365" y="580" text-anchor="middle" class="box-text"><tspan class="stage-number">8)</tspan> Qualitative</text>
+    <text x="365" y="600" text-anchor="middle" class="box-text">evaluation</text>
+  </g>
+
+  <g id="box9" transform="translate(0,0)" cursor="pointer">
+    <rect x="500" y="550" width="150" height="80" class="box" fill="url(#boxGradient)" stroke="#cfd8dc" />
+    <text x="575" y="580" text-anchor="middle" class="box-text"><tspan class="stage-number">9)</tspan> Scoring the</text>
+    <text x="575" y="600" text-anchor="middle" class="box-text">responses</text>
+  </g>
+
+  <!-- Animated Arrows -->
+  <!-- Stage 1 Arrows -->
+  <path d="M230,230 L290,230" class="arrow arrow-1" fill="none" marker-end="url(#arrowhead)" />
+  <path d="M440,230 L500,230" class="arrow arrow-2" fill="none" marker-end="url(#arrowhead)" />
+  <path d="M575,270 L575,310 L155,310 L155,370" class="arrow arrow-3 complex-path" fill="none" marker-end="url(#arrowhead)" />
+
+  <!-- Stage 2 Arrows -->
+  <path d="M230,410 L290,410" class="arrow arrow-4" fill="none" marker-end="url(#arrowhead)" />
+  <path d="M440,410 L500,410" class="arrow arrow-5" fill="none" marker-end="url(#arrowhead)" />
+  <path d="M575,450 L575,490 L155,490 L155,550" class="arrow arrow-6 complex-path" fill="none" marker-end="url(#arrowhead)" />
+
+  <!-- Stage 3 Arrows -->
+  <path d="M230,590 L290,590" class="arrow arrow-7" fill="none" marker-end="url(#arrowhead)" />
+  <path d="M440,590 L500,590" class="arrow arrow-8" fill="none" marker-end="url(#arrowhead)" />
+
+  <!-- Interactive elements -->
+  <script type="text/ecmascript"><![CDATA[
+    // Add hover and click effects
+    var boxes = document.querySelectorAll('[id^="box"]');
+    
+    for (var i = 0; i < boxes.length; i++) {
+      boxes[i].addEventListener('mouseover', function() {
+        var rect = this.querySelector('rect');
+        var originalFill = rect.getAttribute('fill');
+        rect.setAttribute('data-original-fill', originalFill);
+        
+        if (!rect.classList.contains('box-highlight')) {
+          rect.setAttribute('fill', '#e3f2fd');
+          rect.setAttribute('stroke', '#42a5f5');
+          rect.setAttribute('stroke-width', '3');
+        } else {
+          rect.setAttribute('fill', '#81d4fa');
+          rect.setAttribute('stroke', '#0288d1');
+          rect.setAttribute('stroke-width', '3');
+        }
+      });
+      
+      boxes[i].addEventListener('mouseout', function() {
+        var rect = this.querySelector('rect');
+        var originalFill = rect.getAttribute('data-original-fill');
+        
+        if (!rect.classList.contains('box-highlight')) {
+          rect.setAttribute('fill', originalFill);
+          rect.setAttribute('stroke', '#cfd8dc');
+          rect.setAttribute('stroke-width', '2');
+        } else {
+          rect.setAttribute('fill', 'url(#highlightGradient)');
+          rect.setAttribute('stroke', '#29b6f6');
+          rect.setAttribute('stroke-width', '2');
+        }
+      });
+      
+      boxes[i].addEventListener('click', function() {
+        // Get all rects and reset them
+        var allRects = document.querySelectorAll('[id^="box"] rect');
+        for (var j = 0; j < allRects.length; j++) {
+          if (allRects[j].classList.contains('box-highlight')) {
+            allRects[j].setAttribute('fill', 'url(#boxGradient)');
+            allRects[j].setAttribute('stroke', '#cfd8dc');
+          } else {
+            allRects[j].setAttribute('fill', 'url(#boxGradient)');
+            allRects[j].setAttribute('stroke', '#cfd8dc');
+          }
+          allRects[j].classList.remove('box-highlight');
+        }
+        
+        // Highlight the clicked box
+        var rect = this.querySelector('rect');
+        rect.classList.add('box-highlight');
+        rect.setAttribute('fill', 'url(#highlightGradient)');
+        rect.setAttribute('stroke', '#29b6f6');
+      });
+    }
+    
+    // Function to restart arrow animations
+    function restartArrowAnimations() {
+      var arrows = document.querySelectorAll('.arrow');
+      
+      arrows.forEach(function(arrow) {
+        // Reset the animation
+        arrow.style.animation = 'none';
+        arrow.offsetHeight; // Trigger reflow
+        
+        // Check if this is a complex path
+        var isComplex = arrow.classList.contains('complex-path');
+        var animationType = isComplex ? 'dashComplex' : 'dash';
+        var duration = isComplex ? '2s' : '1.5s';
+        
+        // Restore the animation with proper delay based on class
+        if (arrow.classList.contains('arrow-1')) {
+          arrow.style.animation = `${animationType} ${duration} linear forwards 0.1s, pulse-animation 2s infinite 1.5s`;
+        } else if (arrow.classList.contains('arrow-2')) {
+          arrow.style.animation = `${animationType} ${duration} linear forwards 0.3s, pulse-animation 2s infinite 1.7s`;
+        } else if (arrow.classList.contains('arrow-3')) {
+          arrow.style.animation = `dashComplex 2s linear forwards 0.5s, pulse-animation 2s infinite 2.4s`;
+        } else if (arrow.classList.contains('arrow-4')) {
+          arrow.style.animation = `${animationType} ${duration} linear forwards 0.7s, pulse-animation 2s infinite 2.1s`;
+        } else if (arrow.classList.contains('arrow-5')) {
+          arrow.style.animation = `${animationType} ${duration} linear forwards 0.9s, pulse-animation 2s infinite 2.3s`;
+        } else if (arrow.classList.contains('arrow-6')) {
+          arrow.style.animation = `dashComplex 2s linear forwards 1.1s, pulse-animation 2s infinite 3.0s`;
+        } else if (arrow.classList.contains('arrow-7')) {
+          arrow.style.animation = `${animationType} ${duration} linear forwards 1.3s, pulse-animation 2s infinite 2.7s`;
+        } else if (arrow.classList.contains('arrow-8')) {
+          arrow.style.animation = `${animationType} ${duration} linear forwards 1.5s, pulse-animation 2s infinite 2.9s`;
+        }
+      });
+    }
+    
+    // Add an event to restart animations when clicking on the SVG
+    document.querySelector('svg').addEventListener('click', function(e) {
+      // Only restart if clicked on the background (not on a box)
+      if (e.target.tagName === 'svg' || e.target.classList.contains('stage-box')) {
+        restartArrowAnimations();
+      }
+    });
+    
+    // Restart animations periodically (every 10 seconds)
+    setInterval(restartArrowAnimations, 10000);
+  ]]></script>
+</svg>

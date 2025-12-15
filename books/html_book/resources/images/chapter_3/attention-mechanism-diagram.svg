@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <!-- Styles -->
+  <defs>
+    <style>
+      .title-text { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; }
+      .regular-text { font-family: Arial, sans-serif; font-size: 12px; }
+      .math-text { font-family: "Times New Roman", serif; font-style: italic; font-size: 14px; }
+      .small-math-text { font-family: "Times New Roman", serif; font-style: italic; font-size: 11px; }
+      .vector-box { fill: #eaeaea; stroke: #333; stroke-width: 1; }
+      .context-box { fill: #ff9999; stroke: #333; stroke-width: 1; }
+      .arrow { stroke: #333; stroke-width: 1.5; fill: none; }
+      .label-arrow { stroke: #333; stroke-width: 1.2; fill: none; stroke-dasharray: 3,2; }
+      .description-box { fill: none; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="200" y="30" class="title-text">Attention Mechanism in Transformer Models</text>
+
+  <!-- Input vectors section -->
+  <g transform="translate(250, 100)">
+    <!-- Vector boxes -->
+    <rect x="-40" y="0" width="80" height="30" class="vector-box" rx="3" ry="3"/>
+    <rect x="80" y="0" width="80" height="30" class="vector-box" rx="3" ry="3"/>
+    <rect x="200" y="0" width="80" height="30" class="vector-box" rx="3" ry="3"/>
+    <rect x="380" y="0" width="80" height="30" class="vector-box" rx="3" ry="3"/>
+    
+    <!-- Vector values -->
+    <text x="-25" y="20" class="regular-text">0.4</text>
+    <text x="0" y="20" class="regular-text">0.1</text>
+    <text x="25" y="20" class="regular-text">0.8</text>
+    
+    <text x="95" y="20" class="regular-text">0.5</text>
+    <text x="120" y="20" class="regular-text">0.8</text>
+    <text x="145" y="20" class="regular-text">0.6</text>
+    
+    <text x="215" y="20" class="regular-text">0.5</text>
+    <text x="240" y="20" class="regular-text">0.8</text>
+    <text x="265" y="20" class="regular-text">0.6</text>
+    
+    <text x="395" y="20" class="regular-text">0.0</text>
+    <text x="420" y="20" class="regular-text">0.8</text>
+    <text x="445" y="20" class="regular-text">0.5</text>
+    
+    <!-- Token labels - positioned well above boxes -->
+    <text x="0" y="-25" class="regular-text" text-anchor="middle">"Your"</text>
+    <text x="120" y="-25" class="regular-text" text-anchor="middle">"journey"</text>
+    <text x="240" y="-25" class="regular-text" text-anchor="middle">"starts"</text>
+    <text x="330" y="-25" class="regular-text" text-anchor="middle">• • •</text>
+    <text x="420" y="-25" class="regular-text" text-anchor="middle">"step"</text>
+    
+    <!-- Vector notation - positioned even higher above -->
+    <text x="0" y="-45" class="math-text" text-anchor="middle">x⁽¹⁾</text>
+    <text x="120" y="-45" class="math-text" text-anchor="middle">x⁽²⁾</text>
+    <text x="240" y="-45" class="math-text" text-anchor="middle">x⁽³⁾</text>
+    <text x="420" y="-45" class="math-text" text-anchor="middle">x⁽ᵀ⁾</text>
+  </g>
+  
+  <!-- Input vector label - clear positioning with arrow -->
+  <g transform="translate(110, 115)">
+    <text x="0" y="0" class="title-text">Input vector</text>
+    <text x="0" y="15" class="regular-text">(token embedding)</text>
+    <text x="0" y="30" class="regular-text">corresponding to</text>
+    <text x="0" y="45" class="regular-text">the first token</text>
+    
+    <!-- Curved arrow from "Input vector" label to first box -->
+    <path d="M 80,10 C 100,10 120,5 140,-5" class="label-arrow" marker-end="url(#arrowhead)"/>
+  </g>
+  
+  <!-- Attention weights -->
+  <g transform="translate(250, 155)">
+    <text x="-25" y="0" class="small-math-text" id="alpha21">α₂₁</text>
+    <text x="95" y="0" class="small-math-text">α₂₂</text>
+    <text x="215" y="0" class="small-math-text">α₂₃</text>
+    <text x="395" y="0" class="small-math-text">α₂ᵀ</text>
+  </g>
+  
+  <!-- Attention weight label - positioned with clear arrow to α₂₁ -->
+  <g transform="translate(110, 200)">
+    <text x="0" y="0" class="title-text">Attention weight to</text>
+    <text x="0" y="15" class="regular-text">weigh the importance</text>
+    <text x="0" y="30" class="regular-text">of input x⁽¹⁾</text>
+    
+    <!-- Curved arrow from "Attention weight" label to α₂₁ -->
+    <path d="M 90,0 C 110,-10 120,-30 115,-45" class="label-arrow" marker-end="url(#arrowhead)"/>
+  </g>
+  
+  <!-- Context vector - positioned with more vertical space -->
+  <g transform="translate(370, 290)">
+    <rect x="-40" y="0" width="80" height="30" class="context-box" rx="3" ry="3"/>
+    <text x="-25" y="20" class="regular-text">0.4</text>
+    <text x="0" y="20" class="regular-text">0.6</text>
+    <text x="25" y="20" class="regular-text">0.5</text>
+    
+    <!-- Context vector notation - positioned with more space to the left -->
+    <text x="-90" y="15" class="math-text">z⁽²⁾</text>
+    
+    <!-- Description of context vector - positioned clearly below with spacing -->
+    <g transform="translate(0, 60)">
+      <text x="-115" y="0" class="title-text">The context vector z⁽²⁾ is</text>
+      <text x="-115" y="20" class="regular-text">computed as a combination of</text>
+      <text x="-115" y="40" class="regular-text">all input vectors weighted with</text>
+      <text x="-115" y="60" class="regular-text">respect to input element x⁽²⁾</text>
+    </g>
+  </g>
+  
+  <!-- Connection lines -->
+  <!-- From first token -->
+  <path d="M 225,130 L 330,290" class="arrow" marker-end="url(#arrowhead)"/>
+  <!-- From second token -->
+  <path d="M 345,130 L 345,290" class="arrow" marker-end="url(#arrowhead)"/>
+  <!-- From third token -->
+  <path d="M 465,130 L 350,290" class="arrow" marker-end="url(#arrowhead)"/>
+  <!-- From last token -->
+  <path d="M 645,130 L 360,290" class="arrow" marker-end="url(#arrowhead)"/>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+  </defs>
+</svg>

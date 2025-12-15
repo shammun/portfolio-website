@@ -11,6 +11,7 @@ const navigation = [
   { name: "Home", href: "/" },
   { name: "About", href: "/about" },
   { name: "AI Papers", href: "/blog/ai-paper-implementations", highlight: true },
+  { name: "Books", href: "/books", highlight: true },
   { name: "Research", href: "/research" },
   { name: "Projects", href: "/projects" },
   { name: "CV", href: "/cv" },
