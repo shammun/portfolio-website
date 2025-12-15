@@ -912,7 +912,7 @@ This figure compares ReLU and GELU activation functions — the nonlinear "switc
 
 ## Key Visual: The Complete Fourier Layer Pipeline
 
-Here's a detailed view of the Fourier layer from the architecture:
+Here's a detailed view of the Fourier layer from the architecture again:
 
 ![Fourier Layer Detail](/blog-images/fno-paper/chunk2/fno_architecture_paper.png)
 
