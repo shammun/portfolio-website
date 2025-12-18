@@ -6824,7 +6824,41 @@ a.anchor-link {
     white-space: normal;
   }
 </style>
-<!-- End of mermaid configuration --></head>
+<!-- End of mermaid configuration -->
+
+<!-- Chapter Navigation Styling -->
+<style>
+    .chapter-header { background: linear-gradient(135deg, #fafbff 0%, #f0f4ff 100%); border-bottom: 1px solid #e2e8f0; padding: 1.5rem 2rem; margin-bottom: 2rem; }
+    .chapter-header-inner { max-width: 1200px; margin: 0 auto; }
+    .chapter-back-link { display: inline-flex; align-items: center; gap: 0.5rem; color: #64748b; text-decoration: none; font-size: 0.9rem; margin-bottom: 1rem; transition: color 0.2s ease; font-family: system-ui, -apple-system, sans-serif; }
+    .chapter-back-link:hover { color: #0d9488; }
+    .chapter-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
+    .chapter-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: #ecfdf5; color: #0d9488; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; border: 1px solid #6ee7b7; font-family: system-ui, -apple-system, sans-serif; }
+    .chapter-badge-dot { width: 6px; height: 6px; background: #14b8a6; border-radius: 50%; }
+    .chapter-number { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; font-family: system-ui, -apple-system, sans-serif; }
+    .chapter-title-section h1 { font-size: 1.75rem; font-weight: 700; color: #1e293b; margin: 0 0 0.5rem 0; font-family: system-ui, -apple-system, sans-serif; letter-spacing: -0.02em; }
+    .chapter-author { color: #64748b; font-size: 0.95rem; font-family: system-ui, -apple-system, sans-serif; }
+    .chapter-author strong { color: #1e293b; }
+    .chapter-footer { background: linear-gradient(135deg, #fafbff 0%, #f0f4ff 100%); border-top: 1px solid #e2e8f0; padding: 2rem; margin-top: 3rem; font-family: system-ui, -apple-system, sans-serif; }
+    .chapter-footer-inner { max-width: 1200px; margin: 0 auto; }
+    .chapter-nav { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+    .chapter-nav-btn { display: inline-flex; align-items: center; gap: 0.75rem; padding: 1rem 1.5rem; background: white; border: 1px solid #e2e8f0; border-radius: 12px; text-decoration: none; color: #1e293b; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08); min-width: 200px; }
+    .chapter-nav-btn:hover { border-color: #14b8a6; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12); transform: translateY(-2px); }
+    .chapter-nav-btn.disabled { opacity: 0.5; pointer-events: none; }
+    .chapter-nav-btn .nav-direction { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .chapter-nav-btn .nav-title { font-weight: 600; color: #1e293b; }
+    .chapter-nav-btn:hover .nav-title { color: #0d9488; }
+    .nav-arrow { width: 24px; height: 24px; color: #14b8a6; }
+    .chapter-acknowledgement { background: linear-gradient(135deg, #ecfdf5, #f0fdfa); border-radius: 16px; border: 1px solid #6ee7b7; padding: 1.75rem; margin-top: 1.5rem; }
+    .chapter-acknowledgement-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .chapter-acknowledgement-icon { width: 32px; height: 32px; background: #14b8a6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+    .chapter-acknowledgement h3 { color: #0d9488; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+    .chapter-acknowledgement p { color: #1e293b; font-size: 0.95rem; line-height: 1.7; margin: 0; }
+    .chapter-acknowledgement a { color: #0d9488; text-decoration: none; font-weight: 500; }
+    .chapter-acknowledgement a:hover { text-decoration: underline; }
+    @media (max-width: 640px) { .chapter-header { padding: 1rem; } .chapter-title-section h1 { font-size: 1.35rem; } .chapter-nav { flex-direction: column; } .chapter-nav-btn { min-width: 100%; } }
+</style>
+</head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 
 <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
@@ -6854,6 +6888,24 @@ a.anchor-link {
 </div>
 
 <main>
+<!-- Chapter Header -->
+<div class="chapter-header">
+    <div class="chapter-header-inner">
+        <a href="chapters-index.html" class="chapter-back-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+            Back to All Chapters
+        </a>
+        <div class="chapter-meta">
+            <span class="chapter-badge"><span class="chapter-badge-dot"></span>My Learning Notes</span>
+            <span class="chapter-number">Chapter 07</span>
+        </div>
+        <div class="chapter-title-section">
+            <h1>Fine-tuning to Follow Instructions</h1>
+            <p class="chapter-author">Notes by <strong>Shammunul Islam</strong></p>
+        </div>
+    </div>
+</div>
+
 <div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -12233,6 +12285,29 @@ Average score: 48.92
 </div>
 </div>
 </div>
+</div>
+
+<!-- Chapter Footer Navigation -->
+<div class="chapter-footer">
+    <div class="chapter-footer-inner">
+        <div class="chapter-nav">
+            <a href="chapter_6.html" class="chapter-nav-btn">
+                <svg class="nav-arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+                <div><div class="nav-direction">Previous Chapter</div><div class="nav-title">Fine-tuning for Classification</div></div>
+            </a>
+            <span class="chapter-nav-btn disabled">
+                <div style="text-align: right; flex: 1;"><div class="nav-direction">Next Chapter</div><div class="nav-title">No next chapter</div></div>
+                <svg class="nav-arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+            </span>
+        </div>
+        <div class="chapter-acknowledgement">
+            <div class="chapter-acknowledgement-header">
+                <div class="chapter-acknowledgement-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" /></svg></div>
+                <h3>Acknowledgement</h3>
+            </div>
+            <p>These notes are based on the book <a href="https://www.manning.com/books/build-a-large-language-model-from-scratch" target="_blank">"Build a Large Language Model (From Scratch)"</a> by <strong>Sebastian Raschka</strong>, published by Manning Publications. All credit for the original content goes to Professor Raschka.</p>
+        </div>
+    </div>
 </div>
 </main>
 </body>

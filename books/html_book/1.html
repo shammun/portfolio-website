@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Tensors - PyTorch Fundamentals</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow:
+                0 4px 6px -1px rgba(99, 102, 241, 0.08),
+                0 10px 30px -5px rgba(99, 102, 241, 0.12);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 15px;
+            color: #64748b;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f8fafc;
+            color: #64748b;
+        }
+
+        .tab:hover {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .tab-label {
+            display: block;
+            font-size: 11px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .visualization-area {
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .tensor-container {
+            position: relative;
+            display: none;
+        }
+
+        .tensor-container.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 0D Scalar */
+        .scalar-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .scalar-cell {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 50%, #f97316 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 600;
+            color: #1e293b;
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.25);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .scalar-cell:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 28px rgba(249, 115, 22, 0.35);
+        }
+
+        .scalar-label {
+            font-size: 13px;
+            color: #8b5cf6;
+            font-weight: 500;
+        }
+
+        /* 1D Vector */
+        .vector-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .vector-row {
+            display: flex;
+            gap: 8px;
+            position: relative;
+        }
+
+        .axis-label {
+            position: absolute;
+            font-size: 11px;
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        .axis-label.dim0-label {
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .vector-cell {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 50%, #f97316 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .vector-cell:hover {
+            transform: scale(1.1) translateY(-4px);
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+            z-index: 10;
+        }
+
+        .index-badge {
+            display: none;
+            position: absolute;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #8b5cf6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .vector-cell:hover .index-badge,
+        .matrix-cell:hover .index-badge,
+        .tensor3d-cell:hover .index-badge,
+        .scalar-cell:hover .index-badge {
+            display: block;
+        }
+
+        /* 2D Matrix */
+        .matrix-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .matrix-container {
+            position: relative;
+            padding: 40px 50px 30px 60px;
+        }
+
+        .matrix-grid {
+            display: grid;
+            gap: 8px;
+        }
+
+        .matrix-cell {
+            width: 56px;
+            height: 56px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 50%, #f97316 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .matrix-cell:hover {
+            transform: scale(1.15);
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+            z-index: 10;
+        }
+
+        .axis-arrow {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        .axis-arrow.rows {
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            transform-origin: center;
+        }
+
+        .axis-arrow.cols {
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .dimension-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        /* 3D Tensor */
+        .tensor3d-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .tensor3d-container {
+            position: relative;
+            perspective: 800px;
+            padding: 20px 60px 40px 80px;
+        }
+
+        .slice-container {
+            position: relative;
+        }
+
+        .tensor3d-slice {
+            display: grid;
+            gap: 6px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .tensor3d-slice:first-child {
+            transform: translateZ(40px) translateX(-20px) translateY(-20px);
+            z-index: 2;
+        }
+
+        .tensor3d-slice:last-child {
+            position: absolute;
+            top: 36px;
+            left: 36px;
+            z-index: 1;
+            opacity: 0.85;
+        }
+
+        .tensor3d-slice:hover {
+            z-index: 10;
+            box-shadow: 0 12px 30px rgba(99, 102, 241, 0.2);
+        }
+
+        .slice-label {
+            position: absolute;
+            top: -20px;
+            left: 16px;
+            font-size: 11px;
+            color: #8b5cf6;
+            font-weight: 600;
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .tensor3d-cell {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 50%, #f97316 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .tensor3d-cell:hover {
+            transform: scale(1.2);
+            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.35);
+            z-index: 20;
+        }
+
+        .tensor3d-axis {
+            position: absolute;
+            font-size: 11px;
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        .tensor3d-axis.depth {
+            left: -60px;
+            top: 50%;
+            transform: translateY(-50%);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .info-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #f8fafc;
+            border-radius: 10px;
+            font-size: 13px;
+        }
+
+        .info-badge .label {
+            color: #64748b;
+        }
+
+        .info-badge .value {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        /* Hover Info */
+        .hover-info {
+            text-align: center;
+            padding: 12px 20px;
+            background: #f8fafc;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #64748b;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .hover-info .index {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        .hover-info .value-display {
+            color: #f97316;
+            font-weight: 600;
+        }
+
+        /* Animate Button */
+        .animate-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 24px auto 0;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .animate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.35);
+        }
+
+        .animate-btn:active {
+            transform: translateY(0);
+        }
+
+        .animate-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Explanation Panel */
+        .explanation {
+            margin-top: 24px;
+            padding: 20px;
+            background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+            border-radius: 12px;
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .explanation h3 {
+            font-size: 15px;
+            color: #6d28d9;
+            margin-bottom: 8px;
+        }
+
+        .explanation p {
+            font-size: 13px;
+            color: #5b21b6;
+            line-height: 1.6;
+        }
+
+        .explanation code {
+            background: rgba(139, 92, 246, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 12px;
+        }
+
+        /* Shape explanation */
+        .shape-explanation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .shape-part {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .shape-part .num {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            color: #8b5cf6;
+        }
+
+        .shape-part .desc {
+            font-size: 10px;
+            color: #94a3b8;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 24px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .tabs {
+                gap: 6px;
+            }
+
+            .tab {
+                padding: 10px 14px;
+                font-size: 12px;
+            }
+
+            .tab-label {
+                display: none;
+            }
+
+            .tensor3d-cell {
+                width: 36px;
+                height: 36px;
+                font-size: 12px;
+            }
+
+            .matrix-cell {
+                width: 48px;
+                height: 48px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <header class="header">
+                <h1>Understanding Tensors</h1>
+                <p>The fundamental data structure in PyTorch deep learning</p>
+            </header>
+
+            <div class="tabs">
+                <button class="tab active" data-dim="0">
+                    0D
+                    <span class="tab-label">Scalar</span>
+                </button>
+                <button class="tab" data-dim="1">
+                    1D
+                    <span class="tab-label">Vector</span>
+                </button>
+                <button class="tab" data-dim="2">
+                    2D
+                    <span class="tab-label">Matrix</span>
+                </button>
+                <button class="tab" data-dim="3">
+                    3D
+                    <span class="tab-label">Tensor</span>
+                </button>
+            </div>
+
+            <div class="visualization-area">
+                <!-- 0D Scalar -->
+                <div class="tensor-container active" id="tensor-0d">
+                    <div class="scalar-wrapper">
+                        <div class="scalar-label">A single value with no dimensions</div>
+                        <div class="scalar-cell" data-value="1" data-index="()">
+                            1
+                            <span class="index-badge">index: ()</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 1D Vector -->
+                <div class="tensor-container" id="tensor-1d">
+                    <div class="vector-wrapper">
+                        <div class="vector-row">
+                            <span class="axis-label dim0-label">dim 0 (3 elements) →</span>
+                            <div class="vector-cell" data-value="1" data-index="[0]">
+                                1
+                                <span class="index-badge">index: [0]</span>
+                            </div>
+                            <div class="vector-cell" data-value="2" data-index="[1]">
+                                2
+                                <span class="index-badge">index: [1]</span>
+                            </div>
+                            <div class="vector-cell" data-value="3" data-index="[2]">
+                                3
+                                <span class="index-badge">index: [2]</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2D Matrix -->
+                <div class="tensor-container" id="tensor-2d">
+                    <div class="matrix-wrapper">
+                        <div class="matrix-container">
+                            <div class="axis-arrow cols">← dim 1: columns (3) →</div>
+                            <div class="axis-arrow rows">↑ dim 0: rows (2) ↓</div>
+                            <div class="matrix-grid" style="grid-template-columns: repeat(3, 1fr);">
+                                <div class="matrix-cell" data-value="1" data-index="[0, 0]">1<span
+                                        class="index-badge">[0, 0]</span></div>
+                                <div class="matrix-cell" data-value="2" data-index="[0, 1]">2<span
+                                        class="index-badge">[0, 1]</span></div>
+                                <div class="matrix-cell" data-value="3" data-index="[0, 2]">3<span
+                                        class="index-badge">[0, 2]</span></div>
+                                <div class="matrix-cell" data-value="3" data-index="[1, 0]">3<span
+                                        class="index-badge">[1, 0]</span></div>
+                                <div class="matrix-cell" data-value="4" data-index="[1, 1]">4<span
+                                        class="index-badge">[1, 1]</span></div>
+                                <div class="matrix-cell" data-value="5" data-index="[1, 2]">5<span
+                                        class="index-badge">[1, 2]</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3D Tensor -->
+                <div class="tensor-container" id="tensor-3d">
+                    <div class="tensor3d-wrapper">
+                        <div class="tensor3d-container">
+                            <div class="tensor3d-axis depth">← dim 0: depth (2 slices)</div>
+                            <div class="slice-container">
+                                <div class="tensor3d-slice" style="grid-template-columns: repeat(4, 1fr);">
+                                    <span class="slice-label">Slice [0]</span>
+                                    <div class="tensor3d-cell" data-value="1" data-index="[0, 0, 0]">1<span
+                                            class="index-badge">[0,0,0]</span></div>
+                                    <div class="tensor3d-cell" data-value="2" data-index="[0, 0, 1]">2<span
+                                            class="index-badge">[0,0,1]</span></div>
+                                    <div class="tensor3d-cell" data-value="3" data-index="[0, 0, 2]">3<span
+                                            class="index-badge">[0,0,2]</span></div>
+                                    <div class="tensor3d-cell" data-value="4" data-index="[0, 0, 3]">4<span
+                                            class="index-badge">[0,0,3]</span></div>
+                                    <div class="tensor3d-cell" data-value="5" data-index="[0, 1, 0]">5<span
+                                            class="index-badge">[0,1,0]</span></div>
+                                    <div class="tensor3d-cell" data-value="6" data-index="[0, 1, 1]">6<span
+                                            class="index-badge">[0,1,1]</span></div>
+                                    <div class="tensor3d-cell" data-value="7" data-index="[0, 1, 2]">7<span
+                                            class="index-badge">[0,1,2]</span></div>
+                                    <div class="tensor3d-cell" data-value="8" data-index="[0, 1, 3]">8<span
+                                            class="index-badge">[0,1,3]</span></div>
+                                    <div class="tensor3d-cell" data-value="1" data-index="[0, 2, 0]">1<span
+                                            class="index-badge">[0,2,0]</span></div>
+                                    <div class="tensor3d-cell" data-value="1" data-index="[0, 2, 1]">1<span
+                                            class="index-badge">[0,2,1]</span></div>
+                                    <div class="tensor3d-cell" data-value="1" data-index="[0, 2, 2]">1<span
+                                            class="index-badge">[0,2,2]</span></div>
+                                    <div class="tensor3d-cell" data-value="1" data-index="[0, 2, 3]">1<span
+                                            class="index-badge">[0,2,3]</span></div>
+                                </div>
+                                <div class="tensor3d-slice" style="grid-template-columns: repeat(4, 1fr);">
+                                    <span class="slice-label">Slice [1]</span>
+                                    <div class="tensor3d-cell" data-value="7" data-index="[1, 0, 0]">7<span
+                                            class="index-badge">[1,0,0]</span></div>
+                                    <div class="tensor3d-cell" data-value="8" data-index="[1, 0, 1]">8<span
+                                            class="index-badge">[1,0,1]</span></div>
+                                    <div class="tensor3d-cell" data-value="9" data-index="[1, 0, 2]">9<span
+                                            class="index-badge">[1,0,2]</span></div>
+                                    <div class="tensor3d-cell" data-value="10" data-index="[1, 0, 3]">10<span
+                                            class="index-badge">[1,0,3]</span></div>
+                                    <div class="tensor3d-cell" data-value="11" data-index="[1, 1, 0]">11<span
+                                            class="index-badge">[1,1,0]</span></div>
+                                    <div class="tensor3d-cell" data-value="12" data-index="[1, 1, 1]">12<span
+                                            class="index-badge">[1,1,1]</span></div>
+                                    <div class="tensor3d-cell" data-value="13" data-index="[1, 1, 2]">13<span
+                                            class="index-badge">[1,1,2]</span></div>
+                                    <div class="tensor3d-cell" data-value="14" data-index="[1, 1, 3]">14<span
+                                            class="index-badge">[1,1,3]</span></div>
+                                    <div class="tensor3d-cell" data-value="2" data-index="[1, 2, 0]">2<span
+                                            class="index-badge">[1,2,0]</span></div>
+                                    <div class="tensor3d-cell" data-value="2" data-index="[1, 2, 1]">2<span
+                                            class="index-badge">[1,2,1]</span></div>
+                                    <div class="tensor3d-cell" data-value="2" data-index="[1, 2, 2]">2<span
+                                            class="index-badge">[1,2,2]</span></div>
+                                    <div class="tensor3d-cell" data-value="2" data-index="[1, 2, 3]">2<span
+                                            class="index-badge">[1,2,3]</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <div class="info-badge">
+                    <span class="label">Shape:</span>
+                    <span class="value" id="shape-value">torch.Size([])</span>
+                </div>
+                <div class="info-badge">
+                    <span class="label">dtype:</span>
+                    <span class="value">torch.int64</span>
+                </div>
+                <div class="info-badge">
+                    <span class="label">Total elements:</span>
+                    <span class="value" id="numel-value">1</span>
+                </div>
+            </div>
+
+            <div class="hover-info" id="hover-info">
+                <span>Hover over cells to see index positions</span>
+            </div>
+
+            <div class="shape-explanation" id="shape-explanation">
+                <!-- Dynamically populated -->
+            </div>
+
+            <button class="animate-btn" id="animate-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Animate Dimension Growth
+            </button>
+
+            <div class="explanation" id="explanation">
+                <h3>0D Tensor (Scalar)</h3>
+                <p>A scalar has <code>0 dimensions</code> — it's just a single number with no axes. In PyTorch,
+                    <code>torch.tensor(1)</code> creates a scalar tensor. Its shape is <code>torch.Size([])</code>
+                    (empty), containing exactly 1 element.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tensorData = {
+            0: {
+                shape: 'torch.Size([])',
+                numel: 1,
+                shapeParts: [],
+                explanation: {
+                    title: '0D Tensor (Scalar)',
+                    text: 'A scalar has <code>0 dimensions</code> — it\'s just a single number with no axes. In PyTorch, <code>torch.tensor(1)</code> creates a scalar tensor. Its shape is <code>torch.Size([])</code> (empty), containing exactly 1 element.'
+                }
+            },
+            1: {
+                shape: 'torch.Size([3])',
+                numel: 3,
+                shapeParts: [{ num: '3', desc: 'elements' }],
+                explanation: {
+                    title: '1D Tensor (Vector)',
+                    text: 'A vector has <code>1 dimension</code> — a sequence of values along a single axis. <code>torch.tensor([1, 2, 3])</code> creates a 1D tensor. Shape <code>[3]</code> means 3 elements along dimension 0.'
+                }
+            },
+            2: {
+                shape: 'torch.Size([2, 3])',
+                numel: 6,
+                shapeParts: [
+                    { num: '2', desc: 'rows (dim 0)' },
+                    { num: '3', desc: 'cols (dim 1)' }
+                ],
+                explanation: {
+                    title: '2D Tensor (Matrix)',
+                    text: 'A matrix has <code>2 dimensions</code> — data organized in rows and columns. Shape <code>[2, 3]</code> means 2 rows × 3 columns = 6 elements total. Access elements with <code>tensor[row, col]</code>.'
+                }
+            },
+            3: {
+                shape: 'torch.Size([2, 3, 4])',
+                numel: 24,
+                shapeParts: [
+                    { num: '2', desc: 'depth (dim 0)' },
+                    { num: '3', desc: 'rows (dim 1)' },
+                    { num: '4', desc: 'cols (dim 2)' }
+                ],
+                explanation: {
+                    title: '3D Tensor',
+                    text: 'A 3D tensor has <code>3 dimensions</code> — think of it as a stack of matrices (or "slices"). Shape <code>[2, 3, 4]</code> = 2 slices × 3 rows × 4 columns = 24 elements. In LLMs, inputs are often <code>[batch, sequence, embedding]</code>.'
+                }
+            }
+        };
+
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab');
+        const tensorContainers = document.querySelectorAll('.tensor-container');
+        const shapeValue = document.getElementById('shape-value');
+        const numelValue = document.getElementById('numel-value');
+        const hoverInfo = document.getElementById('hover-info');
+        const explanation = document.getElementById('explanation');
+        const shapeExplanation = document.getElementById('shape-explanation');
+
+        function updateDisplay(dim) {
+            const data = tensorData[dim];
+            shapeValue.textContent = data.shape;
+            numelValue.textContent = data.numel;
+
+            // Update explanation
+            explanation.innerHTML = `
+                <h3>${data.explanation.title}</h3>
+                <p>${data.explanation.text}</p>
+            `;
+
+            // Update shape explanation
+            if (data.shapeParts.length > 0) {
+                shapeExplanation.innerHTML = data.shapeParts.map((part, i) => `
+                    <div class="shape-part">
+                        <span class="num">${part.num}</span>
+                        <span class="desc">${part.desc}</span>
+                    </div>
+                    ${i < data.shapeParts.length - 1 ? '<span style="color: #94a3b8; font-size: 18px;">×</span>' : ''}
+                `).join('');
+            } else {
+                shapeExplanation.innerHTML = '<span style="color: #94a3b8;">No dimensions (scalar)</span>';
+            }
+
+            // Reset hover info
+            hoverInfo.innerHTML = '<span>Hover over cells to see index positions</span>';
+        }
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const dim = tab.dataset.dim;
+
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                tensorContainers.forEach(container => {
+                    container.classList.remove('active');
+                    if (container.id === `tensor-${dim}d`) {
+                        container.classList.add('active');
+                    }
+                });
+
+                updateDisplay(dim);
+            });
+        });
+
+        // Hover effects for all cells
+        const allCells = document.querySelectorAll('.scalar-cell, .vector-cell, .matrix-cell, .tensor3d-cell');
+
+        allCells.forEach(cell => {
+            cell.addEventListener('mouseenter', () => {
+                const index = cell.dataset.index;
+                const value = cell.dataset.value;
+                hoverInfo.innerHTML = `
+                    <span>Index: <span class="index">${index}</span></span>
+                    <span>→</span>
+                    <span>Value: <span class="value-display">${value}</span></span>
+                `;
+            });
+
+            cell.addEventListener('mouseleave', () => {
+                hoverInfo.innerHTML = '<span>Hover over cells to see index positions</span>';
+            });
+        });
+
+        // Animation
+        const animateBtn = document.getElementById('animate-btn');
+        let isAnimating = false;
+
+        animateBtn.addEventListener('click', async () => {
+            if (isAnimating) return;
+            isAnimating = true;
+            animateBtn.style.opacity = '0.6';
+            animateBtn.style.pointerEvents = 'none';
+
+            const delays = [800, 1200, 1200, 1500];
+
+            for (let i = 0; i <= 3; i++) {
+                tabs[i].click();
+                await new Promise(resolve => setTimeout(resolve, delays[i]));
+            }
+
+            isAnimating = false;
+            animateBtn.style.opacity = '1';
+            animateBtn.style.pointerEvents = 'auto';
+        });
+
+        // Initialize
+        updateDisplay(0);
+    </script>
+</body>
+
+</html>

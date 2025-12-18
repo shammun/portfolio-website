@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTorch Custom Dataset Class - Interactive Tutorial</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            font-weight: 400;
+            color: #64748b;
+        }
+
+        .method-tabs {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .method-tabs button {
+            background: #f1f5f9;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 150ms ease-out;
+            color: #64748b;
+        }
+
+        .method-tabs button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }
+
+        .method-tabs button.active {
+            background: white;
+            color: #7c3aed;
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.12);
+        }
+
+        .method-tabs button:focus {
+            outline: 2px solid #8b5cf6;
+            outline-offset: 2px;
+        }
+
+        .code-display {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.12);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .code-badge {
+            background: #f3f4f6;
+            padding: 4px 10px;
+            border-radius: 13px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        pre {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0;
+            overflow-x: auto;
+        }
+
+        .code-line {
+            display: block;
+            padding: 2px 0;
+            transition: background-color 150ms ease-out;
+        }
+
+        .code-line:hover {
+            background: #f8fafc;
+        }
+
+        .code-line.highlight {
+            background: #fef3c7;
+            animation: pulse 0.6s ease-in-out;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.01);
+            }
+        }
+
+        /* Syntax highlighting */
+        .keyword {
+            color: #d73a49;
+        }
+
+        .function {
+            color: #6f42c1;
+        }
+
+        .string {
+            color: #032f62;
+        }
+
+        .number {
+            color: #005cc5;
+        }
+
+        .comment {
+            color: #6a737d;
+            font-style: italic;
+        }
+
+        .operator {
+            color: #d73a49;
+        }
+
+        .variable {
+            color: #24292e;
+        }
+
+        .self {
+            color: #6f42c1;
+        }
+
+        .builtin {
+            color: #22863a;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .visualization-flow {
+            display: grid;
+            grid-template-columns: auto 1fr auto 1fr;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.12);
+        }
+
+        .section-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 13px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .input-badge {
+            background: #fff7ed;
+            border: 1px solid #fdba74;
+            color: #c2410c;
+        }
+
+        .process-badge {
+            background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%);
+            border: none;
+            color: white;
+        }
+
+        .output-badge {
+            background: #ecfdf5;
+            border: 1px solid #6ee7b7;
+            color: #0d9488;
+        }
+
+        .data-matrix {
+            margin-bottom: 12px;
+        }
+
+        .matrix-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: #64748b;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .shape-info {
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            color: #94a3b8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 3px;
+        }
+
+        td {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 2px;
+            padding: 6px 10px;
+            text-align: center;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            transition: all 150ms ease-out;
+            position: relative;
+        }
+
+        td.index-cell {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        td.feature-cell {
+            border-color: #f97316;
+        }
+
+        td.label-cell {
+            border-color: #fcd34d;
+        }
+
+        td.highlight {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        td:hover:not(.index-cell) {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        td.editable {
+            cursor: text;
+            position: relative;
+        }
+
+        td.editable::after {
+            content: '✎';
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 10px;
+            color: #94a3b8;
+            opacity: 0;
+            transition: opacity 150ms ease-out;
+        }
+
+        td.editable:hover::after {
+            opacity: 1;
+        }
+
+        td.editing {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+
+        td input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            text-align: center;
+            padding: 0;
+            outline: none;
+        }
+
+        .arrow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .arrow {
+            width: 40px;
+            height: 30px;
+            position: relative;
+        }
+
+        .arrow-body {
+            fill: url(#arrowGradient);
+            opacity: 0.8;
+        }
+
+        .arrow.animated .arrow-body {
+            animation: flowRight 1s ease-in-out infinite;
+        }
+
+        @keyframes flowRight {
+
+            0%,
+            100% {
+                opacity: 0.4;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .process-section {
+            text-align: center;
+        }
+
+        .method-display {
+            background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .method-name {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .method-param {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        .output-section .result-display {
+            background: white;
+            border: 2px solid #14b8a6;
+            border-radius: 12px;
+            padding: 12px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+        }
+
+        .result-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .result-item {
+            background: #f0fdfa;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #6ee7b7;
+            font-size: 12px;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.12);
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .index-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .index-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .index-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            transition: all 150ms ease-out;
+            background: white;
+        }
+
+        .index-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        .index-input::placeholder {
+            color: #cbd5e1;
+            font-style: italic;
+        }
+
+        .add-index-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 150ms ease-out;
+            white-space: nowrap;
+        }
+
+        .add-index-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .add-index-btn:active {
+            transform: translateY(0);
+        }
+
+        .selected-display {
+            background: #f1f5f9;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-family: 'Consolas', monospace;
+            font-weight: 600;
+            color: #475569;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .selected-count {
+            color: #8b5cf6;
+            font-weight: 700;
+        }
+
+        .index-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .index-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .index-tag button {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            color: white;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            line-height: 1;
+            padding: 0;
+            transition: background 150ms ease-out;
+        }
+
+        .index-tag button:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            justify-content: stretch;
+        }
+
+        button.action-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 150ms ease-out;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+            flex: 1;
+        }
+
+        button.action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+
+        button.action-btn:active {
+            transform: translateY(0);
+        }
+
+        button.action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.action-btn:focus {
+            outline: 2px solid #8b5cf6;
+            outline-offset: 2px;
+        }
+
+        .explanation {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.12);
+        }
+
+        .explanation h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 16px;
+        }
+
+        .explanation p {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #475569;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .visualization-flow {
+                grid-template-columns: 1fr;
+            }
+
+            .arrow-container {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            .method-tabs {
+                flex-wrap: wrap;
+            }
+
+            .method-tabs button {
+                font-size: 11px;
+                padding: 10px 16px;
+            }
+
+            .code-display {
+                padding: 16px;
+            }
+
+            pre {
+                font-size: 12px;
+            }
+
+            .explanation {
+                padding: 24px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            border-bottom: 1px dotted #8b5cf6;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>PyTorch Custom Dataset Class: ToyDataset</h1>
+            <p class="subtitle">Understanding the Three Essential Methods</p>
+        </header>
+
+        <nav class="method-tabs">
+            <button data-method="init" class="active">__init__</button>
+            <button data-method="getitem">__getitem__</button>
+            <button data-method="len">__len__</button>
+        </nav>
+
+        <section class="code-display">
+            <div class="code-header">
+                <span class="code-badge">Python Code</span>
+            </div>
+            <pre id="codeDisplay"></pre>
+        </section>
+
+        <div class="main-grid">
+            <div class="left-column">
+                <div class="section-card input-section">
+                    <span class="section-badge input-badge">Input Data</span>
+
+                    <div class="data-matrix">
+                        <div class="matrix-label">
+                            Features (X)
+                            <span class="shape-info">5 × 3</span>
+                        </div>
+                        <div style="font-size: 10px; color: #94a3b8; margin-bottom: 8px; font-style: italic;">
+                            ✎ Click any cell to edit values
+                        </div>
+                        <table id="featuresTable"></table>
+                    </div>
+
+                    <div class="data-matrix">
+                        <div class="matrix-label">
+                            Labels (y)
+                            <span class="shape-info">5 × 1</span>
+                        </div>
+                        <div style="font-size: 10px; color: #94a3b8; margin-bottom: 8px; font-style: italic;">
+                            ✎ Click any cell to edit values
+                        </div>
+                        <table id="labelsTable"></table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="visualization-flow">
+                    <div class="arrow-container">
+                        <svg class="arrow" viewBox="0 0 40 30">
+                            <defs>
+                                <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#c4b5fd;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <path class="arrow-body" d="M 3 10 L 28 10 L 28 3 L 37 15 L 28 27 L 28 20 L 3 20 Z" />
+                        </svg>
+                    </div>
+
+                    <div class="section-card process-section">
+                        <span class="section-badge process-badge">Method Operation</span>
+                        <div class="method-display" id="methodDisplay">
+                            <div class="method-name">__init__(self, X, y)</div>
+                            <div class="method-param">Initializing dataset...</div>
+                        </div>
+                    </div>
+
+                    <div class="arrow-container">
+                        <svg class="arrow" viewBox="0 0 40 30">
+                            <path class="arrow-body" d="M 3 10 L 28 10 L 28 3 L 37 15 L 28 27 L 28 20 L 3 20 Z" />
+                        </svg>
+                    </div>
+
+                    <div class="section-card output-section">
+                        <span class="section-badge output-badge">Output</span>
+                        <div class="result-display" id="resultDisplay">
+                            <div class="result-content">
+                                <div style="color: #64748b; font-size: 13px;">Dataset ready!</div>
+                                <div style="color: #64748b; font-size: 12px;">5 samples stored</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="controls">
+                    <div class="control-group">
+                        <label class="control-label">Select Index(es) for __getitem__:</label>
+                        <div class="index-input-container">
+                            <div class="index-input-wrapper">
+                                <input type="text" id="indexInput" class="index-input" placeholder="e.g., 2 or 0,2,4">
+                                <button class="add-index-btn" id="addIndexBtn">Add</button>
+                            </div>
+                            <div class="selected-display">
+                                Selected: <span class="selected-count" id="selectedIndices">None</span>
+                            </div>
+                        </div>
+                        <div class="index-tags" id="indexTags"></div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="button-group">
+                            <button class="action-btn" id="executeBtn">Execute</button>
+                            <button class="action-btn" id="resetBtn">Reset</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <section class="explanation">
+            <h2 id="explanationTitle">Initialization: Storing Your Data</h2>
+            <p id="explanationText">
+                The __init__ method is called when you create a new dataset instance (e.g., train_ds =
+                ToyDataset(X_train, y_train)).
+                Its job is simple: store references to your features and labels. Think of it as setting up the dataset's
+                memory—you're
+                giving it the two key pieces of information it needs to serve samples later. The method takes three
+                parameters: self
+                (the instance being created), X (your feature matrix), and y (your label vector). These get stored as
+                instance attributes
+                self.features and self.labels, making them available to all other methods.
+            </p>
+        </section>
+    </div>
+
+    <script>
+        // Sample data
+        const features = [
+            [0.2, 1.5, 2.1],
+            [1.8, 0.9, 3.2],
+            [0.7, 2.3, 1.4],
+            [2.1, 1.1, 0.8],
+            [1.3, 1.7, 2.5]
+        ];
+
+        const labels = [0, 1, 0, 1, 1];
+
+        // Code templates
+        const codeTemplates = {
+            init: `<span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> <span class="builtin">Dataset</span>
+
+<span class="keyword">class</span> <span class="function">ToyDataset</span>(<span class="builtin">Dataset</span>):
+    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="self">self</span>, X, y):
+        <span class="self">self</span>.features <span class="operator">=</span> X
+        <span class="self">self</span>.labels <span class="operator">=</span> y`,
+
+            getitem: `<span class="keyword">def</span> <span class="function">__getitem__</span>(<span class="self">self</span>, index):
+    one_x <span class="operator">=</span> <span class="self">self</span>.features<span class="operator">[</span>index<span class="operator">]</span>
+    one_y <span class="operator">=</span> <span class="self">self</span>.labels<span class="operator">[</span>index<span class="operator">]</span>
+    <span class="keyword">return</span> one_x, one_y`,
+
+            len: `<span class="keyword">def</span> <span class="function">__len__</span>(<span class="self">self</span>):
+    <span class="keyword">return</span> <span class="self">self</span>.labels.shape<span class="operator">[</span><span class="number">0</span><span class="operator">]</span>`
+        };
+
+        const explanations = {
+            init: {
+                title: "Initialization: Storing Your Data",
+                text: `The __init__ method is called when you create a new dataset instance (e.g., train_ds = ToyDataset(X_train, y_train)). 
+                Its job is simple: store references to your features and labels. Think of it as setting up the dataset's memory—you're 
+                giving it the two key pieces of information it needs to serve samples later. The method takes three parameters: self 
+                (the instance being created), X (your feature matrix), and y (your label vector). These get stored as instance attributes 
+                self.features and self.labels, making them available to all other methods.`
+            },
+            getitem: {
+                title: "Item Retrieval: Fetching Single Samples",
+                text: `The __getitem__ method is the workhorse of your dataset class. It's called every time someone requests a specific 
+                sample using bracket notation (like dataset[0]) or when PyTorch's DataLoader iterates through your data. The method receives 
+                an index as input and must return a single sample. It extracts the feature vector at that index from self.features, extracts 
+                the corresponding label from self.labels, and returns both as a tuple. This simple interface enables powerful functionality—DataLoader 
+                can call this method repeatedly with different indices to build batches.`
+            },
+            len: {
+                title: "Length: Counting Your Samples",
+                text: `The __len__ method returns the total number of samples in your dataset. It's called when you use len(dataset) or when 
+                DataLoader needs to know how many batches to create. The implementation typically returns the first dimension (number of rows) 
+                of your labels array using self.labels.shape[0]. This is crucial for iteration—without it, PyTorch wouldn't know when to stop 
+                requesting samples or how to properly shuffle your data.`
+            }
+        };
+
+        // State management
+        let state = {
+            currentMethod: 'init',
+            selectedIndices: [],
+            animationPlaying: false
+        };
+
+        // Initialize tables
+        function initializeTables() {
+            const featuresTable = document.getElementById('featuresTable');
+            const labelsTable = document.getElementById('labelsTable');
+
+            // Features table
+            let featuresHTML = '';
+            features.forEach((row, i) => {
+                featuresHTML += '<tr>';
+                featuresHTML += `<td class="index-cell">${i}</td>`;
+                row.forEach((val, j) => {
+                    featuresHTML += `<td class="feature-cell editable" data-row="${i}" data-col="${j}" contenteditable="true">${val}</td>`;
+                });
+                featuresHTML += '</tr>';
+            });
+            featuresTable.innerHTML = featuresHTML;
+
+            // Labels table
+            let labelsHTML = '';
+            labels.forEach((val, i) => {
+                labelsHTML += '<tr>';
+                labelsHTML += `<td class="index-cell">${i}</td>`;
+                labelsHTML += `<td class="label-cell editable" data-row="${i}" contenteditable="true">${val}</td>`;
+                labelsHTML += '</tr>';
+            });
+            labelsTable.innerHTML = labelsHTML;
+
+            // Add event listeners for editing
+            addEditListeners();
+        }
+
+        // Parse and add indices from input
+        function addIndicesFromInput() {
+            const input = document.getElementById('indexInput');
+            const value = input.value.trim();
+
+            if (!value) return;
+
+            // Parse comma-separated values or single value
+            const inputIndices = value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+
+            // Validate and add unique indices
+            inputIndices.forEach(idx => {
+                if (idx >= 0 && idx < features.length && !state.selectedIndices.includes(idx)) {
+                    state.selectedIndices.push(idx);
+                }
+            });
+
+            // Sort indices
+            state.selectedIndices.sort((a, b) => a - b);
+
+            // Clear input
+            input.value = '';
+
+            // Update display
+            updateSelectedDisplay();
+            updateIndexTags();
+        }
+
+        // Update the selected indices display
+        function updateSelectedDisplay() {
+            const selectedDisplay = document.getElementById('selectedIndices');
+            if (state.selectedIndices.length === 0) {
+                selectedDisplay.textContent = 'None';
+            } else {
+                selectedDisplay.textContent = '[' + state.selectedIndices.join(', ') + ']';
+            }
+        }
+
+        // Update index tags
+        function updateIndexTags() {
+            const tagsContainer = document.getElementById('indexTags');
+            tagsContainer.innerHTML = '';
+
+            state.selectedIndices.forEach(idx => {
+                const tag = document.createElement('div');
+                tag.className = 'index-tag';
+                tag.innerHTML = `
+                    Index ${idx}
+                    <button onclick="removeIndex(${idx})">×</button>
+                `;
+                tagsContainer.appendChild(tag);
+            });
+        }
+
+        // Remove an index
+        function removeIndex(idx) {
+            state.selectedIndices = state.selectedIndices.filter(i => i !== idx);
+            updateSelectedDisplay();
+            updateIndexTags();
+        }
+
+        // Make removeIndex globally accessible
+        window.removeIndex = removeIndex;
+
+        // Add listeners for cell editing
+        function addEditListeners() {
+            // Feature cells
+            document.querySelectorAll('.feature-cell.editable').forEach(cell => {
+                cell.addEventListener('focus', function () {
+                    this.classList.add('editing');
+                });
+
+                cell.addEventListener('blur', function () {
+                    this.classList.remove('editing');
+                    const row = parseInt(this.dataset.row);
+                    const col = parseInt(this.dataset.col);
+                    const value = parseFloat(this.textContent.trim());
+
+                    if (!isNaN(value)) {
+                        features[row][col] = value;
+                    } else {
+                        this.textContent = features[row][col];
+                    }
+                });
+
+                cell.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.blur();
+                    }
+                });
+            });
+
+            // Label cells
+            document.querySelectorAll('.label-cell.editable').forEach(cell => {
+                cell.addEventListener('focus', function () {
+                    this.classList.add('editing');
+                });
+
+                cell.addEventListener('blur', function () {
+                    this.classList.remove('editing');
+                    const row = parseInt(this.dataset.row);
+                    const value = parseInt(this.textContent.trim());
+
+                    if (!isNaN(value)) {
+                        labels[row] = value;
+                    } else {
+                        this.textContent = labels[row];
+                    }
+                });
+
+                cell.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.blur();
+                    }
+                });
+            });
+        }
+
+        // Get current values from the table
+        function getCurrentFeatures() {
+            const currentFeatures = [];
+            for (let i = 0; i < features.length; i++) {
+                currentFeatures[i] = [];
+                for (let j = 0; j < features[i].length; j++) {
+                    const cell = document.querySelector(`.feature-cell[data-row="${i}"][data-col="${j}"]`);
+                    currentFeatures[i][j] = parseFloat(cell.textContent.trim());
+                }
+            }
+            return currentFeatures;
+        }
+
+        function getCurrentLabels() {
+            const currentLabels = [];
+            for (let i = 0; i < labels.length; i++) {
+                const cell = document.querySelector(`.label-cell[data-row="${i}"]`);
+                currentLabels[i] = parseInt(cell.textContent.trim());
+            }
+            return currentLabels;
+        }
+
+        // Update code display
+        function updateCodeDisplay(method) {
+            const codeDisplay = document.getElementById('codeDisplay');
+            codeDisplay.innerHTML = codeTemplates[method];
+        }
+
+        // Update explanation
+        function updateExplanation(method) {
+            document.getElementById('explanationTitle').textContent = explanations[method].title;
+            document.getElementById('explanationText').textContent = explanations[method].text;
+        }
+
+        // Clear highlights
+        function clearHighlights() {
+            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+        }
+
+        // Animate method execution
+        function animateMethod(method) {
+            if (state.animationPlaying) return;
+            state.animationPlaying = true;
+
+            clearHighlights();
+            const executeBtn = document.getElementById('executeBtn');
+            executeBtn.disabled = true;
+
+            switch (method) {
+                case 'init':
+                    animateInit();
+                    break;
+                case 'getitem':
+                    animateGetItem();
+                    break;
+                case 'len':
+                    animateLen();
+                    break;
+            }
+
+            setTimeout(() => {
+                state.animationPlaying = false;
+                executeBtn.disabled = false;
+            }, 2000);
+        }
+
+        function animateInit() {
+            const methodDisplay = document.getElementById('methodDisplay');
+            const resultDisplay = document.getElementById('resultDisplay');
+
+            methodDisplay.innerHTML = `
+                <div class="method-name">__init__(self, X, y)</div>
+                <div class="method-param">Storing features and labels...</div>
+            `;
+
+            // Highlight all data
+            setTimeout(() => {
+                document.querySelectorAll('.feature-cell, .label-cell').forEach(el => {
+                    el.classList.add('highlight');
+                });
+            }, 300);
+
+            setTimeout(() => {
+                resultDisplay.innerHTML = `
+                    <div class="result-content">
+                        <div class="result-item">self.features = X (5×3)</div>
+                        <div class="result-item">self.labels = y (5×1)</div>
+                        <div style="color: #10b981; font-weight: 600; margin-top: 8px;">✓ Dataset initialized</div>
+                    </div>
+                `;
+            }, 800);
+
+            setTimeout(() => {
+                clearHighlights();
+            }, 1800);
+        }
+
+        function animateGetItem() {
+            const indices = state.selectedIndices;
+            const methodDisplay = document.getElementById('methodDisplay');
+            const resultDisplay = document.getElementById('resultDisplay');
+
+            // Get current values from cells
+            const currentFeatures = getCurrentFeatures();
+            const currentLabels = getCurrentLabels();
+
+            if (indices.length === 0) {
+                methodDisplay.innerHTML = `
+                    <div class="method-name">__getitem__(self, index)</div>
+                    <div class="method-param" style="color: #fcd34d;">⚠ No indices selected</div>
+                `;
+                resultDisplay.innerHTML = `
+                    <div class="result-content">
+                        <div style="color: #f59e0b; font-size: 13px;">Please select at least one index</div>
+                    </div>
+                `;
+                return;
+            }
+
+            methodDisplay.innerHTML = `
+                <div class="method-name">__getitem__(self, indices)</div>
+                <div class="method-param">Retrieving ${indices.length} sample${indices.length > 1 ? 's' : ''}...</div>
+            `;
+
+            // Highlight selected rows in features
+            setTimeout(() => {
+                indices.forEach(idx => {
+                    document.querySelectorAll(`[data-row="${idx}"]`).forEach(el => {
+                        el.classList.add('highlight');
+                    });
+                });
+            }, 300);
+
+            // Show extraction
+            setTimeout(() => {
+                let extractionHTML = `<div class="method-name">__getitem__(self, [${indices.join(', ')}])</div>`;
+
+                indices.forEach((idx, i) => {
+                    const featureVector = currentFeatures[idx];
+                    const label = currentLabels[idx];
+
+                    if (i < 3 || indices.length <= 4) { // Show first 3 or all if 4 or fewer
+                        extractionHTML += `<div class="method-param" style="font-size: 11px;">idx ${idx}: [${featureVector.join(', ')}], label: ${label}</div>`;
+                    }
+                });
+
+                if (indices.length > 4) {
+                    extractionHTML += `<div class="method-param" style="font-size: 11px;">...and ${indices.length - 3} more</div>`;
+                }
+
+                methodDisplay.innerHTML = extractionHTML;
+            }, 800);
+
+            // Show result
+            setTimeout(() => {
+                let resultHTML = '<div class="result-content">';
+
+                indices.forEach((idx, i) => {
+                    const featureVector = currentFeatures[idx];
+                    const label = currentLabels[idx];
+
+                    if (i < 3 || indices.length <= 4) {
+                        resultHTML += `
+                            <div class="result-item">
+                                <strong>Index ${idx}:</strong> ([${featureVector.join(', ')}], ${label})
+                            </div>
+                        `;
+                    }
+                });
+
+                if (indices.length > 4) {
+                    resultHTML += `<div style="color: #64748b; font-size: 12px; margin-top: 8px;">...and ${indices.length - 3} more samples</div>`;
+                }
+
+                resultHTML += `<div style="color: #10b981; font-weight: 600; margin-top: 8px;">✓ ${indices.length} tuple${indices.length > 1 ? 's' : ''} returned</div>`;
+                resultHTML += '</div>';
+
+                resultDisplay.innerHTML = resultHTML;
+            }, 1200);
+
+            setTimeout(() => {
+                clearHighlights();
+            }, 1800);
+        }
+
+        function animateLen() {
+            const methodDisplay = document.getElementById('methodDisplay');
+            const resultDisplay = document.getElementById('resultDisplay');
+
+            // Get current values from cells
+            const currentLabels = getCurrentLabels();
+
+            methodDisplay.innerHTML = `
+                <div class="method-name">__len__(self)</div>
+                <div class="method-param">Counting samples...</div>
+            `;
+
+            // Highlight all labels
+            setTimeout(() => {
+                document.querySelectorAll('.label-cell').forEach(el => {
+                    el.classList.add('highlight');
+                });
+            }, 300);
+
+            // Show counting
+            setTimeout(() => {
+                methodDisplay.innerHTML = `
+                    <div class="method-name">__len__(self)</div>
+                    <div class="method-param">self.labels.shape[0] = ${currentLabels.length}</div>
+                `;
+            }, 800);
+
+            // Show result
+            setTimeout(() => {
+                resultDisplay.innerHTML = `
+                    <div class="result-content">
+                        <div class="result-item" style="font-size: 24px; font-weight: 700; color: #8b5cf6;">${currentLabels.length}</div>
+                        <div style="color: #64748b; font-size: 13px; margin-top: 8px;">Total number of samples</div>
+                        <div style="color: #10b981; font-weight: 600; margin-top: 8px;">✓ Length returned</div>
+                    </div>
+                `;
+            }, 1200);
+
+            setTimeout(() => {
+                clearHighlights();
+            }, 1800);
+        }
+
+        // Event listeners
+        document.querySelectorAll('.method-tabs button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.method-tabs button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const method = btn.dataset.method;
+                state.currentMethod = method;
+
+                updateCodeDisplay(method);
+                updateExplanation(method);
+                clearHighlights();
+
+                // Reset display
+                const methodDisplay = document.getElementById('methodDisplay');
+                const resultDisplay = document.getElementById('resultDisplay');
+
+                if (method === 'init') {
+                    methodDisplay.innerHTML = `
+                        <div class="method-name">__init__(self, X, y)</div>
+                        <div class="method-param">Ready to initialize...</div>
+                    `;
+                    resultDisplay.innerHTML = `
+                        <div class="result-content">
+                            <div style="color: #64748b; font-size: 13px;">Click "Execute" to initialize</div>
+                        </div>
+                    `;
+                } else if (method === 'getitem') {
+                    const selText = state.selectedIndices.length > 0
+                        ? `[${state.selectedIndices.join(', ')}]`
+                        : 'index';
+                    methodDisplay.innerHTML = `
+                        <div class="method-name">__getitem__(self, ${selText})</div>
+                        <div class="method-param">Ready to fetch sample${state.selectedIndices.length > 1 ? 's' : ''}...</div>
+                    `;
+                    resultDisplay.innerHTML = `
+                        <div class="result-content">
+                            <div style="color: #64748b; font-size: 13px;">Enter indices and click "Execute"</div>
+                        </div>
+                    `;
+                } else {
+                    methodDisplay.innerHTML = `
+                        <div class="method-name">__len__(self)</div>
+                        <div class="method-param">Ready to count samples...</div>
+                    `;
+                    resultDisplay.innerHTML = `
+                        <div class="result-content">
+                            <div style="color: #64748b; font-size: 13px;">Click "Execute" to get length</div>
+                        </div>
+                    `;
+                }
+            });
+        });
+
+        // Add index button click
+        document.getElementById('addIndexBtn').addEventListener('click', () => {
+            addIndicesFromInput();
+        });
+
+        // Allow Enter key to add indices
+        document.getElementById('indexInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addIndicesFromInput();
+            }
+        });
+
+        document.getElementById('executeBtn').addEventListener('click', () => {
+            animateMethod(state.currentMethod);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            clearHighlights();
+            state.selectedIndices = [];
+
+            // Clear input field
+            document.getElementById('indexInput').value = '';
+
+            updateSelectedDisplay();
+            updateIndexTags();
+
+            const methodDisplay = document.getElementById('methodDisplay');
+            const resultDisplay = document.getElementById('resultDisplay');
+
+            if (state.currentMethod === 'init') {
+                methodDisplay.innerHTML = `
+                    <div class="method-name">__init__(self, X, y)</div>
+                    <div class="method-param">Ready to initialize...</div>
+                `;
+                resultDisplay.innerHTML = `
+                    <div class="result-content">
+                        <div style="color: #64748b; font-size: 13px;">Click "Execute" to initialize</div>
+                    </div>
+                `;
+            } else if (state.currentMethod === 'getitem') {
+                methodDisplay.innerHTML = `
+                    <div class="method-name">__getitem__(self, index)</div>
+                    <div class="method-param">Ready to fetch sample...</div>
+                `;
+                resultDisplay.innerHTML = `
+                    <div class="result-content">
+                        <div style="color: #64748b; font-size: 13px;">Enter indices and click "Execute"</div>
+                    </div>
+                `;
+            } else {
+                methodDisplay.innerHTML = `
+                    <div class="method-name">__len__(self)</div>
+                    <div class="method-param">Ready to count samples...</div>
+                `;
+                resultDisplay.innerHTML = `
+                    <div class="result-content">
+                        <div style="color: #64748b; font-size: 13px;">Click "Execute" to get length</div>
+                    </div>
+                `;
+            }
+        });
+
+        // Initialize on load
+        initializeTables();
+        updateCodeDisplay('init');
+        updateExplanation('init');
+    </script>
+</body>
+
+</html>

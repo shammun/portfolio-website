@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tensor Reshaping in PyTorch</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 24px rgba(99, 102, 241, 0.12);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .code-snippet {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            background: #f8fafc;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #7c3aed;
+        }
+
+        /* Main visualization area */
+        .viz-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tensor-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .shape-badge {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 13px;
+            font-weight: 500;
+        }
+
+        .shape-badge.input {
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1px solid #fdba74;
+        }
+
+        .shape-badge.output {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #6ee7b7;
+        }
+
+        /* Tensor grids */
+        .tensor-grid {
+            display: grid;
+            gap: 4px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+
+        .tensor-grid.input-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .tensor-grid.output-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .tensor-cell {
+            width: 60px;
+            height: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tensor-cell .value {
+            z-index: 1;
+        }
+
+        .tensor-cell .index-label {
+            font-size: 9px;
+            font-weight: 500;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+
+        .tensor-cell.input-cell {
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            color: #c2410c;
+            border: 2px solid transparent;
+        }
+
+        .tensor-cell.output-cell {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            color: #047857;
+            border: 2px solid transparent;
+        }
+
+        .tensor-cell.highlighted {
+            transform: scale(1.1);
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .tensor-cell.input-cell.highlighted {
+            border-color: #f97316;
+            background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+        }
+
+        .tensor-cell.output-cell.highlighted {
+            border-color: #14b8a6;
+            background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
+        }
+
+        .tensor-cell.dimmed {
+            opacity: 0.3;
+        }
+
+        /* Operation arrow */
+        .operation-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .operation-arrow {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .arrow-line {
+            width: 40px;
+            height: 4px;
+            background: linear-gradient(90deg, #c4b5fd, #8b5cf6);
+            border-radius: 2px;
+        }
+
+        .arrow-head {
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-left: 14px solid #8b5cf6;
+        }
+
+        .operation-badge {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%);
+            color: #4c1d95;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        /* Flattened sequence */
+        .flatten-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+
+        .flatten-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .flatten-header .label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .flatten-header .note {
+            font-size: 11px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .flatten-grid {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .flatten-cell {
+            width: 50px;
+            height: 44px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .flatten-cell .flat-index {
+            font-size: 9px;
+            font-weight: 500;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .flatten-arrow {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .btn.method-btn {
+            background: white;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn.method-btn:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .btn.method-btn:last-child {
+            border-radius: 0 8px 8px 0;
+            border-left: none;
+        }
+
+        .btn.method-btn.active {
+            background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%);
+            color: #4c1d95;
+            border-color: #a78bfa;
+        }
+
+        .btn.animate-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn.animate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn.animate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .total-elements {
+            font-size: 13px;
+            color: #64748b;
+            padding: 10px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .total-elements span {
+            font-weight: 600;
+            color: #7c3aed;
+        }
+
+        /* Shape selector */
+        .shape-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .shape-selector label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .shape-selector select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            color: #1e293b;
+            background: white;
+            cursor: pointer;
+        }
+
+        /* Info box */
+        .info-box {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .info-box.reshape-info {
+            border-left-color: #8b5cf6;
+        }
+
+        .info-box.view-info {
+            border-left-color: #14b8a6;
+        }
+
+        .info-box h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-box p {
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        /* Hover tooltip */
+        .tooltip {
+            position: fixed;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            max-width: 280px;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        .tooltip .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 4px;
+        }
+
+        .tooltip .tooltip-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .tooltip .tooltip-label {
+            color: #64748b;
+        }
+
+        .tooltip .tooltip-value {
+            font-weight: 600;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .tooltip .tooltip-value.orange {
+            color: #c2410c;
+        }
+
+        .tooltip .tooltip-value.teal {
+            color: #047857;
+        }
+
+        .tooltip .tooltip-value.purple {
+            color: #7c3aed;
+        }
+
+        /* Mapping table */
+        .mapping-table {
+            margin-top: 30px;
+            overflow-x: auto;
+        }
+
+        .mapping-table h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .mapping-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .mapping-table th {
+            background: #f8fafc;
+            padding: 10px 16px;
+            text-align: center;
+            font-weight: 600;
+            color: #64748b;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .mapping-table td {
+            padding: 10px 16px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .mapping-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        .mapping-table .value-cell {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .mapping-table .orange {
+            color: #c2410c;
+        }
+
+        .mapping-table .purple {
+            color: #7c3aed;
+        }
+
+        .mapping-table .teal {
+            color: #047857;
+        }
+
+        /* Animation states */
+        .tensor-cell.animating {
+            transition: all 0.5s ease;
+        }
+
+        .flatten-cell.animating {
+            transition: all 0.5s ease;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .tensor-cell.pulsing {
+            animation: pulse 0.6s ease infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-card {
+                padding: 24px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .tensor-cell {
+                width: 50px;
+                height: 44px;
+                font-size: 16px;
+            }
+
+            .flatten-cell {
+                width: 40px;
+                height: 38px;
+                font-size: 14px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+        }
+
+        /* Color coding for element tracking */
+        .color-0 {
+            background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%) !important;
+        }
+
+        .color-1 {
+            background: linear-gradient(135deg, #fed7aa 0%, #fb923c 100%) !important;
+        }
+
+        .color-2 {
+            background: linear-gradient(135deg, #fecaca 0%, #f87171 100%) !important;
+        }
+
+        .color-3 {
+            background: linear-gradient(135deg, #e9d5ff 0%, #c084fc 100%) !important;
+        }
+
+        .color-4 {
+            background: linear-gradient(135deg, #ddd6fe 0%, #a78bfa 100%) !important;
+        }
+
+        .color-5 {
+            background: linear-gradient(135deg, #d1fae5 0%, #34d399 100%) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="main-card">
+            <div class="header">
+                <h1>Tensor Reshaping in PyTorch</h1>
+                <p class="subtitle">Reorganizing dimensions without changing data — using <span
+                        class="code-snippet">.reshape()</span> and <span class="code-snippet">.view()</span></p>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <div class="btn-group">
+                    <button class="btn method-btn active" data-method="reshape">.reshape()</button>
+                    <button class="btn method-btn" data-method="view">.view()</button>
+                </div>
+
+                <div class="shape-selector">
+                    <label>Output shape:</label>
+                    <select id="shapeSelect">
+                        <option value="3,2">(3, 2)</option>
+                        <option value="2,3">(2, 3)</option>
+                        <option value="6,1">(6, 1)</option>
+                        <option value="1,6">(1, 6)</option>
+                        <option value="6">(6,)</option>
+                    </select>
+                </div>
+
+                <button class="btn animate-btn" id="animateBtn">
+                    <span>▶</span> Animate
+                </button>
+
+                <div class="total-elements">
+                    Total elements: <span>6</span>
+                </div>
+            </div>
+
+            <!-- Main visualization -->
+            <div class="viz-container">
+                <!-- Input tensor -->
+                <div class="tensor-section">
+                    <span class="section-label">Input Tensor</span>
+                    <span class="shape-badge input">torch.Size([2, 3])</span>
+                    <div class="tensor-grid input-grid" id="inputGrid">
+                        <!-- Cells will be generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Operation -->
+                <div class="operation-section">
+                    <div class="operation-arrow">
+                        <div class="arrow-line"></div>
+                        <div class="arrow-head"></div>
+                    </div>
+                    <div class="operation-badge" id="operationBadge">.reshape(3, 2)</div>
+                </div>
+
+                <!-- Output tensor -->
+                <div class="tensor-section">
+                    <span class="section-label">Output Tensor</span>
+                    <span class="shape-badge output" id="outputShapeBadge">torch.Size([3, 2])</span>
+                    <div class="tensor-grid output-grid" id="outputGrid">
+                        <!-- Cells will be generated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flattened sequence -->
+            <div class="flatten-section">
+                <div class="flatten-header">
+                    <span class="label">Flattened (Row-Major Order)</span>
+                    <span class="note">— Elements are read row by row</span>
+                </div>
+                <div class="flatten-grid" id="flattenGrid">
+                    <!-- Cells will be generated by JS -->
+                </div>
+            </div>
+
+            <!-- Info box -->
+            <div class="info-box reshape-info" id="infoBox">
+                <h3>
+                    <span>ℹ️</span>
+                    <span id="infoTitle">.reshape() — Flexible Reshaping</span>
+                </h3>
+                <p id="infoText">
+                    <code>.reshape()</code> works regardless of whether the tensor is contiguous in memory. If the data
+                    isn't contiguous, it silently creates a copy. This makes it safer for general use, but may have
+                    performance overhead.
+                </p>
+            </div>
+
+            <!-- Mapping table -->
+            <div class="mapping-table">
+                <h3>Element Index Mapping</h3>
+                <table id="mappingTable">
+                    <thead>
+                        <tr>
+                            <th>Value</th>
+                            <th>Original Index</th>
+                            <th>Flat Position</th>
+                            <th>New Index</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows will be generated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-row">
+            <span class="tooltip-label">Value:</span>
+            <span class="tooltip-value" id="tooltipValue">1</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Original index:</span>
+            <span class="tooltip-value orange" id="tooltipOriginal">[0, 0]</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">Flat position:</span>
+            <span class="tooltip-value purple" id="tooltipFlat">0</span>
+        </div>
+        <div class="tooltip-row">
+            <span class="tooltip-label">New index:</span>
+            <span class="tooltip-value teal" id="tooltipNew">[0, 0]</span>
+        </div>
+    </div>
+
+    <script>
+        // Data
+        const originalData = [[1, 2, 3], [3, 4, 5]];
+        const flatData = originalData.flat();
+
+        // State
+        let currentMethod = 'reshape';
+        let currentShape = [3, 2];
+        let isAnimating = false;
+        let highlightedIndex = null;
+
+        // DOM elements
+        const inputGrid = document.getElementById('inputGrid');
+        const outputGrid = document.getElementById('outputGrid');
+        const flattenGrid = document.getElementById('flattenGrid');
+        const mappingTable = document.getElementById('mappingTable').querySelector('tbody');
+        const operationBadge = document.getElementById('operationBadge');
+        const outputShapeBadge = document.getElementById('outputShapeBadge');
+        const infoBox = document.getElementById('infoBox');
+        const infoTitle = document.getElementById('infoTitle');
+        const infoText = document.getElementById('infoText');
+        const tooltip = document.getElementById('tooltip');
+        const animateBtn = document.getElementById('animateBtn');
+        const shapeSelect = document.getElementById('shapeSelect');
+        const methodBtns = document.querySelectorAll('.method-btn');
+
+        // Utility functions
+        function getNewIndex(flatIndex, shape) {
+            if (shape.length === 1) {
+                return [flatIndex];
+            }
+            const row = Math.floor(flatIndex / shape[1]);
+            const col = flatIndex % shape[1];
+            return [row, col];
+        }
+
+        function formatIndex(idx) {
+            return `[${idx.join(', ')}]`;
+        }
+
+        function reshapeData(data, shape) {
+            const flat = data.flat();
+            if (shape.length === 1) {
+                return [flat];
+            }
+            const result = [];
+            for (let i = 0; i < shape[0]; i++) {
+                result.push(flat.slice(i * shape[1], (i + 1) * shape[1]));
+            }
+            return result;
+        }
+
+        // Render functions
+        function renderInputGrid() {
+            inputGrid.innerHTML = '';
+            originalData.forEach((row, rowIdx) => {
+                row.forEach((val, colIdx) => {
+                    const flatIdx = rowIdx * 3 + colIdx;
+                    const cell = document.createElement('div');
+                    cell.className = `tensor-cell input-cell color-${flatIdx}`;
+                    cell.dataset.flatIndex = flatIdx;
+                    cell.innerHTML = `
+                        <span class="value">${val}</span>
+                        <span class="index-label">[${rowIdx},${colIdx}]</span>
+                    `;
+                    cell.addEventListener('mouseenter', (e) => handleCellHover(flatIdx, e));
+                    cell.addEventListener('mouseleave', handleCellLeave);
+                    inputGrid.appendChild(cell);
+                });
+            });
+        }
+
+        function renderOutputGrid() {
+            const reshaped = reshapeData(originalData, currentShape);
+            outputGrid.innerHTML = '';
+
+            // Update grid columns
+            if (currentShape.length === 1) {
+                outputGrid.style.gridTemplateColumns = `repeat(${currentShape[0]}, 1fr)`;
+            } else {
+                outputGrid.style.gridTemplateColumns = `repeat(${currentShape[1]}, 1fr)`;
+            }
+
+            let flatIdx = 0;
+            reshaped.forEach((row, rowIdx) => {
+                row.forEach((val, colIdx) => {
+                    const cell = document.createElement('div');
+                    cell.className = `tensor-cell output-cell color-${flatIdx}`;
+                    cell.dataset.flatIndex = flatIdx;
+                    const newIdx = currentShape.length === 1 ? [flatIdx] : [rowIdx, colIdx];
+                    cell.innerHTML = `
+                        <span class="value">${val}</span>
+                        <span class="index-label">${formatIndex(newIdx)}</span>
+                    `;
+                    cell.addEventListener('mouseenter', (e) => handleCellHover(flatIdx, e));
+                    cell.addEventListener('mouseleave', handleCellLeave);
+                    outputGrid.appendChild(cell);
+                    flatIdx++;
+                });
+            });
+        }
+
+        function renderFlattenGrid() {
+            flattenGrid.innerHTML = '';
+            flatData.forEach((val, idx) => {
+                if (idx > 0) {
+                    const arrow = document.createElement('span');
+                    arrow.className = 'flatten-arrow';
+                    arrow.textContent = '→';
+                    flattenGrid.appendChild(arrow);
+                }
+                const cell = document.createElement('div');
+                cell.className = `flatten-cell color-${idx}`;
+                cell.dataset.flatIndex = idx;
+                cell.innerHTML = `
+                    <span class="value">${val}</span>
+                    <span class="flat-index">${idx}</span>
+                `;
+                cell.addEventListener('mouseenter', (e) => handleCellHover(idx, e));
+                cell.addEventListener('mouseleave', handleCellLeave);
+                flattenGrid.appendChild(cell);
+            });
+        }
+
+        function renderMappingTable() {
+            mappingTable.innerHTML = '';
+            flatData.forEach((val, flatIdx) => {
+                const origRow = Math.floor(flatIdx / 3);
+                const origCol = flatIdx % 3;
+                const newIdx = getNewIndex(flatIdx, currentShape);
+
+                const row = document.createElement('tr');
+                row.dataset.flatIndex = flatIdx;
+                row.innerHTML = `
+                    <td class="value-cell">${val}</td>
+                    <td class="orange">[${origRow}, ${origCol}]</td>
+                    <td class="purple">${flatIdx}</td>
+                    <td class="teal">${formatIndex(newIdx)}</td>
+                `;
+                row.addEventListener('mouseenter', (e) => handleCellHover(flatIdx, e));
+                row.addEventListener('mouseleave', handleCellLeave);
+                mappingTable.appendChild(row);
+            });
+        }
+
+        function updateOperationBadge() {
+            const shapeStr = currentShape.length === 1 ? currentShape[0] : currentShape.join(', ');
+            operationBadge.textContent = `.${currentMethod}(${shapeStr})`;
+        }
+
+        function updateOutputShapeBadge() {
+            const shapeStr = currentShape.length === 1
+                ? `[${currentShape[0]}]`
+                : `[${currentShape.join(', ')}]`;
+            outputShapeBadge.textContent = `torch.Size(${shapeStr})`;
+        }
+
+        function updateInfoBox() {
+            if (currentMethod === 'reshape') {
+                infoBox.className = 'info-box reshape-info';
+                infoTitle.textContent = '.reshape() — Flexible Reshaping';
+                infoText.innerHTML = `<code>.reshape()</code> works regardless of whether the tensor is contiguous in memory. If the data isn't contiguous, it silently creates a copy. This makes it safer for general use, but may have performance overhead.`;
+            } else {
+                infoBox.className = 'info-box view-info';
+                infoTitle.textContent = '.view() — Memory-Efficient Reshaping';
+                infoText.innerHTML = `<code>.view()</code> requires the tensor to be contiguous in memory. If it's not, you'll get an error. This is faster (no data copy) but less flexible. Use when you know your data layout.`;
+            }
+        }
+
+        // Interaction handlers
+        function handleCellHover(flatIdx, event) {
+            highlightedIndex = flatIdx;
+            highlightCells(flatIdx);
+            showTooltip(flatIdx, event);
+        }
+
+        function handleCellLeave() {
+            highlightedIndex = null;
+            clearHighlights();
+            hideTooltip();
+        }
+
+        function highlightCells(flatIdx) {
+            // Clear all highlights first
+            document.querySelectorAll('.tensor-cell, .flatten-cell').forEach(cell => {
+                cell.classList.remove('highlighted', 'dimmed');
+            });
+
+            // Add dimmed class to all cells
+            document.querySelectorAll('.tensor-cell, .flatten-cell').forEach(cell => {
+                if (parseInt(cell.dataset.flatIndex) !== flatIdx) {
+                    cell.classList.add('dimmed');
+                }
+            });
+
+            // Highlight matching cells
+            document.querySelectorAll(`[data-flat-index="${flatIdx}"]`).forEach(cell => {
+                if (cell.classList.contains('tensor-cell') || cell.classList.contains('flatten-cell')) {
+                    cell.classList.add('highlighted');
+                    cell.classList.remove('dimmed');
+                }
+            });
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.tensor-cell, .flatten-cell').forEach(cell => {
+                cell.classList.remove('highlighted', 'dimmed');
+            });
+        }
+
+        function showTooltip(flatIdx, event) {
+            const origRow = Math.floor(flatIdx / 3);
+            const origCol = flatIdx % 3;
+            const newIdx = getNewIndex(flatIdx, currentShape);
+
+            document.getElementById('tooltipValue').textContent = flatData[flatIdx];
+            document.getElementById('tooltipOriginal').textContent = `[${origRow}, ${origCol}]`;
+            document.getElementById('tooltipFlat').textContent = flatIdx;
+            document.getElementById('tooltipNew').textContent = formatIndex(newIdx);
+
+            tooltip.style.left = (event.clientX + 15) + 'px';
+            tooltip.style.top = (event.clientY + 15) + 'px';
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            tooltip.classList.remove('visible');
+        }
+
+        // Animation
+        async function runAnimation() {
+            if (isAnimating) return;
+            isAnimating = true;
+            animateBtn.disabled = true;
+            animateBtn.innerHTML = '<span>⏳</span> Animating...';
+
+            // Reset all cells
+            clearHighlights();
+
+            // Step 1: Highlight input
+            const inputCells = inputGrid.querySelectorAll('.tensor-cell');
+            inputCells.forEach(cell => cell.classList.add('pulsing'));
+            await sleep(800);
+            inputCells.forEach(cell => cell.classList.remove('pulsing'));
+
+            // Step 2: Animate flatten sequence
+            const flatCells = flattenGrid.querySelectorAll('.flatten-cell');
+            for (let i = 0; i < flatCells.length; i++) {
+                flatCells[i].classList.add('highlighted');
+                inputCells[i].classList.add('highlighted');
+                await sleep(300);
+            }
+            await sleep(500);
+
+            // Step 3: Clear and animate output
+            flatCells.forEach(cell => cell.classList.remove('highlighted'));
+            inputCells.forEach(cell => cell.classList.remove('highlighted'));
+
+            const outputCells = outputGrid.querySelectorAll('.tensor-cell');
+            for (let i = 0; i < outputCells.length; i++) {
+                outputCells[i].classList.add('highlighted');
+                flatCells[i].classList.add('highlighted');
+                await sleep(300);
+            }
+            await sleep(500);
+
+            // Step 4: Final state - pulse output
+            flatCells.forEach(cell => cell.classList.remove('highlighted'));
+            outputCells.forEach(cell => {
+                cell.classList.remove('highlighted');
+                cell.classList.add('pulsing');
+            });
+            await sleep(800);
+            outputCells.forEach(cell => cell.classList.remove('pulsing'));
+
+            isAnimating = false;
+            animateBtn.disabled = false;
+            animateBtn.innerHTML = '<span>▶</span> Animate';
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Event listeners
+        methodBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                methodBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentMethod = btn.dataset.method;
+                updateOperationBadge();
+                updateInfoBox();
+            });
+        });
+
+        shapeSelect.addEventListener('change', (e) => {
+            const value = e.target.value;
+            currentShape = value.includes(',')
+                ? value.split(',').map(Number)
+                : [parseInt(value)];
+            renderOutputGrid();
+            renderMappingTable();
+            updateOperationBadge();
+            updateOutputShapeBadge();
+        });
+
+        animateBtn.addEventListener('click', runAnimation);
+
+        // Track mouse for tooltip
+        document.addEventListener('mousemove', (e) => {
+            if (tooltip.classList.contains('visible')) {
+                tooltip.style.left = (e.clientX + 15) + 'px';
+                tooltip.style.top = (e.clientY + 15) + 'px';
+            }
+        });
+
+        // Initialize
+        function init() {
+            renderInputGrid();
+            renderOutputGrid();
+            renderFlattenGrid();
+            renderMappingTable();
+            updateOperationBadge();
+            updateOutputShapeBadge();
+            updateInfoBox();
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

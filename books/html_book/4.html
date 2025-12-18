@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computation Graph - Neural Network Forward Pass</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            min-height: 100vh;
+            padding: 30px 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 4px 24px rgba(99, 102, 241, 0.12);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        /* Step Display */
+        .step-display {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 24px;
+            background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+            border-radius: 16px;
+            border: 2px solid #e9d5ff;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 16px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+        }
+
+        .step-formula {
+            font-family: Georgia, serif;
+            font-size: 28px;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .step-formula .highlight-input {
+            color: #ea580c;
+            background: #fff7ed;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .step-formula .highlight-result {
+            color: #0d9488;
+            background: #ecfdf5;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .step-formula .highlight-target {
+            color: #a21caf;
+            background: #fdf4ff;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .step-formula .op {
+            color: #8b5cf6;
+            margin: 0 4px;
+        }
+
+        .step-description {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        /* SVG Graph */
+        .graph-svg {
+            width: 100%;
+            height: 320px;
+            display: block;
+        }
+
+        /* Node styles in SVG */
+        .node-box {
+            transition: all 0.3s ease;
+        }
+
+        .node-box.waiting {
+            opacity: 0.35;
+        }
+
+        .node-box.active {
+            filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.5));
+        }
+
+        .node-box.done {
+            opacity: 1;
+        }
+
+        /* Flow dot animation */
+        .flow-dot {
+            fill: #8b5cf6;
+            filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.8));
+        }
+
+        /* Progress indicators */
+        .progress-bar-container {
+            margin-bottom: 20px;
+        }
+
+        .progress-track {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #6366f1, #0d9488);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.6s ease;
+        }
+
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 11px;
+        }
+
+        .progress-label {
+            color: #94a3b8;
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .progress-label.active {
+            color: #8b5cf6;
+            background: #f3e8ff;
+            font-weight: 600;
+        }
+
+        .progress-label.done {
+            color: #0d9488;
+            background: #ecfdf5;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        /* Graph with controls layout */
+        .graph-with-controls {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .side-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-shrink: 0;
+            padding-top: 40px;
+        }
+
+        .side-buttons .btn {
+            width: 160px;
+            justify-content: center;
+            padding: 12px 16px;
+            font-size: 13px;
+        }
+
+        .graph-area {
+            flex: 1;
+            min-width: 0;
+        }
+
+        @media (max-width: 800px) {
+            .graph-with-controls {
+                flex-direction: column;
+            }
+
+            .side-buttons {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                padding-top: 0;
+                margin-bottom: 16px;
+            }
+
+            .side-buttons .btn {
+                width: auto;
+            }
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .legend-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+        }
+
+        .legend-dot.input {
+            background: #fff7ed;
+            border: 2px solid #fdba74;
+        }
+
+        .legend-dot.operator {
+            background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+            border-radius: 50%;
+        }
+
+        .legend-dot.result {
+            background: #ecfdf5;
+            border: 2px solid #6ee7b7;
+        }
+
+        .legend-dot.target {
+            background: #fdf4ff;
+            border: 2px solid #f0abfc;
+        }
+
+        /* Controls grid */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .control-panel {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-label {
+            font-family: Georgia, serif;
+            font-style: italic;
+            font-size: 16px;
+            color: #1e293b;
+            min-width: 24px;
+        }
+
+        .input-label.target {
+            color: #a21caf;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 100px;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #8b5cf6;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .result-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-row.active {
+            border-color: #8b5cf6;
+            background: #faf5ff;
+        }
+
+        .result-row.done {
+            border-color: #6ee7b7;
+            background: #ecfdf5;
+        }
+
+        .result-label {
+            font-family: Georgia, serif;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .result-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        .result-value.computed {
+            color: #0d9488;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #8b5cf6;
+            border: 2px solid #8b5cf6;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #faf5ff;
+        }
+
+        .btn-reset {
+            background: white;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-reset:hover {
+            border-color: #94a3b8;
+        }
+
+        /* Info box */
+        .info-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+            border-radius: 12px;
+            padding: 16px 20px;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .info-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 6px;
+        }
+
+        .info-content {
+            font-size: 12px;
+            color: #78350f;
+            line-height: 1.6;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.25);
+            max-width: 280px;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            border: 1px solid #e2e8f0;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .tooltip-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .tooltip-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Georgia, serif;
+            font-style: italic;
+            font-size: 16px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .tooltip-icon.input {
+            background: #fff7ed;
+            border: 2px solid #fdba74;
+            color: #c2410c;
+        }
+
+        .tooltip-icon.operator {
+            background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+            color: white;
+            border-radius: 50%;
+        }
+
+        .tooltip-icon.result {
+            background: #ecfdf5;
+            border: 2px solid #6ee7b7;
+            color: #047857;
+        }
+
+        .tooltip-icon.target {
+            background: #fdf4ff;
+            border: 2px solid #f0abfc;
+            color: #a21caf;
+        }
+
+        .tooltip-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .tooltip-type {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        .tooltip-type.input {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .tooltip-type.operator {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+
+        .tooltip-type.result {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .tooltip-type.target {
+            background: #fdf4ff;
+            color: #a21caf;
+        }
+
+        .tooltip-formula {
+            font-family: Georgia, serif;
+            font-size: 14px;
+            background: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            color: #475569;
+        }
+
+        .tooltip-desc {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .tooltip-note {
+            font-size: 11px;
+            color: #8b5cf6;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #f1f5f9;
+            font-style: italic;
+        }
+
+        /* Make SVG nodes have pointer cursor */
+        .node-box {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .node-box:hover {
+            filter: brightness(1.05) drop-shadow(0 2px 8px rgba(99, 102, 241, 0.2));
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Neural Network Forward Pass</h1>
+            <p class="subtitle">Watch how data flows through a logistic regression computation graph </p>
+            <p class="subtitle">You can change input values and hover over nodes to see more details</p>
+        </div>
+
+        <div class="card">
+            <!-- Progress Bar -->
+            <div class="progress-bar-container">
+                <div class="progress-track">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-labels">
+                    <span class="progress-label" id="label1">① Multiply</span>
+                    <span class="progress-label" id="label2">② Add Bias</span>
+                    <span class="progress-label" id="label3">③ Activate</span>
+                    <span class="progress-label" id="label4">④ Loss</span>
+                </div>
+            </div>
+
+            <!-- Current Step Display -->
+            <div class="step-display" id="stepDisplay">
+                <div class="step-number" id="stepNumber">READY</div>
+                <div class="step-formula" id="stepFormula">Press "Run Forward Pass" to start</div>
+                <div class="step-description" id="stepDesc">See how the network computes its output step by step</div>
+            </div>
+
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot input"></div>
+                    <span>Input/Weight</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot operator"></div>
+                    <span>Operation</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot result"></div>
+                    <span>Result</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot target"></div>
+                    <span>Target</span>
+                </div>
+            </div>
+
+            <!-- Main content with buttons on left -->
+            <div class="graph-with-controls">
+                <!-- Buttons on Left -->
+                <div class="side-buttons">
+                    <button class="btn btn-primary" id="runBtn">▶ Run Forward Pass</button>
+                    <button class="btn btn-secondary" id="stepBtn">⏭ Step Forward</button>
+                    <button class="btn btn-reset" id="resetBtn">↺ Reset</button>
+                </div>
+
+                <!-- Graph Area -->
+                <div class="graph-area">
+                    <svg class="graph-svg" viewBox="0 0 900 280" id="graphSvg">
+                        <defs>
+                            <!-- Gradients -->
+                            <linearGradient id="operatorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#c4b5fd" />
+                                <stop offset="100%" style="stop-color:#8b5cf6" />
+                            </linearGradient>
+
+                            <!-- Arrow marker -->
+                            <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                                <path d="M0,0 L8,4 L0,8 Z" fill="#cbd5e1" />
+                            </marker>
+                            <marker id="arrowActive" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                                <path d="M0,0 L8,4 L0,8 Z" fill="#8b5cf6" />
+                            </marker>
+                        </defs>
+
+                        <!-- Connection Lines -->
+                        <g id="connections">
+                            <!-- w1 to multiply -->
+                            <line id="line-w1" x1="85" y1="60" x2="155" y2="95" stroke="#cbd5e1" stroke-width="3"
+                                stroke-linecap="round" />
+                            <!-- x1 to multiply -->
+                            <line id="line-x1" x1="85" y1="150" x2="155" y2="115" stroke="#cbd5e1" stroke-width="3"
+                                stroke-linecap="round" />
+                            <!-- multiply to u -->
+                            <line id="line-mult-u" x1="205" y1="105" x2="265" y2="105" stroke="#cbd5e1" stroke-width="3"
+                                stroke-linecap="round" />
+                            <!-- u to add -->
+                            <line id="line-u-add" x1="345" y1="105" x2="395" y2="105" stroke="#cbd5e1" stroke-width="3"
+                                stroke-linecap="round" />
+                            <!-- b to add -->
+                            <line id="line-b" x1="85" y1="230" x2="395" y2="130" stroke="#cbd5e1" stroke-width="3"
+                                stroke-linecap="round" />
+                            <!-- add to z -->
+                            <line id="line-add-z" x1="445" y1="105" x2="505" y2="105" stroke="#cbd5e1" stroke-width="3"
+                                stroke-linecap="round" />
+                            <!-- z to sigmoid -->
+                            <line id="line-z-sig" x1="585" y1="105" x2="635" y2="105" stroke="#cbd5e1" stroke-width="3"
+                                stroke-linecap="round" />
+                            <!-- sigmoid to a -->
+                            <line id="line-sig-a" x1="685" y1="105" x2="745" y2="105" stroke="#cbd5e1" stroke-width="3"
+                                stroke-linecap="round" />
+                            <!-- a to loss -->
+                            <line id="line-a-loss" x1="825" y1="105" x2="855" y2="105" stroke="#cbd5e1" stroke-width="3"
+                                stroke-linecap="round" />
+                            <!-- y to loss -->
+                            <line id="line-y" x1="785" y1="230" x2="855" y2="130" stroke="#cbd5e1" stroke-width="3"
+                                stroke-linecap="round" />
+                        </g>
+
+                        <!-- Flow dots (animated) -->
+                        <g id="flowDots">
+                            <circle id="dot1" class="flow-dot" r="8" cx="-20" cy="-20" opacity="0" />
+                            <circle id="dot2" class="flow-dot" r="8" cx="-20" cy="-20" opacity="0" />
+                            <circle id="dot3" class="flow-dot" r="8" cx="-20" cy="-20" opacity="0" />
+                        </g>
+
+                        <!-- Input Nodes -->
+                        <g id="node-w1" class="node-box">
+                            <rect x="20" y="35" width="65" height="50" rx="10" fill="#fff7ed" stroke="#fdba74"
+                                stroke-width="2" />
+                            <text x="52" y="55" text-anchor="middle" font-family="Georgia, serif" font-style="italic"
+                                font-size="16" fill="#c2410c">w₁</text>
+                            <text x="52" y="75" text-anchor="middle" font-size="14" font-weight="600" fill="#ea580c"
+                                id="txt-w1">2.2</text>
+                        </g>
+
+                        <g id="node-x1" class="node-box">
+                            <rect x="20" y="125" width="65" height="50" rx="10" fill="#fff7ed" stroke="#fdba74"
+                                stroke-width="2" />
+                            <text x="52" y="145" text-anchor="middle" font-family="Georgia, serif" font-style="italic"
+                                font-size="16" fill="#c2410c">x₁</text>
+                            <text x="52" y="165" text-anchor="middle" font-size="14" font-weight="600" fill="#ea580c"
+                                id="txt-x1">1.1</text>
+                        </g>
+
+                        <g id="node-b" class="node-box">
+                            <rect x="20" y="205" width="65" height="50" rx="10" fill="#fff7ed" stroke="#fdba74"
+                                stroke-width="2" />
+                            <text x="52" y="225" text-anchor="middle" font-family="Georgia, serif" font-style="italic"
+                                font-size="16" fill="#c2410c">b</text>
+                            <text x="52" y="245" text-anchor="middle" font-size="14" font-weight="600" fill="#ea580c"
+                                id="txt-b">0.0</text>
+                        </g>
+
+                        <!-- Operator: Multiply -->
+                        <g id="node-mult" class="node-box">
+                            <circle cx="180" cy="105" r="25" fill="url(#operatorGrad)" />
+                            <text x="180" y="113" text-anchor="middle" font-family="Georgia, serif" font-size="24"
+                                fill="white">×</text>
+                        </g>
+
+                        <!-- Result: u -->
+                        <g id="node-u" class="node-box waiting">
+                            <rect x="265" y="80" width="80" height="50" rx="10" fill="#f0fdfa" stroke="#99f6e4"
+                                stroke-width="2" />
+                            <text x="305" y="100" text-anchor="middle" font-family="Georgia, serif" font-style="italic"
+                                font-size="14" fill="#047857">u</text>
+                            <text x="305" y="120" text-anchor="middle" font-size="14" font-weight="600" fill="#0d9488"
+                                id="txt-u">—</text>
+                        </g>
+
+                        <!-- Operator: Add -->
+                        <g id="node-add" class="node-box waiting">
+                            <circle cx="420" cy="105" r="25" fill="url(#operatorGrad)" />
+                            <text x="420" y="114" text-anchor="middle" font-family="Georgia, serif" font-size="28"
+                                fill="white">+</text>
+                        </g>
+
+                        <!-- Result: z -->
+                        <g id="node-z" class="node-box waiting">
+                            <rect x="505" y="80" width="80" height="50" rx="10" fill="#f0fdfa" stroke="#99f6e4"
+                                stroke-width="2" />
+                            <text x="545" y="100" text-anchor="middle" font-family="Georgia, serif" font-style="italic"
+                                font-size="14" fill="#047857">z</text>
+                            <text x="545" y="120" text-anchor="middle" font-size="14" font-weight="600" fill="#0d9488"
+                                id="txt-z">—</text>
+                        </g>
+
+                        <!-- Operator: Sigmoid -->
+                        <g id="node-sig" class="node-box waiting">
+                            <circle cx="660" cy="105" r="25" fill="url(#operatorGrad)" />
+                            <text x="660" y="113" text-anchor="middle" font-family="Georgia, serif" font-style="italic"
+                                font-size="22" fill="white">σ</text>
+                        </g>
+
+                        <!-- Result: a -->
+                        <g id="node-a" class="node-box waiting">
+                            <rect x="745" y="80" width="80" height="50" rx="10" fill="#f0fdfa" stroke="#99f6e4"
+                                stroke-width="2" />
+                            <text x="785" y="100" text-anchor="middle" font-family="Georgia, serif" font-style="italic"
+                                font-size="14" fill="#047857">a</text>
+                            <text x="785" y="120" text-anchor="middle" font-size="14" font-weight="600" fill="#0d9488"
+                                id="txt-a">—</text>
+                        </g>
+
+                        <!-- Target: y -->
+                        <g id="node-y" class="node-box">
+                            <rect x="750" y="205" width="65" height="50" rx="10" fill="#fdf4ff" stroke="#f0abfc"
+                                stroke-width="2" />
+                            <text x="782" y="225" text-anchor="middle" font-family="Georgia, serif" font-style="italic"
+                                font-size="16" fill="#a21caf">y</text>
+                            <text x="782" y="245" text-anchor="middle" font-size="14" font-weight="600" fill="#c026d3"
+                                id="txt-y">1.0</text>
+                        </g>
+
+                        <!-- Operator: Loss -->
+                        <g id="node-loss-op" class="node-box waiting">
+                            <circle cx="880" cy="105" r="25" fill="url(#operatorGrad)" />
+                            <text x="880" y="113" text-anchor="middle" font-family="Georgia, serif" font-style="italic"
+                                font-size="20" fill="white">L</text>
+                        </g>
+
+                        <!-- Small labels -->
+                        <text x="52" y="25" text-anchor="middle" font-size="10" fill="#94a3b8">weight</text>
+                        <text x="52" y="118" text-anchor="middle" font-size="10" fill="#94a3b8">input</text>
+                        <text x="52" y="198" text-anchor="middle" font-size="10" fill="#94a3b8">bias</text>
+                        <text x="782" y="198" text-anchor="middle" font-size="10" fill="#94a3b8">target</text>
+                    </svg>
+
+                    <!-- Tooltip -->
+                    <div class="tooltip" id="tooltip">
+                        <div class="tooltip-header">
+                            <div class="tooltip-icon" id="tooltip-icon">w₁</div>
+                            <div>
+                                <div class="tooltip-title" id="tooltip-title">Weight Parameter</div>
+                                <span class="tooltip-type" id="tooltip-type">Trainable Parameter</span>
+                            </div>
+                        </div>
+                        <div class="tooltip-formula" id="tooltip-formula">w₁ = 2.2</div>
+                        <div class="tooltip-desc" id="tooltip-desc">Description goes here</div>
+                        <div class="tooltip-note" id="tooltip-note">Note goes here</div>
+                    </div>
+
+                    <!-- Loss Result (separate for emphasis) -->
+                    <div style="text-align: center; margin-top: -10px;">
+                        <div id="lossDisplay"
+                            style="display: inline-block; padding: 12px 24px; background: #f0fdfa; border: 2px solid #99f6e4; border-radius: 12px; opacity: 0.4; transition: all 0.3s ease;">
+                            <span
+                                style="font-family: Georgia, serif; font-style: italic; color: #047857; margin-right: 8px;">loss
+                                =</span>
+                            <span style="font-size: 18px; font-weight: 700; color: #0d9488;" id="txt-loss">—</span>
+                        </div>
+                    </div>
+                </div><!-- end graph-area -->
+            </div><!-- end graph-with-controls -->
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-grid">
+            <div class="control-panel">
+                <div class="panel-title">Input Parameters</div>
+                <div class="input-row">
+                    <span class="input-label">x₁</span>
+                    <input type="number" class="input-field" id="input-x1" value="1.1" step="0.1">
+                    <span style="font-size: 12px; color: #94a3b8;">input data</span>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">w₁</span>
+                    <input type="number" class="input-field" id="input-w1" value="2.2" step="0.1">
+                    <span style="font-size: 12px; color: #94a3b8;">weight</span>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">b</span>
+                    <input type="number" class="input-field" id="input-b" value="0.0" step="0.1">
+                    <span style="font-size: 12px; color: #94a3b8;">bias</span>
+                </div>
+                <div class="input-row">
+                    <span class="input-label target">y</span>
+                    <input type="number" class="input-field" id="input-y" value="1.0" step="0.1" min="0" max="1">
+                    <span style="font-size: 12px; color: #94a3b8;">target (0 or 1)</span>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="panel-title">Computed Results</div>
+                <div class="result-row" id="row-u">
+                    <span class="result-label">u = w₁ × x₁</span>
+                    <span class="result-value" id="res-u">—</span>
+                </div>
+                <div class="result-row" id="row-z">
+                    <span class="result-label">z = u + b</span>
+                    <span class="result-value" id="res-z">—</span>
+                </div>
+                <div class="result-row" id="row-a">
+                    <span class="result-label">a = σ(z)</span>
+                    <span class="result-value" id="res-a">—</span>
+                </div>
+                <div class="result-row" id="row-loss">
+                    <span class="result-label">loss = L(a, y)</span>
+                    <span class="result-value" id="res-loss">—</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card info-box">
+            <div class="info-title">💡 What is this?</div>
+            <div class="info-content">
+                This visualization shows how a simple neural network (logistic regression) computes its prediction. Data
+                flows left-to-right: inputs are multiplied by weights, bias is added, sigmoid activation squashes the
+                result to a probability, and finally the loss measures prediction error. During training, PyTorch traces
+                this graph to compute gradients that flow backward to update w₁ and b.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let values = { x1: 1.1, w1: 2.2, b: 0.0, y: 1.0, u: null, z: null, a: null, loss: null };
+        let currentStep = 0;
+        let isAnimating = false;
+
+        // Math functions
+        const sigmoid = z => 1 / (1 + Math.exp(-z));
+        const bce = (a, y) => {
+            const eps = 1e-7;
+            const ac = Math.max(eps, Math.min(1 - eps, a));
+            return -(y * Math.log(ac) + (1 - y) * Math.log(1 - ac));
+        };
+
+        // Animation steps
+        const steps = [
+            {
+                id: 1,
+                label: 'STEP 1 OF 4',
+                formula: () => `<span class="highlight-input">${values.w1}</span> <span class="op">×</span> <span class="highlight-input">${values.x1}</span> <span class="op">=</span> <span class="highlight-result">${values.u.toFixed(2)}</span>`,
+                desc: 'Multiply weight by input',
+                compute: () => { values.u = values.w1 * values.x1; },
+                lines: ['line-w1', 'line-x1', 'line-mult-u'],
+                flowPaths: [
+                    { start: { x: 85, y: 60 }, end: { x: 180, y: 105 } },
+                    { start: { x: 85, y: 150 }, end: { x: 180, y: 105 } }
+                ],
+                activateNodes: ['node-w1', 'node-x1', 'node-mult'],
+                resultNode: 'node-u',
+                resultText: 'txt-u',
+                resultRow: 'row-u',
+                resId: 'res-u',
+                resultKey: 'u',
+                progress: 25
+            },
+            {
+                id: 2,
+                label: 'STEP 2 OF 4',
+                formula: () => `<span class="highlight-result">${values.u.toFixed(2)}</span> <span class="op">+</span> <span class="highlight-input">${values.b}</span> <span class="op">=</span> <span class="highlight-result">${values.z.toFixed(2)}</span>`,
+                desc: 'Add bias to get pre-activation',
+                compute: () => { values.z = values.u + values.b; },
+                lines: ['line-u-add', 'line-b', 'line-add-z'],
+                flowPaths: [
+                    { start: { x: 345, y: 105 }, end: { x: 420, y: 105 } },
+                    { start: { x: 85, y: 230 }, end: { x: 420, y: 105 } }
+                ],
+                activateNodes: ['node-u', 'node-b', 'node-add'],
+                resultNode: 'node-z',
+                resultText: 'txt-z',
+                resultRow: 'row-z',
+                resId: 'res-z',
+                resultKey: 'z',
+                progress: 50
+            },
+            {
+                id: 3,
+                label: 'STEP 3 OF 4',
+                formula: () => `σ(<span class="highlight-result">${values.z.toFixed(2)}</span>) <span class="op">=</span> <span class="highlight-result">${values.a.toFixed(4)}</span>`,
+                desc: 'Apply sigmoid to squash into probability (0-1)',
+                compute: () => { values.a = sigmoid(values.z); },
+                lines: ['line-z-sig', 'line-sig-a'],
+                flowPaths: [
+                    { start: { x: 585, y: 105 }, end: { x: 660, y: 105 } }
+                ],
+                activateNodes: ['node-z', 'node-sig'],
+                resultNode: 'node-a',
+                resultText: 'txt-a',
+                resultRow: 'row-a',
+                resId: 'res-a',
+                resultKey: 'a',
+                progress: 75
+            },
+            {
+                id: 4,
+                label: 'STEP 4 OF 4',
+                formula: () => `L(<span class="highlight-result">${values.a.toFixed(3)}</span>, <span class="highlight-target">${values.y}</span>) <span class="op">=</span> <span class="highlight-result">${values.loss.toFixed(4)}</span>`,
+                desc: 'Compute loss (how wrong is the prediction?)',
+                compute: () => { values.loss = bce(values.a, values.y); },
+                lines: ['line-a-loss', 'line-y'],
+                flowPaths: [
+                    { start: { x: 825, y: 105 }, end: { x: 880, y: 105 } },
+                    { start: { x: 785, y: 230 }, end: { x: 880, y: 105 } }
+                ],
+                activateNodes: ['node-a', 'node-y', 'node-loss-op'],
+                resultNode: null,
+                resultText: 'txt-loss',
+                resultRow: 'row-loss',
+                resId: 'res-loss',
+                resultKey: 'loss',
+                progress: 100
+            }
+        ];
+
+        // Read inputs
+        function readInputs() {
+            values.x1 = parseFloat(document.getElementById('input-x1').value) || 0;
+            values.w1 = parseFloat(document.getElementById('input-w1').value) || 0;
+            values.b = parseFloat(document.getElementById('input-b').value) || 0;
+            values.y = Math.max(0, Math.min(1, parseFloat(document.getElementById('input-y').value) || 0));
+
+            document.getElementById('txt-x1').textContent = values.x1.toFixed(1);
+            document.getElementById('txt-w1').textContent = values.w1.toFixed(1);
+            document.getElementById('txt-b').textContent = values.b.toFixed(1);
+            document.getElementById('txt-y').textContent = values.y.toFixed(1);
+        }
+
+        // Reset
+        function reset() {
+            currentStep = 0;
+            values.u = values.z = values.a = values.loss = null;
+
+            // Reset all nodes
+            document.querySelectorAll('.node-box').forEach(n => {
+                n.classList.remove('active', 'done', 'waiting');
+            });
+            ['node-u', 'node-z', 'node-a', 'node-add', 'node-sig', 'node-loss-op'].forEach(id => {
+                document.getElementById(id).classList.add('waiting');
+            });
+
+            // Reset lines
+            document.querySelectorAll('#connections line').forEach(l => {
+                l.setAttribute('stroke', '#cbd5e1');
+            });
+
+            // Reset texts
+            ['txt-u', 'txt-z', 'txt-a', 'txt-loss'].forEach(id => {
+                document.getElementById(id).textContent = '—';
+            });
+            ['res-u', 'res-z', 'res-a', 'res-loss'].forEach(id => {
+                const el = document.getElementById(id);
+                el.textContent = '—';
+                el.classList.remove('computed');
+            });
+            ['row-u', 'row-z', 'row-a', 'row-loss'].forEach(id => {
+                const el = document.getElementById(id);
+                el.classList.remove('active', 'done');
+            });
+
+            // Reset progress
+            document.getElementById('progressFill').style.width = '0%';
+            ['label1', 'label2', 'label3', 'label4'].forEach(id => {
+                document.getElementById(id).classList.remove('active', 'done');
+            });
+
+            // Reset step display
+            document.getElementById('stepNumber').textContent = 'READY';
+            document.getElementById('stepFormula').textContent = 'Press "Run Forward Pass" to start';
+            document.getElementById('stepDesc').textContent = 'See how the network computes its output step by step';
+
+            // Reset loss display
+            document.getElementById('lossDisplay').style.opacity = '0.4';
+            document.getElementById('lossDisplay').style.borderColor = '#99f6e4';
+
+            // Hide dots
+            ['dot1', 'dot2', 'dot3'].forEach(id => {
+                document.getElementById(id).setAttribute('opacity', '0');
+            });
+
+            readInputs();
+        }
+
+        // Animate flow dot along path
+        function animateDot(dotId, path, duration) {
+            return new Promise(resolve => {
+                const dot = document.getElementById(dotId);
+                const startX = path.start.x;
+                const startY = path.start.y;
+                const endX = path.end.x;
+                const endY = path.end.y;
+
+                dot.setAttribute('cx', startX);
+                dot.setAttribute('cy', startY);
+                dot.setAttribute('opacity', '1');
+
+                const startTime = performance.now();
+
+                function animate(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+
+                    // Ease out cubic
+                    const eased = 1 - Math.pow(1 - progress, 3);
+
+                    const x = startX + (endX - startX) * eased;
+                    const y = startY + (endY - startY) * eased;
+
+                    dot.setAttribute('cx', x);
+                    dot.setAttribute('cy', y);
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        dot.setAttribute('opacity', '0');
+                        resolve();
+                    }
+                }
+
+                requestAnimationFrame(animate);
+            });
+        }
+
+        // Execute step
+        async function executeStep(stepIndex) {
+            const step = steps[stepIndex];
+
+            // Compute value
+            step.compute();
+
+            // Update step display
+            document.getElementById('stepNumber').textContent = step.label;
+            document.getElementById('stepFormula').innerHTML = step.formula();
+            document.getElementById('stepDesc').textContent = step.desc;
+
+            // Highlight active lines
+            step.lines.forEach(lineId => {
+                document.getElementById(lineId).setAttribute('stroke', '#8b5cf6');
+            });
+
+            // Activate nodes
+            step.activateNodes.forEach(nodeId => {
+                const node = document.getElementById(nodeId);
+                node.classList.remove('waiting');
+                node.classList.add('active');
+            });
+
+            // Animate flow dots
+            const dotPromises = step.flowPaths.map((path, i) => {
+                return animateDot(`dot${i + 1}`, path, 600);
+            });
+            await Promise.all(dotPromises);
+
+            // Small delay then show result
+            await delay(200);
+
+            // Update result node
+            if (step.resultNode) {
+                const resultNode = document.getElementById(step.resultNode);
+                resultNode.classList.remove('waiting');
+                resultNode.classList.add('active');
+            }
+
+            // Update text values
+            const val = values[step.resultKey];
+            const formatted = step.resultKey === 'a' || step.resultKey === 'loss' ? val.toFixed(4) : val.toFixed(2);
+            document.getElementById(step.resultText).textContent = formatted;
+
+            const resEl = document.getElementById(step.resId);
+            resEl.textContent = formatted;
+            resEl.classList.add('computed');
+
+            // Highlight result row
+            document.getElementById(step.resultRow).classList.add('active');
+
+            // Update progress
+            document.getElementById('progressFill').style.width = step.progress + '%';
+            document.getElementById(`label${step.id}`).classList.add('active');
+
+            // Special case for loss display
+            if (step.resultKey === 'loss') {
+                const lossDisplay = document.getElementById('lossDisplay');
+                lossDisplay.style.opacity = '1';
+                lossDisplay.style.borderColor = '#6ee7b7';
+                lossDisplay.style.background = '#ecfdf5';
+            }
+        }
+
+        // Clean up after step (mark as done)
+        function markStepDone(stepIndex) {
+            const step = steps[stepIndex];
+
+            step.activateNodes.forEach(nodeId => {
+                const node = document.getElementById(nodeId);
+                node.classList.remove('active');
+                node.classList.add('done');
+            });
+
+            if (step.resultNode) {
+                const resultNode = document.getElementById(step.resultNode);
+                resultNode.classList.remove('active');
+                resultNode.classList.add('done');
+            }
+
+            document.getElementById(step.resultRow).classList.remove('active');
+            document.getElementById(step.resultRow).classList.add('done');
+
+            document.getElementById(`label${step.id}`).classList.remove('active');
+            document.getElementById(`label${step.id}`).classList.add('done');
+        }
+
+        // Run full animation
+        async function runAnimation() {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            reset();
+            document.getElementById('runBtn').disabled = true;
+            document.getElementById('stepBtn').disabled = true;
+
+            await delay(300);
+
+            for (let i = 0; i < steps.length; i++) {
+                await executeStep(i);
+                await delay(800);
+                if (i < steps.length - 1) {
+                    markStepDone(i);
+                }
+            }
+
+            // Final state
+            document.getElementById('stepNumber').textContent = '✓ COMPLETE';
+            document.getElementById('stepFormula').innerHTML = `Final loss = <span class="highlight-result">${values.loss.toFixed(4)}</span>`;
+            document.getElementById('stepDesc').textContent = 'Forward pass finished! The network has made its prediction.';
+
+            steps.forEach((s, i) => markStepDone(i));
+
+            document.getElementById('runBtn').disabled = false;
+            document.getElementById('stepBtn').disabled = false;
+            isAnimating = false;
+        }
+
+        // Step forward
+        async function stepForward() {
+            if (isAnimating) return;
+            if (currentStep >= steps.length) return;
+
+            isAnimating = true;
+            document.getElementById('stepBtn').disabled = true;
+
+            if (currentStep === 0) {
+                readInputs();
+            }
+
+            // Mark previous step as done
+            if (currentStep > 0) {
+                markStepDone(currentStep - 1);
+            }
+
+            await executeStep(currentStep);
+            currentStep++;
+
+            if (currentStep >= steps.length) {
+                await delay(500);
+                document.getElementById('stepNumber').textContent = '✓ COMPLETE';
+                document.getElementById('stepFormula').innerHTML = `Final loss = <span class="highlight-result">${values.loss.toFixed(4)}</span>`;
+                document.getElementById('stepDesc').textContent = 'Forward pass finished!';
+                markStepDone(steps.length - 1);
+            }
+
+            document.getElementById('stepBtn').disabled = false;
+            isAnimating = false;
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Event listeners
+        document.getElementById('runBtn').addEventListener('click', runAnimation);
+        document.getElementById('stepBtn').addEventListener('click', stepForward);
+        document.getElementById('resetBtn').addEventListener('click', reset);
+
+        ['input-x1', 'input-w1', 'input-b', 'input-y'].forEach(id => {
+            document.getElementById(id).addEventListener('input', reset);
+        });
+
+        // Initialize
+        readInputs();
+
+        // Tooltip data for all nodes
+        const tooltipData = {
+            'node-w1': {
+                icon: 'w₁',
+                iconType: 'input',
+                title: 'Weight Parameter',
+                type: 'Trainable Parameter',
+                typeClass: 'input',
+                formula: () => `w₁ = ${values.w1}`,
+                desc: 'A learnable weight that scales the input. During training, the network adjusts this value to minimize the loss. The gradient ∂loss/∂w₁ tells the optimizer how much and in which direction to change w₁.',
+                note: '💡 In a real neural network, there are millions of weights like this one.'
+            },
+            'node-x1': {
+                icon: 'x₁',
+                iconType: 'input',
+                title: 'Input Data',
+                type: 'Input Feature',
+                typeClass: 'input',
+                formula: () => `x₁ = ${values.x1}`,
+                desc: 'The input feature value fed into the network. In real applications, this could be a pixel value from an image, a word embedding from text, or any numerical feature from your dataset.',
+                note: '💡 Inputs are fixed during training—we learn weights to transform them.'
+            },
+            'node-b': {
+                icon: 'b',
+                iconType: 'input',
+                title: 'Bias Term',
+                type: 'Trainable Parameter',
+                typeClass: 'input',
+                formula: () => `b = ${values.b}`,
+                desc: 'A learnable bias that shifts the output. It allows the model to fit data that doesn\'t pass through the origin. Think of it as the "y-intercept" in a linear equation.',
+                note: '💡 Bias gives the network flexibility to fit patterns offset from zero.'
+            },
+            'node-y': {
+                icon: 'y',
+                iconType: 'target',
+                title: 'Target Label',
+                type: 'Ground Truth',
+                typeClass: 'target',
+                formula: () => `y = ${values.y} (true label)`,
+                desc: 'The correct answer we want the network to predict. For binary classification, this is either 0 or 1. The loss function compares the prediction (a) against this target.',
+                note: '💡 The goal of training is to make predictions match targets.'
+            },
+            'node-mult': {
+                icon: '×',
+                iconType: 'operator',
+                title: 'Multiplication',
+                type: 'Operation',
+                typeClass: 'operator',
+                formula: () => `u = w₁ × x₁` + (values.u !== null ? ` = ${values.u.toFixed(2)}` : ''),
+                desc: 'Multiplies the input by the weight. This is the fundamental operation of a linear layer—it scales the input signal. Larger weights amplify the input; smaller weights diminish it.',
+                note: '💡 This is where the "learning" happens—weights change to produce better outputs.'
+            },
+            'node-add': {
+                icon: '+',
+                iconType: 'operator',
+                title: 'Addition',
+                type: 'Operation',
+                typeClass: 'operator',
+                formula: () => `z = u + b` + (values.z !== null ? ` = ${values.z.toFixed(2)}` : ''),
+                desc: 'Adds the bias to the weighted input. Together with multiplication, this forms the classic linear transformation: z = wx + b. The result z is called the "pre-activation" value.',
+                note: '💡 The combination wx + b is the core of every neuron in a neural network.'
+            },
+            'node-sig': {
+                icon: 'σ',
+                iconType: 'operator',
+                title: 'Sigmoid Activation',
+                type: 'Activation Function',
+                typeClass: 'operator',
+                formula: () => `a = σ(z) = 1/(1 + e⁻ᶻ)` + (values.a !== null ? ` = ${values.a.toFixed(4)}` : ''),
+                desc: 'Squashes any input into the range (0, 1). This non-linear function converts the linear output into a probability, making it suitable for binary classification. Large positive z → ~1, large negative z → ~0.',
+                note: '💡 Without activation functions, neural networks could only learn linear patterns.'
+            },
+            'node-loss-op': {
+                icon: 'L',
+                iconType: 'operator',
+                title: 'Loss Function',
+                type: 'Binary Cross-Entropy',
+                typeClass: 'operator',
+                formula: () => `L(a, y) = -[y·log(a) + (1-y)·log(1-a)]`,
+                desc: 'Measures how different the prediction (a) is from the true label (y). Returns a low value when prediction matches target, high value when they differ. The goal of training is to minimize this loss.',
+                note: '💡 Loss tells us how "wrong" the network is—gradients show how to fix it.'
+            },
+            'node-u': {
+                icon: 'u',
+                iconType: 'result',
+                title: 'Weighted Input',
+                type: 'Intermediate Result',
+                typeClass: 'result',
+                formula: () => `u = w₁ × x₁` + (values.u !== null ? ` = ${values.u.toFixed(2)}` : ' = ?'),
+                desc: 'The result of multiplying weight by input. This intermediate value is stored in the computation graph so PyTorch can compute gradients during backpropagation.',
+                note: '💡 Every intermediate result is tracked for automatic differentiation.'
+            },
+            'node-z': {
+                icon: 'z',
+                iconType: 'result',
+                title: 'Pre-activation',
+                type: 'Intermediate Result',
+                typeClass: 'result',
+                formula: () => `z = u + b` + (values.z !== null ? ` = ${values.z.toFixed(2)}` : ' = ?'),
+                desc: 'The linear combination before the activation function is applied. Also called "logit" in classification contexts. This is the raw output of the linear layer.',
+                note: '💡 The value of z determines how confident the final prediction will be.'
+            },
+            'node-a': {
+                icon: 'a',
+                iconType: 'result',
+                title: 'Activation / Prediction',
+                type: 'Network Output',
+                typeClass: 'result',
+                formula: () => `a = σ(z)` + (values.a !== null ? ` = ${values.a.toFixed(4)}` : ' = ?'),
+                desc: 'The network\'s prediction—a probability between 0 and 1. Values close to 1 mean the network predicts "positive class", close to 0 means "negative class". This is compared against y to compute loss.',
+                note: '💡 This is what the network "thinks" the answer is.'
+            }
+        };
+
+        // Tooltip functions
+        const tooltip = document.getElementById('tooltip');
+        const graphSvg = document.getElementById('graphSvg');
+        const graphCard = graphSvg.closest('.card');
+
+        function showTooltip(nodeId, event) {
+            const data = tooltipData[nodeId];
+            if (!data) return;
+
+            document.getElementById('tooltip-icon').textContent = data.icon;
+            document.getElementById('tooltip-icon').className = 'tooltip-icon ' + data.iconType;
+            document.getElementById('tooltip-title').textContent = data.title;
+            document.getElementById('tooltip-type').textContent = data.type;
+            document.getElementById('tooltip-type').className = 'tooltip-type ' + data.typeClass;
+            document.getElementById('tooltip-formula').textContent = data.formula();
+            document.getElementById('tooltip-desc').textContent = data.desc;
+            document.getElementById('tooltip-note').textContent = data.note;
+
+            // Position tooltip relative to the card
+            const cardRect = graphCard.getBoundingClientRect();
+
+            let x = event.clientX - cardRect.left + 15;
+            let y = event.clientY - cardRect.top - 10;
+
+            // Keep tooltip within bounds
+            if (x + 290 > cardRect.width) {
+                x = event.clientX - cardRect.left - 295;
+            }
+            if (y < 10) y = 10;
+
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            tooltip.classList.remove('visible');
+        }
+
+        // Add hover events to all nodes
+        Object.keys(tooltipData).forEach(nodeId => {
+            const node = document.getElementById(nodeId);
+            if (node) {
+                node.addEventListener('mouseenter', (e) => showTooltip(nodeId, e));
+                node.addEventListener('mousemove', (e) => showTooltip(nodeId, e));
+                node.addEventListener('mouseleave', hideTooltip);
+            }
+        });
+    </script>
+</body>
+
+</html>

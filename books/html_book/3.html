@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Multiplication in PyTorch</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f0f4ff 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 24px rgba(99, 102, 241, 0.12);
+            margin-bottom: 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        /* Matrix Container */
+        .matrix-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
+        }
+
+        .matrix-wrapper {
+            text-align: center;
+        }
+
+        .matrix-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            color: #64748b;
+        }
+
+        .matrix {
+            display: inline-block;
+            border-radius: 12px;
+            padding: 12px;
+            position: relative;
+        }
+
+        .matrix-a {
+            background: #fff7ed;
+            border: 2px solid #f97316;
+        }
+
+        .matrix-at {
+            background: #f5f3ff;
+            border: 2px solid #8b5cf6;
+        }
+
+        .matrix-result {
+            background: #ecfdf5;
+            border: 2px solid #14b8a6;
+        }
+
+        .matrix-grid {
+            display: grid;
+            gap: 6px;
+        }
+
+        .matrix-a .matrix-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .matrix-at .matrix-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .matrix-result .matrix-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .cell {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 8px;
+            background: white;
+            transition: all 0.4s ease;
+        }
+
+        .matrix-a .cell {
+            color: #ea580c;
+        }
+
+        .matrix-at .cell {
+            color: #7c3aed;
+        }
+
+        .matrix-result .cell {
+            color: #0d9488;
+            cursor: pointer;
+        }
+
+        .matrix-result .cell:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+        }
+
+        .cell.highlight-row {
+            background: #fed7aa;
+            box-shadow: 0 0 0 3px #f97316;
+            transform: scale(1.05);
+        }
+
+        .cell.highlight-col {
+            background: #ddd6fe;
+            box-shadow: 0 0 0 3px #8b5cf6;
+            transform: scale(1.05);
+        }
+
+        .cell.highlight-result {
+            background: #99f6e4;
+            box-shadow: 0 0 0 3px #14b8a6;
+            transform: scale(1.1);
+        }
+
+        .operator {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Calculation Breakdown */
+        .calculation-box {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .calculation-title {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+
+        .calculation-formula {
+            font-size: 16px;
+            font-weight: 500;
+            color: #334155;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .calculation-formula .num-orange {
+            color: #ea580c;
+            font-weight: 700;
+        }
+
+        .calculation-formula .num-purple {
+            color: #7c3aed;
+            font-weight: 700;
+        }
+
+        .calculation-formula .num-teal {
+            color: #0d9488;
+            font-weight: 700;
+        }
+
+        .calculation-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .step-item {
+            background: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .toggle-container {
+            display: flex;
+            background: #f1f5f9;
+            border-radius: 25px;
+            padding: 4px;
+        }
+
+        .toggle-btn {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 22px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: white;
+            color: #8b5cf6;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+        }
+
+        .play-btn {
+            padding: 10px 24px;
+            border: none;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .play-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+        }
+
+        .play-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stop-btn {
+            padding: 10px 24px;
+            border: none;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .stop-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+        }
+
+        .transpose-btn {
+            padding: 10px 24px;
+            border: 2px solid #8b5cf6;
+            background: white;
+            color: #8b5cf6;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .transpose-btn:hover {
+            background: #f5f3ff;
+        }
+
+        /* Code Syntax */
+        .code-box {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .code-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            margin-bottom: 12px;
+        }
+
+        .code-content {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+
+        .code-content .keyword {
+            color: #c084fc;
+        }
+
+        .code-content .method {
+            color: #67e8f9;
+        }
+
+        .code-content .property {
+            color: #fbbf24;
+        }
+
+        .code-content .comment {
+            color: #64748b;
+        }
+
+        /* Educational Note */
+        .note-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .note-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .note-content {
+            font-size: 13px;
+            color: #78350f;
+            line-height: 1.6;
+        }
+
+        /* Transpose Animation Overlay */
+        .transpose-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .transpose-overlay.active {
+            display: flex;
+        }
+
+        .transpose-animation-box {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .transpose-animation-box h3 {
+            margin-bottom: 24px;
+            color: #1e293b;
+        }
+
+        .transpose-visual {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            justify-content: center;
+        }
+
+        .transpose-arrow {
+            font-size: 32px;
+            color: #8b5cf6;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .matrix-section {
+                gap: 12px;
+            }
+
+            .cell {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>Matrix Multiplication in PyTorch</h1>
+                <p class="subtitle">Two equivalent ways: <code>.matmul()</code> and <code>@</code> operator</p>
+            </div>
+
+            <div class="matrix-section">
+                <div class="matrix-wrapper">
+                    <div class="matrix-label">Matrix A (2×3)</div>
+                    <div class="matrix matrix-a">
+                        <div class="matrix-grid" id="matrixA">
+                            <!-- Filled by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <span class="operator">×</span>
+
+                <div class="matrix-wrapper">
+                    <div class="matrix-label">A<sup>T</sup> (3×2)</div>
+                    <div class="matrix matrix-at">
+                        <div class="matrix-grid" id="matrixAT">
+                            <!-- Filled by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <span class="operator">=</span>
+
+                <div class="matrix-wrapper">
+                    <div class="matrix-label">Result (2×2)</div>
+                    <div class="matrix matrix-result">
+                        <div class="matrix-grid" id="matrixResult">
+                            <!-- Filled by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calculation-box">
+                <div class="calculation-title">Calculation Breakdown</div>
+                <div class="calculation-formula" id="calculationFormula">
+                    Hover over a result cell to see the calculation
+                </div>
+                <div class="calculation-steps" id="calculationSteps"></div>
+            </div>
+
+            <div class="controls">
+                <div class="toggle-container">
+                    <button class="toggle-btn active" data-syntax="matmul">.matmul()</button>
+                    <button class="toggle-btn" data-syntax="at">@</button>
+                </div>
+                <button class="play-btn" id="playBtn">
+                    <span>▶</span> Play Animation
+                </button>
+                <button class="stop-btn" id="stopBtn" style="display: none;">
+                    <span>◼</span> Stop
+                </button>
+                <button class="transpose-btn" id="transposeBtn">
+                    Show Transpose
+                </button>
+            </div>
+
+            <div class="code-box">
+                <div class="code-label">PyTorch Code</div>
+                <div class="code-content" id="codeContent">
+                    <span class="keyword">import</span> torch<br><br>
+                    tensor2d = torch.tensor([[<span class="property">1</span>, <span class="property">2</span>, <span
+                        class="property">3</span>],<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span
+                        class="property">4</span>, <span class="property">5</span>, <span
+                        class="property">6</span>]])<br><br>
+                    <span class="comment"># Method 1: Using .matmul()</span><br>
+                    result = tensor2d.<span class="method">matmul</span>(tensor2d.<span
+                        class="property">T</span>)<br><br>
+                    <span class="keyword">print</span>(result)<br>
+                    <span class="comment"># tensor([[14, 32],</span><br>
+                    <span class="comment"># [32, 77]])</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card note-box">
+            <div class="note-title">
+                <span>💡</span> Why This Matters for LLMs
+            </div>
+            <div class="note-content">
+                Matrix multiplication is the core operation in neural networks. When an LLM processes your text, it
+                performs billions of these operations—multiplying token embeddings by weight matrices in attention
+                layers and feed-forward networks. Understanding this operation is fundamental to understanding how
+                transformers work.
+            </div>
+        </div>
+    </div>
+
+    <!-- Transpose Animation Overlay -->
+    <div class="transpose-overlay" id="transposeOverlay">
+        <div class="transpose-animation-box">
+            <h3>Transpose: Rows become Columns</h3>
+            <div class="transpose-visual">
+                <div class="matrix matrix-a">
+                    <div class="matrix-grid" id="transposeFrom" style="grid-template-columns: repeat(3, 1fr);">
+                    </div>
+                </div>
+                <div class="transpose-arrow">→</div>
+                <div class="matrix matrix-at">
+                    <div class="matrix-grid" id="transposeTo" style="grid-template-columns: repeat(2, 1fr);">
+                    </div>
+                </div>
+            </div>
+            <button class="play-btn" style="margin-top: 24px;" onclick="closeTranspose()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Matrix data
+        const A = [[1, 2, 3], [4, 5, 6]];
+        const AT = [[1, 4], [2, 5], [3, 6]];
+        const Result = [[14, 32], [32, 77]];
+
+        // DOM elements
+        const matrixAEl = document.getElementById('matrixA');
+        const matrixATEl = document.getElementById('matrixAT');
+        const matrixResultEl = document.getElementById('matrixResult');
+        const calculationFormula = document.getElementById('calculationFormula');
+        const calculationSteps = document.getElementById('calculationSteps');
+        const codeContent = document.getElementById('codeContent');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const transposeBtn = document.getElementById('transposeBtn');
+        const transposeOverlay = document.getElementById('transposeOverlay');
+
+        let currentSyntax = 'matmul';
+        let isAnimating = false;
+        let isPaused = false;
+        let animationResolve = null;
+
+        // Stop animation
+        stopBtn.addEventListener('click', () => {
+            isAnimating = false;
+            isPaused = false;
+            stopBtn.style.display = 'none';
+            playBtn.innerHTML = '<span>▶</span> Play Animation';
+            clearHighlightsForAnimation();
+            calculationFormula.innerHTML = 'Hover over a result cell to see the calculation';
+            calculationSteps.innerHTML = '';
+        });
+
+        // Initialize matrices
+        function renderMatrix(element, data, type) {
+            element.innerHTML = '';
+            data.forEach((row, i) => {
+                if (Array.isArray(row)) {
+                    row.forEach((val, j) => {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.textContent = val;
+                        cell.dataset.row = i;
+                        cell.dataset.col = j;
+                        if (type === 'result') {
+                            cell.addEventListener('mouseenter', () => highlightCalculation(i, j));
+                            cell.addEventListener('mouseleave', clearHighlights);
+                            cell.addEventListener('click', () => showDetailedCalculation(i, j));
+                        }
+                        element.appendChild(cell);
+                    });
+                } else {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.textContent = row;
+                    cell.dataset.row = i;
+                    cell.dataset.col = 0;
+                    element.appendChild(cell);
+                }
+            });
+        }
+
+        function init() {
+            renderMatrix(matrixAEl, A, 'a');
+            renderMatrix(matrixATEl, AT, 'at');
+            renderMatrix(matrixResultEl, Result, 'result');
+            renderTransposeMatrices();
+        }
+
+        function renderTransposeMatrices() {
+            const fromEl = document.getElementById('transposeFrom');
+            const toEl = document.getElementById('transposeTo');
+            renderMatrix(fromEl, A, 'a');
+            renderMatrix(toEl, AT, 'at');
+        }
+
+        // Highlight calculation
+        function highlightCalculation(row, col) {
+            if (isAnimating) return;
+
+            // Clear previous highlights
+            clearHighlights();
+
+            // Highlight row in matrix A
+            const aCells = matrixAEl.querySelectorAll('.cell');
+            aCells.forEach(cell => {
+                if (parseInt(cell.dataset.row) === row) {
+                    cell.classList.add('highlight-row');
+                }
+            });
+
+            // Highlight column in matrix AT
+            const atCells = matrixATEl.querySelectorAll('.cell');
+            atCells.forEach(cell => {
+                if (parseInt(cell.dataset.col) === col) {
+                    cell.classList.add('highlight-col');
+                }
+            });
+
+            // Highlight result cell
+            const resultCells = matrixResultEl.querySelectorAll('.cell');
+            resultCells.forEach(cell => {
+                if (parseInt(cell.dataset.row) === row && parseInt(cell.dataset.col) === col) {
+                    cell.classList.add('highlight-result');
+                }
+            });
+
+            // Show calculation
+            showCalculation(row, col);
+        }
+
+        function clearHighlights() {
+            if (isAnimating) return;
+
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('highlight-row', 'highlight-col', 'highlight-result');
+            });
+
+            calculationFormula.innerHTML = 'Hover over a result cell to see the calculation';
+            calculationSteps.innerHTML = '';
+        }
+
+        function showCalculation(row, col) {
+            const rowVals = A[row];
+            const colVals = AT.map(r => r[col]);
+
+            const products = rowVals.map((v, i) => v * colVals[i]);
+            const sum = products.reduce((a, b) => a + b, 0);
+
+            calculationFormula.innerHTML = `
+                Result[${row},${col}] = 
+                (<span class="num-orange">${rowVals[0]}</span>×<span class="num-purple">${colVals[0]}</span>) + 
+                (<span class="num-orange">${rowVals[1]}</span>×<span class="num-purple">${colVals[1]}</span>) + 
+                (<span class="num-orange">${rowVals[2]}</span>×<span class="num-purple">${colVals[2]}</span>) = 
+                <span class="num-teal">${sum}</span>
+            `;
+
+            calculationSteps.innerHTML = '';
+            products.forEach((p, i) => {
+                setTimeout(() => {
+                    const step = document.createElement('div');
+                    step.className = 'step-item';
+                    step.innerHTML = `${rowVals[i]} × ${colVals[i]} = ${p}`;
+                    step.style.animationDelay = `${i * 0.15}s`;
+                    calculationSteps.appendChild(step);
+                }, i * 200);
+            });
+
+            setTimeout(() => {
+                const sumStep = document.createElement('div');
+                sumStep.className = 'step-item';
+                sumStep.innerHTML = `<strong>${products.join(' + ')} = <span class="num-teal">${sum}</span></strong>`;
+                sumStep.style.animationDelay = '0.4s';
+                calculationSteps.appendChild(sumStep);
+            }, 700);
+        }
+
+        function showDetailedCalculation(row, col) {
+            highlightCalculation(row, col);
+        }
+
+        // Syntax toggle
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSyntax = btn.dataset.syntax;
+                updateCodeSyntax();
+            });
+        });
+
+        function updateCodeSyntax() {
+            if (currentSyntax === 'matmul') {
+                codeContent.innerHTML = `
+                    <span class="keyword">import</span> torch<br><br>
+                    tensor2d = torch.tensor([[<span class="property">1</span>, <span class="property">2</span>, <span class="property">3</span>],<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="property">4</span>, <span class="property">5</span>, <span class="property">6</span>]])<br><br>
+                    <span class="comment"># Method 1: Using .matmul()</span><br>
+                    result = tensor2d.<span class="method">matmul</span>(tensor2d.<span class="property">T</span>)<br><br>
+                    <span class="keyword">print</span>(result)<br>
+                    <span class="comment"># tensor([[14, 32],</span><br>
+                    <span class="comment">#         [32, 77]])</span>
+                `;
+            } else {
+                codeContent.innerHTML = `
+                    <span class="keyword">import</span> torch<br><br>
+                    tensor2d = torch.tensor([[<span class="property">1</span>, <span class="property">2</span>, <span class="property">3</span>],<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<span class="property">4</span>, <span class="property">5</span>, <span class="property">6</span>]])<br><br>
+                    <span class="comment"># Method 2: Using @ operator (PEP 465)</span><br>
+                    result = tensor2d <span class="method">@</span> tensor2d.<span class="property">T</span><br><br>
+                    <span class="keyword">print</span>(result)<br>
+                    <span class="comment"># tensor([[14, 32],</span><br>
+                    <span class="comment">#         [32, 77]])</span>
+                `;
+            }
+        }
+
+        // Play animation
+        playBtn.addEventListener('click', async () => {
+            // If paused, resume
+            if (isPaused) {
+                isPaused = false;
+                playBtn.innerHTML = '<span>⏸</span> Pause';
+                return;
+            }
+
+            // If already animating, pause
+            if (isAnimating) {
+                isPaused = true;
+                playBtn.innerHTML = '<span>▶</span> Resume';
+                return;
+            }
+
+            // Start new animation
+            isAnimating = true;
+            isPaused = false;
+            playBtn.innerHTML = '<span>⏸</span> Pause';
+            stopBtn.style.display = 'flex';
+
+            const positions = [[0, 0], [0, 1], [1, 0], [1, 1]];
+
+            for (const [row, col] of positions) {
+                if (!isAnimating) break;
+
+                clearHighlightsForAnimation();
+                await sleep(400);
+                if (!isAnimating) break;
+
+                // Animate row highlight
+                const aCells = matrixAEl.querySelectorAll('.cell');
+                for (let i = 0; i < 3; i++) {
+                    if (!isAnimating) break;
+                    aCells[row * 3 + i].classList.add('highlight-row');
+                    await sleep(250);
+                }
+
+                if (!isAnimating) break;
+
+                // Animate column highlight
+                const atCells = matrixATEl.querySelectorAll('.cell');
+                for (let i = 0; i < 3; i++) {
+                    if (!isAnimating) break;
+                    atCells[i * 2 + col].classList.add('highlight-col');
+                    await sleep(250);
+                }
+
+                if (!isAnimating) break;
+
+                // Show calculation
+                showCalculation(row, col);
+
+                // Highlight result
+                await sleep(1000);
+                if (!isAnimating) break;
+
+                const resultCells = matrixResultEl.querySelectorAll('.cell');
+                resultCells[row * 2 + col].classList.add('highlight-result');
+
+                await sleep(2000);
+            }
+
+            clearHighlightsForAnimation();
+            isAnimating = false;
+            isPaused = false;
+            stopBtn.style.display = 'none';
+            playBtn.innerHTML = '<span>▶</span> Play Animation';
+            calculationFormula.innerHTML = 'Hover over a result cell to see the calculation';
+            calculationSteps.innerHTML = '';
+        });
+
+        function clearHighlightsForAnimation() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('highlight-row', 'highlight-col', 'highlight-result');
+            });
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => {
+                let elapsed = 0;
+                let startTime = Date.now();
+                let timeoutId = null;
+
+                function tick() {
+                    if (!isAnimating) {
+                        resolve();
+                        return;
+                    }
+
+                    if (isPaused) {
+                        // Store elapsed time and wait
+                        elapsed += Date.now() - startTime;
+                        requestAnimationFrame(tick);
+                    } else {
+                        // Resume or continue
+                        const remaining = ms - elapsed;
+                        if (remaining <= 0) {
+                            resolve();
+                        } else {
+                            startTime = Date.now();
+                            timeoutId = setTimeout(() => {
+                                if (isPaused) {
+                                    elapsed += Date.now() - startTime;
+                                    tick();
+                                } else {
+                                    resolve();
+                                }
+                            }, remaining);
+                        }
+                    }
+                }
+
+                tick();
+            });
+        }
+
+        // Transpose visualization
+        transposeBtn.addEventListener('click', () => {
+            transposeOverlay.classList.add('active');
+            animateTranspose();
+        });
+
+        function closeTranspose() {
+            transposeOverlay.classList.remove('active');
+        }
+
+        transposeOverlay.addEventListener('click', (e) => {
+            if (e.target === transposeOverlay) {
+                closeTranspose();
+            }
+        });
+
+        // Simple delay function for transpose animation (doesn't depend on isAnimating)
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function animateTranspose() {
+            const fromCells = document.querySelectorAll('#transposeFrom .cell');
+            const toCells = document.querySelectorAll('#transposeTo .cell');
+
+            // Reset opacity
+            toCells.forEach(cell => {
+                cell.style.opacity = '0';
+                cell.style.transform = 'scale(0.5)';
+            });
+
+            // Reset from cells background
+            fromCells.forEach(cell => {
+                cell.style.background = 'white';
+            });
+
+            await delay(500);
+
+            // Animate each cell appearing
+            for (let i = 0; i < A.length; i++) {
+                for (let j = 0; j < A[0].length; j++) {
+                    const fromIdx = i * 3 + j;
+                    const toIdx = j * 2 + i; // Transposed position
+
+                    fromCells[fromIdx].style.background = '#fed7aa';
+                    await delay(300);
+
+                    toCells[toIdx].style.transition = 'all 0.5s ease';
+                    toCells[toIdx].style.opacity = '1';
+                    toCells[toIdx].style.transform = 'scale(1)';
+
+                    await delay(300);
+                    fromCells[fromIdx].style.background = 'white';
+                }
+            }
+        }
+
+        // Initialize
+        init();
+    </script>
+</body>
+
+</html>
