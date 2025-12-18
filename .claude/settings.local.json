@@ -41,7 +41,8 @@
       "Bash(if [ -f index.html ])",
       "Bash(then mv index.html chapters-index.html)",
       "Bash(else echo \"File not found in source\")",
-      "Bash(fi:*)"
+      "Bash(fi:*)",
+      "Bash(cp:*)"
     ]
   }
 }
