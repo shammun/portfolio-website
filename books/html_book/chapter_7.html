@@ -173,6 +173,91 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 .highlight .s1 { color: var(--jp-mirror-editor-string-color) } /* Literal.String.Single */
 .highlight .ss { color: var(--jp-mirror-editor-string-color) } /* Literal.String.Symbol */
 .highlight .il { color: var(--jp-mirror-editor-number-color) } /* Literal.Number.Integer.Long */
+
+    /* Custom Header Styling */
+    .jp-MarkdownOutput h1 {
+      font-size: 2.5em !important;
+      font-weight: 700 !important;
+      color: #1a1a2e !important;
+      border-bottom: 3px solid #00d9ff !important;
+      padding-bottom: 0.5em !important;
+      margin-top: 1.5em !important;
+      margin-bottom: 1em !important;
+    }
+
+    .jp-MarkdownOutput h2 {
+      font-size: 2em !important;
+      font-weight: 700 !important;
+      color: #16213e !important;
+      border-bottom: 2px solid #4a90e2 !important;
+      padding-bottom: 0.4em !important;
+      margin-top: 1.5em !important;
+      margin-bottom: 0.8em !important;
+    }
+
+    .jp-MarkdownOutput h3 {
+      font-size: 1.5em !important;
+      font-weight: 600 !important;
+      color: #2c3e50 !important;
+      margin-top: 1.3em !important;
+      margin-bottom: 0.7em !important;
+      padding-left: 0.5em !important;
+      border-left: 4px solid #00d9ff !important;
+    }
+
+    .jp-MarkdownOutput h4 {
+      font-size: 1.3em !important;
+      font-weight: 600 !important;
+      color: #34495e !important;
+      margin-top: 1.2em !important;
+      margin-bottom: 0.6em !important;
+    }
+
+    .jp-MarkdownOutput h5 {
+      font-size: 1.1em !important;
+      font-weight: 600 !important;
+      color: #546e7a !important;
+      margin-top: 1em !important;
+      margin-bottom: 0.5em !important;
+      font-style: italic !important;
+    }
+
+    .jp-MarkdownOutput h6 {
+      font-size: 1em !important;
+      font-weight: 600 !important;
+      color: #607d8b !important;
+      margin-top: 0.8em !important;
+      margin-bottom: 0.4em !important;
+    }
+
+    /* Remove the anchor link ¶ symbol styling */
+    .jp-MarkdownOutput .anchor-link {
+      display: none !important;
+    }
+
+    /* Bold styling for strong tags */
+    .jp-MarkdownOutput strong {
+      font-weight: 700 !important;
+      color: #1a1a2e !important;
+    }
+
+    /* Improve paragraph spacing */
+    .jp-MarkdownOutput p {
+      margin-top: 0.8em !important;
+      margin-bottom: 0.8em !important;
+      line-height: 1.7 !important;
+    }
+
+    /* Code block styling */
+    .jp-MarkdownOutput code {
+      background-color: #f5f5f5 !important;
+      padding: 0.2em 0.4em !important;
+      border-radius: 3px !important;
+      font-family: 'Source Code Pro', monospace !important;
+      font-size: 0.9em !important;
+      color: #d73a49 !important;
+    }
+
   </style>
 <style type="text/css">
 /*-----------------------------------------------------------------------------
@@ -6860,6 +6945,99 @@ a.anchor-link {
 </style>
 </head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
+
+<!-- Interactive Table of Contents -->
+<div id="toc-container" style="position: fixed; top: 0; left: -320px; width: 320px; height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; overflow-y: auto; z-index: 10000; transition: left 0.3s ease; box-shadow: 4px 0 20px rgba(0,0,0,0.3);">
+    <div style="position: sticky; top: 0; background: rgba(0,0,0,0.2); padding: 20px; backdrop-filter: blur(10px);">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 600;">Instruction Fine-Tuning</h2>
+        <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Chapter 07</p>
+    </div>
+    <nav style="padding: 20px;">
+        <!-- Section 1: Introduction -->
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 10px;">Introduction</div>
+            <a href="#Introduction-to-Instruction-Fine-Tuning" style="display: block; color: white; text-decoration: none; padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='transparent'">Instruction Fine-Tuning Intro</a>
+        </div>
+        <!-- Section 2: Prompt Formatting -->
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 10px;">Prompt Formatting</div>
+            <a href="#Implementing-the-prompt-formatting-function" style="display: block; color: white; text-decoration: none; padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='transparent'">Prompt Formatting Function</a>
+        </div>
+        <!-- Section 3: Model Loading -->
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 10px;">Model Loading</div>
+            <a href="#Loading-a-pretrained-LLM" style="display: block; color: white; text-decoration: none; padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='transparent'">Loading Pretrained LLM</a>
+        </div>
+        <!-- Section 4: Fine-tuning -->
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 10px;">Fine-tuning</div>
+            <a href="#Fine-tuning-the-LLM-on-instruction-data" style="display: block; color: white; text-decoration: none; padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='transparent'">Fine-tuning on Instruction Data</a>
+        </div>
+        <!-- Section 5: Responses -->
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 10px;">Responses</div>
+            <a href="#Extracting-and-saving-responses" style="display: block; color: white; text-decoration: none; padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='transparent'">Extracting & Saving Responses</a>
+        </div>
+        <!-- Section 6: Evaluation -->
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 10px;">Evaluation</div>
+            <a href="#Evaluating-the-fine-tuned-LLM" style="display: block; color: white; text-decoration: none; padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='transparent'">Evaluating the Fine-tuned LLM</a>
+        </div>
+    </nav>
+</div>
+
+<!-- Overlay for mobile -->
+<div id="toc-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;"></div>
+
+<!-- TOC Toggle Button -->
+<button id="toc-toggle" style="position: fixed; top: 20px; left: 20px; z-index: 10001; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 25px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.5)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';">
+    ☰ Contents
+</button>
+
+<!-- TOC Styles and JavaScript -->
+<style>
+    #toc-container a:hover { background: rgba(255,255,255,0.15) !important; }
+    #toc-container::-webkit-scrollbar { width: 6px; }
+    #toc-container::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); }
+    #toc-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+    @media (max-width: 768px) {
+        #toc-toggle { top: 10px; left: 10px; padding: 10px 16px; font-size: 13px; }
+    }
+</style>
+<script>
+    (function() {
+        const tocContainer = document.getElementById('toc-container');
+        const tocToggle = document.getElementById('toc-toggle');
+        const tocOverlay = document.getElementById('toc-overlay');
+        let isOpen = false;
+
+        function toggleTOC() {
+            isOpen = !isOpen;
+            if (isOpen) {
+                tocContainer.style.left = '0';
+                tocOverlay.style.opacity = '1';
+                tocOverlay.style.pointerEvents = 'auto';
+            } else {
+                tocContainer.style.left = '-320px';
+                tocOverlay.style.opacity = '0';
+                tocOverlay.style.pointerEvents = 'none';
+            }
+        }
+
+        tocToggle.addEventListener('click', toggleTOC);
+        tocOverlay.addEventListener('click', toggleTOC);
+
+        tocContainer.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (isOpen) toggleTOC();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isOpen) toggleTOC();
+        });
+    })();
+</script>
 
 <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
             border-left: 4px solid #00d9ff; 
