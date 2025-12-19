@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Positional Embedding Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            min-height: 100vh;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .vector-box {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .highlight-add {
+            border: 2px solid #8b5cf6;
+            transform: scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.2);
+        }
+
+        input[type="range"] {
+            accent-color: #6366f1;
+        }
+
+        .animate-pulse-subtle {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .7;
+            }
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8 text-slate-800">
+
+    <div class="max-w-6xl mx-auto space-y-8">
+        <!-- Header -->
+        <header class="text-center space-y-3">
+            <div
+                class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold">
+                <span>Interactive Learning Module</span>
+            </div>
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Positional Embeddings Explorer</h1>
+            <p class="text-lg text-slate-500 max-w-2xl mx-auto">
+                Discover how Transformers gain a sense of sequence order by combining token data with location-specific
+                vectors.
+            </p>
+        </header>
+
+        <!-- Top Grid: Input & Concepts -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <section class="card p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            Input Sequence
+                        </h3>
+                    </div>
+
+                    <div id="token-container" class="flex flex-wrap gap-3 py-2">
+                        <!-- Tokens injected here -->
+                    </div>
+
+                    <div class="pt-4 flex flex-wrap items-center gap-3">
+                        <div class="flex-1 flex gap-2">
+                            <input type="text" id="custom-input" placeholder="Type words & press Enter..."
+                                class="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                            <button onclick="handleManualSubmit()"
+                                class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-xs font-bold transition-all">Add</button>
+                        </div>
+                        <div id="presets" class="flex gap-2">
+                            <!-- Presets injected here -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-orange-50 p-5 rounded-2xl border border-orange-100 shadow-sm">
+                    <h4 class="font-bold text-orange-800 text-sm mb-2 flex items-center gap-2">
+                        💡 Core Insight
+                    </h4>
+                    <p class="text-orange-900/70 text-sm leading-relaxed">
+                        In an LLM, the same word "cat" always starts with the same vector. We add a unique <b>Position
+                            Vector</b> so the model knows if the cat is the subject (Pos 0) or the object (Pos 5).
+                    </p>
+                </div>
+                <button id="demo-duplicate"
+                    class="w-full p-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-lg transition-all flex items-center justify-center gap-3 font-semibold text-sm">
+                    Demo: Same Word, Two Positions
+                </button>
+            </div>
+        </div>
+
+        <!-- Controls Bar -->
+        <div class="flex flex-col md:flex-row items-center gap-6 card p-4">
+            <div class="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto">
+                <button onclick="setMode('absolute')" id="btn-absolute"
+                    class="flex-1 px-6 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm">Absolute
+                    (GPT)</button>
+                <button onclick="setMode('relative')" id="btn-relative"
+                    class="flex-1 px-6 py-2 rounded-lg text-sm font-bold transition-all text-slate-500">Relative
+                    (Matrix)</button>
+            </div>
+
+            <div class="flex-1 flex flex-wrap items-center gap-6">
+                <div class="flex items-center gap-3">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Dim: <span id="dim-label">4</span></label>
+                    <input type="range" id="dim-slider" min="2" max="8" value="4" class="w-24">
+                </div>
+                <div class="ml-auto flex gap-2">
+                    <button onclick="randomize()"
+                        class="px-4 py-2 text-slate-600 hover:bg-slate-50 text-sm font-semibold rounded-lg flex items-center gap-2">
+                        ↺ Randomize
+                    </button>
+                    <button id="animate-btn" onclick="startAnimation()"
+                        class="px-6 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-sm font-bold flex items-center gap-2">
+                        ▶ Animate Addition
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main id="view-container" class="min-h-[500px]">
+            <!-- Content dynamically injected here -->
+        </main>
+
+        <!-- Educational Section -->
+        <section class="space-y-12 py-12 border-t border-slate-200">
+            <div class="max-w-4xl mx-auto space-y-8">
+                <h2 class="text-3xl font-bold text-slate-900 text-center">How were these designed?</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-bold text-indigo-600">1. Sinusoidal (The Original)</h3>
+                        <p class="text-slate-600 text-sm leading-relaxed">
+                            The original 2017 Transformer paper ("Attention Is All You Need") used fixed mathematical
+                            functions. They used <b>Sine</b> and <b>Cosine</b> waves of different frequencies.
+                        </p>
+                        <ul class="text-slate-600 text-sm space-y-2 list-disc pl-5">
+                            <li><b>Deterministic:</b> The model doesn't "learn" these; they are calculated once.</li>
+                            <li><b>Extrapolation:</b> Because it's based on continuous waves, the model could
+                                theoretically handle sequences longer than those seen in training.</li>
+                            <li><b>Distance:</b> Nearby positions have similar vectors, helping the model learn local
+                                relationships.</li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-bold text-orange-600">2. Learnable (Modern GPT)</h3>
+                        <p class="text-slate-600 text-sm leading-relaxed">
+                            Models like GPT-2, GPT-3, and GPT-4 typically use <b>Learnable Positional Embeddings</b>.
+                            Each position (0 to 2048+) is treated like a unique word in a dictionary.
+                        </p>
+                        <ul class="text-slate-600 text-sm space-y-2 list-disc pl-5">
+                            <li><b>Optimization:</b> The model adjusts these vectors during training to find the most
+                                efficient way to represent order.</li>
+                            <li><b>Simplicity:</b> It uses the exact same logic as the Word Embedding layer.</li>
+                            <li><b>Rigid:</b> The model cannot extrapolate to a position it hasn't seen (e.g., if
+                                trained on 1024 tokens, it doesn't know what position 1025 "looks like").</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card p-8 bg-slate-900 text-slate-100 space-y-4">
+                    <h3 class="text-xl font-bold border-b border-slate-700 pb-2">Mathematical View: The "Vocabulary of
+                        Indices"</h3>
+                    <p class="text-slate-300 leading-relaxed">
+                        In implementation, a Positional Embedding layer is simply a lookup table. If your context length
+                        is 512, your "vocabulary" is the set of integers <b>{0, 1, 2, ..., 511}</b>.
+                    </p>
+                    <div class="bg-slate-800 p-4 rounded font-mono text-sm overflow-x-auto text-indigo-300">
+                        // Every sequence shares the same positional vectors <br>
+                        Final_Vector[pos] = Word_Embedding[token] + Position_Embedding[pos]
+                    </div>
+                    <p class="text-slate-400 text-sm">
+                        This addition combines the "what" (semantic meaning) with the "where" (structural meaning) into
+                        a single point in high-dimensional space.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // --- State ---
+        let tokens = ["The", "cat", "sat", "on"];
+        let dim = 4;
+        let mode = 'absolute';
+        let animatingIndex = -1;
+        let isAnimating = false;
+        let tokenEmbeddings = [];
+        let posEmbeddings = [];
+
+        const PRESETS = [
+            ["The", "cat", "sat", "on"],
+            ["A", "B", "C", "D"],
+            ["Hello", "world", "!"],
+            ["I", "love", "AI"]
+        ];
+
+        // --- Logic ---
+        function generateVector(size) {
+            return Array.from({ length: size }, () => parseFloat((Math.random() * 2 - 1).toFixed(2)));
+        }
+
+        function initData() {
+            const tokenMap = new Map();
+            tokenEmbeddings = tokens.map(t => {
+                if (!tokenMap.has(t)) tokenMap.set(t, generateVector(dim));
+                return tokenMap.get(t);
+            });
+            posEmbeddings = tokens.map((_, i) => generateVector(dim));
+        }
+
+        function render() {
+            renderTokens();
+            renderPresets();
+            renderView();
+            document.getElementById('dim-label').innerText = dim;
+        }
+
+        function renderTokens() {
+            const container = document.getElementById('token-container');
+            container.innerHTML = tokens.map((t, i) => `
+                <div class="relative transition-all duration-300 ${animatingIndex === i ? 'scale-110' : ''}">
+                    <div class="px-4 py-3 rounded-lg border-2 font-medium ${animatingIndex === i ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-slate-200 text-slate-600'}">
+                        ${t}
+                    </div>
+                    <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        Pos ${i}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderPresets() {
+            const container = document.getElementById('presets');
+            container.innerHTML = PRESETS.map(p => `
+                <button onclick="setPreset(['${p.join("','")}'])" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium rounded-md transition-colors">
+                    ${p.join(' ')}
+                </button>
+            `).join('');
+        }
+
+        function renderView() {
+            const container = document.getElementById('view-container');
+            if (mode === 'absolute') {
+                container.innerHTML = `
+                    <div class="space-y-12 animate-in fade-in duration-500">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+                            <!-- Token Embs -->
+                            <div class="space-y-4">
+                                <h3 class="text-xs font-bold text-orange-600 uppercase tracking-widest flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-orange-500"></span> Token Embeddings (E)
+                                </h3>
+                                <div class="space-y-3">
+                                    ${tokens.map((t, i) => renderVectorRow(`E("${t}")`, tokenEmbeddings[i], 'orange', i)).join('')}
+                                </div>
+                            </div>
+                            <!-- Pos Embs -->
+                            <div class="space-y-4">
+                                <h3 class="text-xs font-bold text-teal-600 uppercase tracking-widest flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-teal-500"></span> Position Embeddings (P)
+                                </h3>
+                                <div class="space-y-3">
+                                    ${tokens.map((_, i) => renderVectorRow(`P(${i})`, posEmbeddings[i], 'teal', i)).join('')}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Result Section -->
+                        <div class="card p-8 space-y-6 shadow-xl border-indigo-100">
+                            <h3 class="text-xs font-bold text-indigo-600 uppercase tracking-widest flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span> Combined Representation (E + P)
+                            </h3>
+                            <div class="space-y-4">
+                                ${tokens.map((t, i) => {
+                    const combined = tokenEmbeddings[i].map((v, idx) => parseFloat((v + posEmbeddings[i][idx]).toFixed(2)));
+                    const isVisible = (!isAnimating || animatingIndex >= i);
+                    return `
+                                        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}">
+                                            <div class="w-24 font-bold text-indigo-900 text-xs bg-indigo-50 px-2 py-1 rounded text-center">${t}@${i}</div>
+                                            <div class="flex-1 w-full">${renderVector(combined, 'indigo', animatingIndex === i)}</div>
+                                        </div>
+                                    `;
+                }).join('')}
+                            </div>
+                            <div class="pt-6 border-t border-slate-50 flex justify-between text-[11px] text-slate-400 font-mono">
+                                <div>Vector Shape: [${tokens.length}, ${dim}]</div>
+                                <div>Computation: x[i] = Embedding(token_i) + PositionEmbedding(i)</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                renderRelative();
+            }
+        }
+
+        function renderVectorRow(label, vec, color, index) {
+            const isVisible = !isAnimating || animatingIndex === index;
+            return `
+                <div class="flex items-center gap-4 transition-all duration-500 ${isVisible ? 'opacity-100' : 'opacity-20'}">
+                    <div class="w-16 text-right font-bold text-slate-400 text-[10px] truncate">${label}</div>
+                    <div class="flex-1">${renderVector(vec, color, animatingIndex === index)}</div>
+                </div>
+            `;
+        }
+
+        function renderVector(vec, color, isHighlighted) {
+            const colors = {
+                orange: 'bg-orange-50 text-orange-700 border-orange-100',
+                teal: 'bg-teal-50 text-teal-700 border-teal-100',
+                indigo: 'bg-indigo-50 text-indigo-700 border-indigo-100'
+            };
+            return `
+                <div class="flex items-center gap-1 mono text-xs p-2 rounded border vector-box ${colors[color]} ${isHighlighted ? 'highlight-add' : ''}">
+                    <span class="opacity-30">[</span>
+                    ${vec.map(v => `<span class="flex-1 text-center min-w-[40px]">${v.toFixed(2)}</span>`).join('')}
+                    <span class="opacity-30">]</span>
+                </div>
+            `;
+        }
+
+        function renderRelative() {
+            const container = document.getElementById('view-container');
+            container.innerHTML = `
+                <div class="card bg-slate-900 text-white p-8 space-y-6 animate-in slide-in-from-bottom duration-500 overflow-hidden">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xl font-bold">Relative Distance Matrix</h3>
+                            <p class="text-slate-400 text-sm">Encodes the gap between tokens (Target_Pos - Source_Pos).</p>
+                        </div>
+                        <div class="text-[10px] font-bold text-indigo-400 border border-indigo-400/30 px-2 py-1 rounded uppercase tracking-widest">Generalization Boost</div>
+                    </div>
+                    <div class="overflow-x-auto rounded-xl border border-slate-800">
+                        <table class="w-full text-center border-collapse">
+                            <thead>
+                                <tr class="bg-slate-800/50">
+                                    <th class="p-4 border-b border-r border-slate-700 text-xs text-slate-500 uppercase">From \\ To</th>
+                                    ${tokens.map(t => `<th class="p-4 border-b border-slate-700 text-xs font-bold text-slate-400 uppercase">${t}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tokens.map((t_row, i) => `
+                                    <tr>
+                                        <th class="p-4 border-r border-slate-700 text-xs font-bold text-slate-400 uppercase">${t_row}</th>
+                                        ${tokens.map((_, j) => {
+                const d = j - i;
+                const color = d === 0 ? 'text-indigo-400' : d > 0 ? 'text-teal-400' : 'text-orange-400';
+                const bg = d === 0 ? 'bg-slate-800/20' : '';
+                return `<td class="p-6 border border-slate-800 text-lg mono font-bold ${color} ${bg}">${d > 0 ? '+' + d : d}</td>`;
+            }).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Event Handlers ---
+        async function startAnimation() {
+            if (isAnimating) return;
+
+            // Context switch: Animation makes sense in Absolute mode
+            if (mode !== 'absolute') {
+                setMode('absolute');
+            }
+
+            isAnimating = true;
+            document.getElementById('animate-btn').disabled = true;
+            document.getElementById('animate-btn').innerText = "Running...";
+
+            for (let i = 0; i < tokens.length; i++) {
+                animatingIndex = i;
+                render();
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            // When animation finishes, we reset the highlight but keep visibility
+            animatingIndex = -1;
+            isAnimating = false;
+            document.getElementById('animate-btn').disabled = false;
+            document.getElementById('animate-btn').innerText = "▶ Animate Addition";
+            render();
+        }
+
+        function setMode(m) {
+            mode = m;
+            document.getElementById('btn-absolute').className = mode === 'absolute' ? 'flex-1 px-6 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm' : 'flex-1 px-6 py-2 rounded-lg text-sm font-bold transition-all text-slate-500';
+            document.getElementById('btn-relative').className = mode === 'relative' ? 'flex-1 px-6 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm' : 'flex-1 px-6 py-2 rounded-lg text-sm font-bold transition-all text-slate-500';
+            render();
+        }
+
+        function setPreset(p) {
+            tokens = p;
+            initData();
+            render();
+        }
+
+        function randomize() {
+            initData();
+            render();
+        }
+
+        function handleManualSubmit() {
+            const input = document.getElementById('custom-input');
+            const val = input.value.trim();
+            if (val) {
+                tokens = val.split(/\s+/).slice(0, 8);
+                input.value = "";
+                initData();
+                render();
+            }
+        }
+
+        document.getElementById('dim-slider').oninput = (e) => {
+            dim = parseInt(e.target.value);
+            initData();
+            render();
+        };
+
+        document.getElementById('custom-input').onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                handleManualSubmit();
+            }
+        };
+
+        document.getElementById('demo-duplicate').onclick = () => {
+            tokens = ["The", "cat", "sat", "cat"];
+            initData();
+            render();
+            startAnimation();
+        };
+
+        // Initialize
+        initData();
+        render();
+
+    </script>
+</body>
+
+</html>

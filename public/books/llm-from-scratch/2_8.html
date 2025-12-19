@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Data Scanner: The Sliding Window</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --teal-past: #0d9488;
+            --teal-past-bg: #f0fdfa;
+            --orange-future: #ea580c;
+            --orange-future-bg: #fff7ed;
+            --slate-border: #e2e8f0;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: white;
+            border: 1px solid var(--slate-border);
+            border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .token-cell {
+            width: 85px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Multi-Level Scanner Container */
+        .scanner-track-container {
+            padding-top: 40px;
+            padding-bottom: 40px;
+            position: relative;
+        }
+
+        /* Input Scanner (Top Level) */
+        .scanner-window {
+            position: absolute;
+            top: 0px;
+            height: 50%;
+            background: rgba(99, 102, 241, 0.08);
+            border: 2px solid var(--primary);
+            border-bottom: none;
+            border-radius: 12px 12px 0 0;
+            z-index: 20;
+            pointer-events: none;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .scanner-window::after {
+            content: 'INPUT WINDOW (X)';
+            position: absolute;
+            top: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            font-weight: 900;
+            color: var(--primary);
+            white-space: nowrap;
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Target Scanner (Bottom Level) */
+        .target-window {
+            position: absolute;
+            bottom: 0px;
+            height: 50%;
+            background: rgba(234, 88, 12, 0.08);
+            border: 2px solid var(--orange-future);
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            z-index: 15;
+            pointer-events: none;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .target-window::after {
+            content: 'TARGET WINDOW (Y)';
+            position: absolute;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            font-weight: 900;
+            color: var(--orange-future);
+            white-space: nowrap;
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .token-past {
+            background-color: var(--teal-past-bg) !important;
+            border-color: var(--teal-past) !important;
+            color: var(--teal-past) !important;
+        }
+
+        .token-future {
+            background-color: var(--orange-future-bg) !important;
+            border-color: var(--orange-future) !important;
+            color: var(--orange-future) !important;
+        }
+
+        .batch-active {
+            border-left: 4px solid var(--primary);
+            background: #f8fafc;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            z-index: 10;
+        }
+
+        .custom-range {
+            accent-color: var(--primary);
+        }
+
+        .step-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        @keyframes pulse-sync {
+            0% {
+                transform: scale(1);
+                border-color: var(--primary);
+            }
+
+            50% {
+                transform: scale(1.05);
+                border-color: #818cf8;
+            }
+
+            100% {
+                transform: scale(1);
+                border-color: var(--primary);
+            }
+        }
+
+        .batch-active.syncing {
+            animation: pulse-sync 0.5s ease-in-out;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .animate-pop {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-200">
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight">LLM Data Scanner</h1>
+                <p class="text-sm text-slate-500 font-medium">Visualizing how text is converted into training pairs (X,
+                    Y).</p>
+            </div>
+            <div class="flex gap-2 mb-1">
+                <button onclick="animator.setScenario('dense')"
+                    class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10px] font-bold hover:bg-slate-50 transition-colors uppercase">Dense
+                    Stride</button>
+                <button onclick="animator.setScenario('unique')"
+                    class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10px] font-bold hover:bg-slate-50 transition-colors uppercase">Unique
+                    Windows</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- MAIN FLOW -->
+            <div class="lg:col-span-8 space-y-6">
+
+                <!-- INPUT EDITOR -->
+                <section class="glass-card p-6">
+                    <span class="step-label flex items-center gap-2 mb-4">
+                        <span
+                            class="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">0</span>
+                        Input Source Text
+                    </span>
+                    <div class="relative">
+                        <textarea id="user-input" rows="2"
+                            class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none"
+                            placeholder="Type or paste your text here to see it scanned...">I HAD always thought Jack G is rather a cheap genius -- though a good fellow enough.</textarea>
+                        <button id="btn-update-text"
+                            class="absolute bottom-3 right-3 px-4 py-2 bg-slate-900 text-white text-[10px] font-black rounded-lg hover:bg-slate-800 transition-colors uppercase tracking-widest shadow-sm">
+                            Update Tokens
+                        </button>
+                    </div>
+                </section>
+
+                <!-- STEP 1: THE SCANNER -->
+                <section class="glass-card p-6 overflow-hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="step-label flex items-center gap-2">
+                            <span
+                                class="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">1</span>
+                            Dual-Level Scanner
+                        </span>
+                        <div class="flex items-center gap-4">
+                            <span id="stat-overlap"
+                                class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase">Overlap:
+                                75%</span>
+                            <span id="pos-indicator"
+                                class="text-xs font-mono font-bold text-slate-400 tracking-tighter">OFFSET: 0</span>
+                        </div>
+                    </div>
+
+                    <div class="relative overflow-x-auto pb-8 custom-scrollbar scroll-smooth" id="sequence-viewport">
+                        <div class="scanner-track-container" id="scanner-track">
+                            <div class="flex gap-3 p-4 relative" id="token-row" style="min-width: max-content;">
+                                <div id="scanner-window" class="scanner-window"></div>
+                                <div id="target-window" class="target-window"></div>
+                                <!-- Tokens injected here -->
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-2 text-center italic">The Purple Window (X) is the input;
+                        the Orange Window (Y) is the label the model must predict.</p>
+                </section>
+
+                <!-- STEP 3: THE ARCHIVE -->
+                <section class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="step-label flex items-center gap-2">
+                            <span
+                                class="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">3</span>
+                            Dataset Archive (Live Sync)
+                        </span>
+                        <span id="batch-count"
+                            class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">0 Samples</span>
+                    </div>
+
+                    <div id="batch-list"
+                        class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar scroll-smooth p-2 min-h-[140px]">
+                    </div>
+                </section>
+
+                <!-- STEP 2: EXTRACTION DETAIL -->
+                <section class="glass-card p-6">
+                    <span class="step-label flex items-center gap-2 mb-6">
+                        <span
+                            class="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">2</span>
+                        Current Sample Data
+                    </span>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+                        <div class="space-y-3">
+                            <span
+                                class="text-[10px] font-black text-teal-700 uppercase tracking-wider flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span> Input (X)
+                            </span>
+                            <div id="input-pair" class="flex gap-2 min-h-[60px] flex-wrap md:flex-nowrap"></div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <span
+                                class="text-[10px] font-black text-orange-700 uppercase tracking-wider flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span> Target (Y)
+                            </span>
+                            <div id="target-pair" class="flex gap-2 min-h-[60px] flex-wrap md:flex-nowrap"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- SIDEBAR: CONFIG & INSIGHTS -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Controls -->
+                <section class="glass-card p-6 space-y-6 sticky top-8">
+                    <h3 class="step-label">Configuration</h3>
+
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-end">
+                            <label class="text-xs font-bold">Context Size</label>
+                            <span id="ctx-val" class="text-xl font-black text-indigo-600">4</span>
+                        </div>
+                        <input type="range" id="ctx-slider" min="1" max="12" value="4" class="w-full custom-range">
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-end">
+                            <label class="text-xs font-bold">Stride</label>
+                            <span id="stride-val" class="text-xl font-black text-indigo-600">1</span>
+                        </div>
+                        <input type="range" id="stride-slider" min="1" max="12" value="1" class="w-full custom-range">
+                    </div>
+
+                    <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                        <div class="flex gap-2">
+                            <button id="btn-reset"
+                                class="w-9 h-9 flex items-center justify-center bg-slate-50 rounded-full hover:bg-slate-100 transition-colors"
+                                title="Reset to Start">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                            <button id="btn-prev"
+                                class="w-9 h-9 flex items-center justify-center bg-slate-50 rounded-full hover:bg-slate-100 transition-colors"
+                                title="Previous Step">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M15 19l-7-7 7-7" stroke-width="2.5" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <button id="btn-play"
+                            class="w-12 h-12 flex items-center justify-center bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-95">
+                            <svg id="play-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                            </svg>
+                            <svg id="pause-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                            </svg>
+                        </button>
+
+                        <div class="flex gap-2">
+                            <button id="btn-next"
+                                class="w-9 h-9 flex items-center justify-center bg-slate-50 rounded-full hover:bg-slate-100 transition-colors"
+                                title="Next Step">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 5l7 7-7 7" stroke-width="2.5" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                            <select id="speed-select"
+                                class="text-[9px] font-black bg-slate-50 rounded-full px-2 h-9 border-none cursor-pointer uppercase tracking-tighter">
+                                <option value="0.5">0.5x</option>
+                                <option value="1" selected>1.0x</option>
+                                <option value="2">2.0x</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-slate-100">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3">System
+                            Note</span>
+                        <div class="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100/50">
+                            <p id="dynamic-insight" class="text-xs text-indigo-900 leading-relaxed font-medium italic">
+                                Scanning...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class LevelAnimator {
+            constructor(textInput) {
+                this.tokens = [];
+                this.ctx = 4;
+                this.stride = 1;
+                this.currentIdx = 0;
+                this.isPlaying = false;
+                this.timer = null;
+                this.speed = 1;
+
+                this.dom = {
+                    row: document.getElementById('token-row'),
+                    window: document.getElementById('scanner-window'),
+                    targetWindow: document.getElementById('target-window'),
+                    input: document.getElementById('input-pair'),
+                    target: document.getElementById('target-pair'),
+                    batchList: document.getElementById('batch-list'),
+                    ctxSlider: document.getElementById('ctx-slider'),
+                    strideSlider: document.getElementById('stride-slider'),
+                    ctxVal: document.getElementById('ctx-val'),
+                    strideVal: document.getElementById('stride-val'),
+                    insight: document.getElementById('dynamic-insight'),
+                    overlap: document.getElementById('stat-overlap'),
+                    batchCount: document.getElementById('batch-count'),
+                    pos: document.getElementById('pos-indicator'),
+                    playIcon: document.getElementById('play-icon'),
+                    pauseIcon: document.getElementById('pause-icon'),
+                    viewport: document.getElementById('sequence-viewport'),
+                    userInput: document.getElementById('user-input')
+                };
+
+                this.initControls();
+                this.updateText(textInput);
+            }
+
+            initControls() {
+                this.dom.ctxSlider.oninput = (e) => {
+                    this.ctx = parseInt(e.target.value);
+                    this.dom.strideSlider.max = this.ctx;
+                    if (this.stride > this.ctx) {
+                        this.stride = this.ctx;
+                        this.dom.strideSlider.value = this.stride;
+                    }
+                    this.reset();
+                };
+
+                this.dom.strideSlider.oninput = (e) => {
+                    this.stride = parseInt(e.target.value);
+                    this.reset();
+                };
+
+                document.getElementById('btn-play').onclick = () => this.togglePlay();
+                document.getElementById('btn-next').onclick = () => this.next();
+                document.getElementById('btn-prev').onclick = () => this.prev();
+                document.getElementById('btn-reset').onclick = () => this.reset();
+                document.getElementById('btn-update-text').onclick = () => this.updateText(this.dom.userInput.value);
+
+                document.getElementById('speed-select').onchange = (e) => {
+                    this.speed = parseFloat(e.target.value);
+                    if (this.isPlaying) { this.stopTimer(); this.startTimer(); }
+                };
+            }
+
+            updateText(text) {
+                this.stopTimer();
+                this.isPlaying = false;
+                this.dom.playIcon.classList.remove('hidden');
+                this.dom.pauseIcon.classList.add('hidden');
+
+                // Basic Tokenizer
+                const words = text.match(/(\w+|[^\w\s])/g) || [];
+                this.tokens = words.map((w, i) => ({
+                    id: Math.floor(Math.random() * 10000) + 100, // Simulated token IDs
+                    text: w
+                }));
+
+                // Reset Row UI
+                const windows = document.querySelectorAll('.token-cell');
+                windows.forEach(w => w.remove());
+
+                this.tokens.forEach((t, i) => {
+                    const el = document.createElement('div');
+                    el.className = 'token-cell h-14 flex flex-col items-center justify-center bg-white border border-slate-200 rounded-xl shadow-sm relative shrink-0 z-10';
+                    el.innerHTML = `
+                        <span class="text-[8px] font-black text-slate-300 absolute top-1 left-2">${t.id}</span>
+                        <span class="text-xs font-bold text-slate-700">${t.text}</span>
+                    `;
+                    el.id = `token-main-${i}`;
+                    this.dom.row.appendChild(el);
+                });
+
+                // Update constraints
+                const maxAllowedCtx = Math.max(1, this.tokens.length - 1);
+                this.dom.ctxSlider.max = Math.min(12, maxAllowedCtx);
+                if (this.ctx > maxAllowedCtx) {
+                    this.ctx = maxAllowedCtx;
+                    this.dom.ctxSlider.value = this.ctx;
+                }
+
+                this.reset();
+            }
+
+            get maxWindows() {
+                if (this.tokens.length <= this.ctx) return 0;
+                return Math.floor((this.tokens.length - this.ctx - 1) / this.stride) + 1;
+            }
+
+            setScenario(type) {
+                if (type === 'dense') { this.ctx = 4; this.stride = 1; }
+                else { this.ctx = 4; this.stride = 4; }
+                this.dom.ctxSlider.value = this.ctx;
+                this.dom.strideSlider.value = this.stride;
+                this.reset();
+            }
+
+            togglePlay() {
+                if (this.maxWindows === 0) return;
+                this.isPlaying = !this.isPlaying;
+                this.dom.playIcon.classList.toggle('hidden', this.isPlaying);
+                this.dom.pauseIcon.classList.toggle('hidden', !this.isPlaying);
+                this.isPlaying ? this.startTimer() : this.stopTimer();
+            }
+
+            startTimer() {
+                this.timer = setInterval(() => {
+                    if (!this.next()) this.togglePlay();
+                }, 1500 / this.speed);
+            }
+
+            stopTimer() { clearInterval(this.timer); }
+
+            next() {
+                if (this.currentIdx < this.maxWindows - 1) {
+                    this.currentIdx++;
+                    this.render(true);
+                    return true;
+                }
+                return false;
+            }
+
+            prev() {
+                if (this.currentIdx > 0) {
+                    this.currentIdx--;
+                    this.render(true);
+                }
+            }
+
+            reset() {
+                this.currentIdx = 0;
+                this.render();
+            }
+
+            render(isSyncing = false) {
+                const start = this.currentIdx * this.stride;
+                const end = start + this.ctx;
+
+                this.dom.ctxVal.innerText = this.ctx;
+                this.dom.strideVal.innerText = this.stride;
+                this.dom.pos.innerText = `OFFSET: ${start}`;
+                this.dom.batchCount.innerText = `${this.maxWindows} Samples Found`;
+
+                const overlapPerc = Math.round(((this.ctx - this.stride) / this.ctx) * 100);
+                this.dom.overlap.innerText = `Overlap: ${Math.max(0, overlapPerc)}%`;
+
+                if (this.maxWindows === 0) {
+                    this.dom.window.style.opacity = '0';
+                    this.dom.targetWindow.style.opacity = '0';
+                    this.dom.insight.innerText = "Text is too short for current context size. Reduce 'Context Size' or add more text.";
+                    this.dom.batchList.innerHTML = '<div class="text-[10px] font-bold text-slate-300 uppercase p-4 italic">Waiting for enough data...</div>';
+                    return;
+                } else {
+                    this.dom.window.style.opacity = '1';
+                    this.dom.targetWindow.style.opacity = '1';
+                }
+
+                // Update Input Window (Top Level)
+                const firstX = document.getElementById(`token-main-${start}`);
+                const lastX = document.getElementById(`token-main-${end - 1}`);
+                if (firstX && lastX) {
+                    this.dom.window.style.left = `${firstX.offsetLeft - 3}px`;
+                    this.dom.window.style.width = `${(lastX.offsetLeft + lastX.offsetWidth) - firstX.offsetLeft + 6}px`;
+                }
+
+                // Update Target Window (Bottom Level)
+                const firstY = document.getElementById(`token-main-${start + 1}`);
+                const lastY = document.getElementById(`token-main-${end}`);
+                if (firstY && lastY) {
+                    this.dom.targetWindow.style.left = `${firstY.offsetLeft - 3}px`;
+                    this.dom.targetWindow.style.width = `${(lastY.offsetLeft + lastY.offsetWidth) - firstY.offsetLeft + 6}px`;
+                    this.dom.viewport.scrollTo({ left: firstX.offsetLeft - 100, behavior: 'smooth' });
+                }
+
+                this.tokens.forEach((_, i) => {
+                    const el = document.getElementById(`token-main-${i}`);
+                    if (!el) return;
+                    el.classList.remove('token-past', 'token-future');
+                    if (i >= start && i < end) el.classList.add('token-past');
+                    if (i >= start + 1 && i <= end) el.classList.add('token-future');
+                });
+
+                this.updatePairDisplay(start, end);
+                this.updateInsights(overlapPerc);
+                this.updateBatchList(isSyncing);
+            }
+
+            updatePairDisplay(start, end) {
+                this.dom.input.innerHTML = '';
+                this.dom.target.innerHTML = '';
+
+                const createT = (t, color) => {
+                    const div = document.createElement('div');
+                    div.className = `w-16 h-12 rounded-lg border flex flex-col items-center justify-center animate-pop bg-${color}-50 border-${color}-200 text-${color}-700`;
+                    div.innerHTML = `<span class="text-[8px] font-black opacity-40">${t.id}</span><span class="text-[10px] font-bold">${t.text}</span>`;
+                    return div;
+                };
+
+                this.tokens.slice(start, end).forEach(t => this.dom.input.appendChild(createT(t, 'teal')));
+                this.tokens.slice(start + 1, end + 1).forEach(t => this.dom.target.appendChild(createT(t, 'orange')));
+            }
+
+            updateInsights(overlap) {
+                let msg = "";
+                if (overlap >= 75) msg = "Dense repetition helps the model learn word relationships deeply across many contexts.";
+                else if (overlap <= 0) msg = "Sparse sampling maximizes data variety, covering text quickly without redundancy.";
+                else msg = "Standard overlap provides a balanced mix of redundancy and variety.";
+                this.dom.insight.innerText = msg;
+            }
+
+            updateBatchList(isSyncing) {
+                const total = this.maxWindows;
+                if (this.dom.batchList.children.length !== total) {
+                    this.dom.batchList.innerHTML = '';
+                    for (let i = 0; i < total; i++) {
+                        const b = document.createElement('div');
+                        b.className = `min-w-[180px] p-3 rounded-xl border border-slate-100 flex-shrink-0 transition-all cursor-pointer`;
+                        b.id = `batch-card-${i}`;
+                        b.onclick = () => { this.currentIdx = i; this.render(); };
+                        this.dom.batchList.appendChild(b);
+                    }
+                }
+
+                for (let i = 0; i < total; i++) {
+                    const b = document.getElementById(`batch-card-${i}`);
+                    if (!b) continue;
+                    const isActive = i === this.currentIdx;
+                    b.classList.toggle('batch-active', isActive);
+                    b.classList.toggle('syncing', isActive && isSyncing);
+
+                    const start = i * this.stride;
+                    const end = start + this.ctx;
+                    const x = this.tokens.slice(start, end).map(t => t.id).join(',');
+                    const y = this.tokens.slice(start + 1, end + 1).map(t => t.id).join(',');
+
+                    b.innerHTML = `
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] font-black text-slate-400">SAMPLE #${i}</span>
+                            ${isActive ? '<span class="text-[8px] font-black text-indigo-500 uppercase tracking-tighter">Syncing...</span>' : ''}
+                        </div>
+                        <div class="space-y-1 font-mono text-[9px]">
+                            <div class="text-teal-600 truncate">X: [${x}]</div>
+                            <div class="text-orange-600 truncate">Y: [${y}]</div>
+                        </div>
+                    `;
+
+                    if (isActive && isSyncing) {
+                        b.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                }
+            }
+        }
+
+        let animator;
+        window.onload = () => {
+            const defaultText = document.getElementById('user-input').value;
+            animator = new LevelAnimator(defaultText);
+        };
+    </script>
+</body>
+
+</html>

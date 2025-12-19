@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The 3 Stages of Building an LLM</title>
+    <style>
+        :root {
+            /* Design System Colors */
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f5f7ff;
+            --text-heading: #1e293b;
+            --text-body: #64748b;
+            --card-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.12), 0 8px 10px -6px rgba(99, 102, 241, 0.12);
+
+            /* Stage 1: Input/Warm */
+            --s1-bg: #fef3c7;
+            --s1-primary: #f97316;
+            --s1-dark: #c2410c;
+
+            /* Stage 2: Process/Purple */
+            --s2-bg: #ede9fe;
+            --s2-primary: #a78bfa;
+            --s2-dark: #8b5cf6;
+
+            /* Stage 3: Output/Cool */
+            --s3-bg: #ecfdf5;
+            --s3-primary: #14b8a6;
+            --s3-dark: #0d9488;
+
+            --transition-speed: 0.4s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-body);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            padding: 40px 20px;
+        }
+
+        .math {
+            font-family: Georgia, serif;
+            font-style: italic;
+            color: var(--text-heading);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            z-index: 10;
+        }
+
+        header h1 {
+            color: var(--text-heading);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 800;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Canvas Background */
+        #flow-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Flowchart Container */
+        .flow-container {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 40px;
+            width: 100%;
+            max-width: 1200px;
+            z-index: 10;
+            position: relative;
+        }
+
+        /* Stage Cards */
+        .stage-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            flex: 1;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: transform var(--transition-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                box-shadow var(--transition-speed) ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 380px;
+        }
+
+        .stage-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.2);
+        }
+
+        .stage-card.active {
+            border: 2px solid var(--active-color);
+        }
+
+        .stage-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .stage-number {
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            color: var(--stage-color);
+        }
+
+        .stage-title {
+            color: var(--text-heading);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .stage-desc {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* Key Components (Initially hidden or subtle) */
+        .components-list {
+            margin-top: auto;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 20px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .stage-card:hover .components-list {
+            opacity: 1;
+        }
+
+        .component-tag {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 4px;
+            background: var(--tag-bg);
+            color: var(--tag-color);
+        }
+
+        /* Arrows */
+        .connector {
+            display: flex;
+            align-items: center;
+            height: 380px;
+            padding-top: 50px;
+        }
+
+        .arrow {
+            width: 40px;
+            height: 2px;
+            background: #cbd5e1;
+            position: relative;
+        }
+
+        .arrow::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -4px;
+            width: 10px;
+            height: 10px;
+            border-top: 2px solid #cbd5e1;
+            border-right: 2px solid #cbd5e1;
+            transform: rotate(45deg);
+        }
+
+        /* Specific Stage Coloring */
+        .stage-1 {
+            --stage-color: var(--s1-primary);
+            --tag-bg: var(--s1-bg);
+            --tag-color: var(--s1-dark);
+            --active-color: var(--s1-primary);
+        }
+
+        .stage-2 {
+            --stage-color: var(--s2-primary);
+            --tag-bg: var(--s2-bg);
+            --tag-color: var(--s2-dark);
+            --active-color: var(--s2-primary);
+        }
+
+        .stage-3 {
+            --stage-color: var(--s3-primary);
+            --tag-bg: var(--s3-bg);
+            --tag-color: var(--s3-dark);
+            --active-color: var(--s3-primary);
+        }
+
+        /* Modal / Detail View */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 600px;
+            padding: 40px;
+            border-radius: 24px;
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-overlay.open .modal-content {
+            transform: scale(1);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #f1f5f9;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #64748b;
+        }
+
+        .detail-pathway {
+            margin-top: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .path-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .step-icon {
+            font-size: 20px;
+        }
+
+        .step-text {
+            font-weight: 500;
+            color: var(--text-heading);
+        }
+
+        /* Responsive */
+        @media (max-width: 1000px) {
+            .flow-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 30px;
+            }
+
+            .connector {
+                height: 40px;
+                padding-top: 0;
+                transform: rotate(90deg);
+            }
+
+            .stage-card {
+                width: 100%;
+                max-width: 500px;
+                min-height: auto;
+            }
+        }
+
+        /* Metaphor Icons (SVG) */
+        .metaphor-svg {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="flow-canvas"></canvas>
+
+    <header>
+        <h1>3 Stages of Building an LLM</h1>
+        <p>A breakdown of the lifecycle from raw text data to a specialized intelligent assistant.</p>
+    </header>
+
+    <main class="flow-container">
+        <!-- STAGE 1 -->
+        <div class="stage-card stage-1" onclick="openModal(1)">
+            <div class="stage-icon" style="background: var(--s1-bg);">
+                <!-- Blueprint Icon -->
+                <svg class="metaphor-svg" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+            </div>
+            <div class="stage-number">Stage 1</div>
+            <h2 class="stage-title">Building the LLM</h2>
+            <p class="stage-desc">The architectural phase where we define the skeleton, logic, and computational rules
+                that govern how the model processes information.</p>
+
+            <div class="components-list">
+                <span class="component-tag">Preprocessing</span>
+                <span class="component-tag">Attention Mechanism</span>
+                <span class="component-tag">Transformer Architecture</span>
+            </div>
+        </div>
+
+        <div class="connector">
+            <div class="arrow"></div>
+        </div>
+
+        <!-- STAGE 2 -->
+        <div class="stage-card stage-2" onclick="openModal(2)">
+            <div class="stage-icon" style="background: var(--s2-bg);">
+                <!-- Neural Network/Brain Icon -->
+                <svg class="metaphor-svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a10 10 0 1 0 10 10H12V2z"></path>
+                    <path d="M12 12L2.1 14.9"></path>
+                    <path d="M12 12l9.9 2.9"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </div>
+            <div class="stage-number">Stage 2</div>
+            <h2 class="stage-title">Pretraining</h2>
+            <p class="stage-desc">A massive computational effort where the model digests vast amounts of unlabeled text
+                to learn the fundamental patterns of human language.</p>
+
+            <div class="components-list">
+                <span class="component-tag">Unlabeled Data</span>
+                <span class="component-tag">Next-Token Prediction</span>
+                <span class="component-tag">Foundation Model</span>
+            </div>
+        </div>
+
+        <div class="connector">
+            <div class="arrow"></div>
+        </div>
+
+        <!-- STAGE 3 -->
+        <div class="stage-card stage-3" onclick="openModal(3)">
+            <div class="stage-icon" style="background: var(--s3-bg);">
+                <!-- Bot Icon -->
+                <svg class="metaphor-svg" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                    <circle cx="12" cy="5" r="2"></circle>
+                    <path d="M12 7v4"></path>
+                    <line x1="8" y1="16" x2="8" y2="16"></line>
+                    <line x1="16" y1="16" x2="16" y2="16"></line>
+                </svg>
+            </div>
+            <div class="stage-number">Stage 3</div>
+            <h2 class="stage-title">Fine-Tuning</h2>
+            <p class="stage-desc">Polishing the raw knowledge into a specialized tool. This stage teaches the model to
+                follow instructions and act as a helpful assistant.</p>
+
+            <div class="components-list">
+                <span class="component-tag">Instruct Tuning</span>
+                <span class="component-tag">RLHF</span>
+                <span class="component-tag">Chat Interface</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Details -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+            <div id="modalBody">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA PARTICLES ANIMATION ---
+        const canvas = document.getElementById('flow-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        const particleCount = 40;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.x = Math.random() * -100;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speed = Math.random() * 2 + 1;
+                this.alpha = Math.random() * 0.5 + 0.1;
+                this.color = ['#f97316', '#a78bfa', '#14b8a6'][Math.floor(Math.random() * 3)];
+            }
+
+            update() {
+                this.x += this.speed;
+                // Add a slight wave motion
+                this.y += Math.sin(this.x * 0.01) * 0.5;
+
+                if (this.x > canvas.width + 20) {
+                    this.init();
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.alpha;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+            // Pre-warm the positions
+            particles[i].x = Math.random() * canvas.width;
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        // --- INTERACTIVITY LOGIC ---
+        const stageData = {
+            1: {
+                title: "Stage 1: Building the LLM",
+                desc: "This stage is all about defining the 'brain' before any learning happens. You create the mathematical structures needed to process language.",
+                accent: "#f97316",
+                steps: [
+                    { icon: "🛠️", text: "Data Preprocessing & Sampling: Turning raw text into tokens." },
+                    { icon: "🧠", text: "Attention Mechanism: The $Self-Attention$ logic that allows models to 'weigh' word importance." },
+                    { icon: "🏗️", text: "LLM Architecture: Layering encoders and decoders to form a deep transformer." }
+                ],
+                metaphor: "Imagine drawing the blueprints for a massive library before buying a single book."
+            },
+            2: {
+                title: "Stage 2: Pretraining",
+                desc: "The most resource-intensive phase. The model reads nearly the entire internet to build a statistical map of human language.",
+                accent: "#8b5cf6",
+                steps: [
+                    { icon: "📚", text: "Unlabeled Data: Massive crawls from Wikipedia, GitHub, and the web." },
+                    { icon: "⚡", text: "Pretraining Process: Learning to predict the next word in a sequence." },
+                    { icon: "🏛️", text: "Foundation Model: The resulting base model (like GPT-4 base or Llama 3 base)." }
+                ],
+                metaphor: "The brain is lighting up! Millions of neurons are connecting to understand grammar and facts."
+            },
+            3: {
+                title: "Stage 3: Fine-Tuning",
+                desc: "Transforming the raw knowledge into a useful tool. We narrow the model's focus and align it with human preferences.",
+                accent: "#14b8a6",
+                steps: [
+                    { icon: "🎯", text: "Foundation Model: Starting with the pre-learned knowledge." },
+                    { icon: "🧪", text: "Fine-Tuning: Training on specific Q&A pairs or conversational data." },
+                    { icon: "🤖", text: "Task-Specific Model: The final product (e.g., a Coding Assistant or Medical Bot)." }
+                ],
+                metaphor: "Giving the librarian a specialized uniform and teaching them exactly how to answer patrons' questions."
+            }
+        };
+
+        function openModal(stageId) {
+            const data = stageData[stageId];
+            const modalBody = document.getElementById('modalBody');
+            const overlay = document.getElementById('modalOverlay');
+
+            modalBody.innerHTML = `
+                <div class="stage-number" style="color: ${data.accent}">Deep Dive</div>
+                <h2 class="stage-title" style="margin-bottom: 20px;">${data.title}</h2>
+                <p style="margin-bottom: 25px; line-height: 1.6;">${data.desc}</p>
+                <div class="detail-pathway">
+                    ${data.steps.map(step => `
+                        <div class="path-step" style="border-left-color: ${data.accent}">
+                            <span class="step-icon">${step.icon}</span>
+                            <span class="step-text">${step.text}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="margin-top: 30px; font-style: italic; color: #64748b; font-size: 0.9rem; padding: 15px; background: #f1f5f9; border-radius: 8px;">
+                    <strong>Visual Metaphor:</strong> ${data.metaphor}
+                </div>
+            `;
+
+            overlay.classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('open');
+        }
+
+        // Close on ESC key
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Initialize animation
+        window.onload = animate;
+    </script>
+</body>
+
+</html>

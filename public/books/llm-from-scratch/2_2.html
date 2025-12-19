@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: Word Embedding Space Explorer</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+
+            --color-birds: #f97316;
+            --color-places: #0d9488;
+            --color-adj: #8b5cf6;
+            --color-fruits: #ec4899;
+            --color-outlier: #475569;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar Style */
+        #sidebar {
+            width: 400px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+        }
+
+        .sidebar-header {
+            padding: 32px 24px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #e0e7ff;
+            color: var(--primary);
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .content-area {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .explainer-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-main);
+            margin-bottom: 12px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .insight-panel {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 0.9rem;
+        }
+
+        .math-block {
+            font-family: "Courier New", monospace;
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            overflow-x: auto;
+        }
+
+        /* Canvas Area */
+        #main-view {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+
+        .ui-hints {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            pointer-events: none;
+        }
+
+        #tooltip {
+            position: fixed;
+            background: #0f172a;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .cluster-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <span class="badge">LLM Concepts</span>
+            <h1>Word Embeddings</h1>
+            <p class="explainer-text">
+                In natural language processing, words are represented as vectors in a multi-dimensional space. Words
+                with similar meanings appear closer together.
+            </p>
+        </div>
+
+        <div class="content-area">
+            <div class="card">
+                <h3>Find a Word</h3>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search (e.g. 'eagle', 'Paris')...">
+                </div>
+                <div class="cluster-legend">
+                    <div class="legend-item">
+                        <div class="swatch" style="background: var(--color-birds)"></div> Birds (Avian Cluster)
+                    </div>
+                    <div class="legend-item">
+                        <div class="swatch" style="background: var(--color-fruits)"></div> Fruits (Edible Cluster)
+                    </div>
+                    <div class="legend-item">
+                        <div class="swatch" style="background: var(--color-places)"></div> Locations (Geopolitical
+                        Entities)
+                    </div>
+                    <div class="legend-item">
+                        <div class="swatch" style="background: var(--color-adj)"></div> Comparatives (Adjectives)
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-panel" id="insightPanel">
+                <h3 id="insightTitle">Getting Started</h3>
+                <p id="insightDesc" style="color: var(--text-muted); line-height: 1.5;">
+                    Hover over a point to see its vector coordinates. Click two points to calculate their semantic
+                    distance.
+                </p>
+                <div id="mathContainer" style="display: none;">
+                    <div class="math-block" id="mathFormula"></div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main id="main-view">
+        <div id="canvas-container">
+            <canvas id="spaceCanvas"></canvas>
+        </div>
+        <div class="ui-hints">
+            Drag to Navigate • Scroll to Zoom • Click Points to Compare
+        </div>
+        <div id="tooltip"></div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('spaceCanvas');
+        const ctx = canvas.getContext('2d');
+        const searchInput = document.getElementById('searchInput');
+        const insightTitle = document.getElementById('insightTitle');
+        const insightDesc = document.getElementById('insightDesc');
+        const mathContainer = document.getElementById('mathContainer');
+        const mathFormula = document.getElementById('mathFormula');
+        const tooltip = document.getElementById('tooltip');
+
+        // --- Data ---
+        const data = [
+            // Cluster 1: Birds (Top-Left)
+            { word: "eagle", x: -0.65, y: 0.72, cluster: "birds", color: "#f97316" },
+            { word: "duck", x: -0.82, y: 0.55, cluster: "birds", color: "#f97316" },
+            { word: "goose", x: -0.78, y: 0.48, cluster: "birds", color: "#f97316" },
+            { word: "parrot", x: -0.55, y: 0.68, cluster: "birds", color: "#f97316" },
+            { word: "swan", x: -0.72, y: 0.62, cluster: "birds", color: "#f97316" },
+
+            // Cluster 2: Fruits (Top-Right - NEW)
+            { word: "apple", x: 0.62, y: 0.65, cluster: "fruits", color: "#ec4899" },
+            { word: "banana", x: 0.75, y: 0.52, cluster: "fruits", color: "#ec4899" },
+            { word: "orange", x: 0.82, y: 0.68, cluster: "fruits", color: "#ec4899" },
+            { word: "grape", x: 0.58, y: 0.78, cluster: "fruits", color: "#ec4899" },
+            { word: "cherry", x: 0.68, y: 0.82, cluster: "fruits", color: "#ec4899" },
+
+            // Cluster 3: Places (Bottom-Left)
+            { word: "Germany", x: -0.70, y: -0.42, cluster: "places", color: "#0d9488" },
+            { word: "Berlin", x: -0.76, y: -0.48, cluster: "places", color: "#0d9488" },
+            { word: "England", x: -0.52, y: -0.58, cluster: "places", color: "#0d9488" },
+            { word: "London", x: -0.58, y: -0.64, cluster: "places", color: "#0d9488" },
+            { word: "Paris", x: -0.68, y: -0.52, cluster: "places", color: "#0d9488" },
+
+            // Cluster 4: Adjectives (Bottom-Right)
+            { word: "long", x: 0.52, y: -0.42, cluster: "adj", color: "#8b5cf6" },
+            { word: "longer", x: 0.62, y: -0.45, cluster: "adj", color: "#8b5cf6" },
+            { word: "longest", x: 0.72, y: -0.48, cluster: "adj", color: "#8b5cf6" },
+            { word: "short", x: 0.58, y: -0.62, cluster: "adj", color: "#8b5cf6" },
+            { word: "shorter", x: 0.68, y: -0.68, cluster: "adj", color: "#8b5cf6" },
+
+            { word: "squirrel", x: -0.15, y: 0.12, cluster: "outlier", color: "#475569" }
+        ];
+
+        // --- View State ---
+        let width, height;
+        let scale = 300;
+        let offsetX, offsetY;
+        let isDragging = false;
+        let lastMouse = { x: 0, y: 0 };
+        let hoveredWord = null;
+        let selection = [];
+        let highlightedWord = null;
+
+        function init() {
+            resize();
+            offsetX = width / 2;
+            offsetY = height / 2;
+
+            window.addEventListener('resize', resize);
+            canvas.addEventListener('mousedown', (e) => { isDragging = true; lastMouse = { x: e.clientX, y: e.clientY }; });
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', () => isDragging = false);
+            canvas.addEventListener('wheel', handleZoom, { passive: false });
+            canvas.addEventListener('click', handleCanvasClick);
+            searchInput.addEventListener('input', handleSearch);
+
+            requestAnimationFrame(render);
+        }
+
+        function resize() {
+            const container = document.getElementById('main-view');
+            width = container.clientWidth;
+            height = container.clientHeight;
+            canvas.width = width * window.devicePixelRatio;
+            canvas.height = height * window.devicePixelRatio;
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        function worldToScreen(x, y) {
+            return {
+                x: offsetX + (x * scale),
+                y: offsetY - (y * scale)
+            };
+        }
+
+        function screenToWorld(sx, sy) {
+            return {
+                x: (sx - offsetX) / scale,
+                y: (offsetY - sy) / scale
+            };
+        }
+
+        function handleMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            if (isDragging) {
+                offsetX += e.clientX - lastMouse.x;
+                offsetY += e.clientY - lastMouse.y;
+                lastMouse = { x: e.clientX, y: e.clientY };
+            }
+
+            // Hit testing
+            let found = null;
+            for (const item of data) {
+                const pos = worldToScreen(item.x, item.y);
+                const d = Math.hypot(pos.x - mx, pos.y - my);
+                if (d < 15) {
+                    found = item;
+                    break;
+                }
+            }
+
+            hoveredWord = found;
+            if (found) {
+                tooltip.style.display = 'block';
+                tooltip.style.left = e.clientX + 'px';
+                tooltip.style.top = (e.clientY - 40) + 'px';
+                tooltip.textContent = `${found.word} [${found.x.toFixed(2)}, ${found.y.toFixed(2)}]`;
+                canvas.style.cursor = 'pointer';
+            } else {
+                tooltip.style.display = 'none';
+                canvas.style.cursor = isDragging ? 'grabbing' : 'grab';
+            }
+        }
+
+        function handleZoom(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            const worldBefore = screenToWorld(mx, my);
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            scale = Math.min(Math.max(scale * delta, 100), 5000);
+
+            const screenAfter = worldToScreen(worldBefore.x, worldBefore.y);
+            offsetX += mx - screenAfter.x;
+            offsetY += my - screenAfter.y;
+        }
+
+        function handleCanvasClick() {
+            if (hoveredWord) {
+                if (selection.length >= 2) selection = [];
+                if (selection.length === 1 && selection[0].word === hoveredWord.word) {
+                    selection = [];
+                } else {
+                    selection.push(hoveredWord);
+                }
+                updateInsight();
+            } else {
+                highlightedWord = null;
+            }
+        }
+
+        function handleSearch() {
+            const q = searchInput.value.toLowerCase().trim();
+            if (!q) { highlightedWord = null; return; }
+            const match = data.find(d => d.word.toLowerCase() === q);
+            if (match) {
+                highlightedWord = match;
+                const pos = worldToScreen(match.x, match.y);
+                offsetX += (width / 2) - pos.x;
+                offsetY += (height / 2) - pos.y;
+            }
+        }
+
+        function updateInsight() {
+            if (selection.length === 1) {
+                const w = selection[0];
+                insightTitle.textContent = `Selected: ${w.word}`;
+                insightDesc.textContent = `This word belongs to the "${w.cluster}" cluster. Its position represents its specific semantic nuance relative to the origin.`;
+                mathContainer.style.display = 'none';
+            } else if (selection.length === 2) {
+                const w1 = selection[0];
+                const w2 = selection[1];
+                const dist = Math.hypot(w1.x - w2.x, w1.y - w2.y);
+
+                insightTitle.textContent = "Semantic Relationship";
+                insightDesc.textContent = `Comparing "${w1.word}" and "${w2.word}". The geometric distance between them represents how differently the LLM perceives their meanings.`;
+
+                mathContainer.style.display = 'block';
+                mathFormula.innerHTML = `
+                    Distance = &radic;((x₂-x₁)&sup2; + (y₂-y₁)&sup2;)<br>
+                    Distance = &radic;(${(w2.x - w1.x).toFixed(2)}&sup2; + ${(w2.y - w1.y).toFixed(2)}&sup2;)<br>
+                    <strong>Result: ${dist.toFixed(4)}</strong>
+                `;
+            } else {
+                insightTitle.textContent = "Getting Started";
+                insightDesc.textContent = "Hover over a point to see its vector coordinates. Click two points to calculate their semantic distance.";
+                mathContainer.style.display = 'none';
+            }
+        }
+
+        function drawClusterHulls() {
+            const clusters = ["birds", "fruits", "places", "adj"];
+            clusters.forEach(c => {
+                const members = data.filter(d => d.cluster === c);
+                if (members.length === 0) return;
+
+                let cx = 0, cy = 0;
+                members.forEach(m => { cx += m.x; cy += m.y; });
+                cx /= members.length;
+                cy /= members.length;
+
+                const center = worldToScreen(cx, cy);
+
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, scale * 0.25, 0, Math.PI * 2);
+                const gradient = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, scale * 0.25);
+                const color = members[0].color;
+                gradient.addColorStop(0, color + '15');
+                gradient.addColorStop(1, color + '00');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+
+                ctx.fillStyle = color;
+                ctx.font = "bold 12px var(--ui-font)";
+                ctx.globalAlpha = 0.6;
+                ctx.fillText(c.toUpperCase(), center.x - 20, center.y - (scale * 0.15));
+                ctx.globalAlpha = 1.0;
+            });
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, offsetY); ctx.lineTo(width, offsetY);
+            ctx.moveTo(offsetX, 0); ctx.lineTo(offsetX, height);
+            ctx.stroke();
+
+            drawClusterHulls();
+
+            if (selection.length === 2) {
+                const p1 = worldToScreen(selection[0].x, selection[0].y);
+                const p2 = worldToScreen(selection[1].x, selection[1].y);
+                ctx.setLineDash([5, 5]);
+                ctx.strokeStyle = varColor('--primary');
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            if (hoveredWord) {
+                const p = worldToScreen(hoveredWord.x, hoveredWord.y);
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.beginPath();
+                ctx.moveTo(offsetX, offsetY);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+            }
+
+            data.forEach(item => {
+                const pos = worldToScreen(item.x, item.y);
+                const isHovered = hoveredWord === item;
+                const isSelected = selection.includes(item);
+                const isHighlighted = highlightedWord === item;
+
+                if (isHovered || isHighlighted) {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = item.color;
+                }
+
+                ctx.fillStyle = item.color;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, isHovered || isSelected || isHighlighted ? 7 : 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = (isHovered || isHighlighted) ? '#000' : '#64748b';
+                ctx.font = `${(isHovered || isHighlighted) ? '700' : '500'} 12px var(--ui-font)`;
+                ctx.fillText(item.word, pos.x + 10, pos.y + 4);
+
+                if (isSelected || isHighlighted) {
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 11, 0, Math.PI * 2);
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            });
+
+            requestAnimationFrame(render);
+        }
+
+        function varColor(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

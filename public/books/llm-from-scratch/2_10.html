@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Embedding Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg-gradient: linear-gradient(135deg, #fafbff, #f5f7ff);
+            --card-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.12), 0 8px 10px -6px rgba(99, 102, 241, 0.12);
+            --orange-primary: #f97316;
+            --orange-bg: #fff7ed;
+            --teal-primary: #14b8a6;
+            --teal-bg: #ecfdf5;
+            --purple-primary: #8b5cf6;
+            --purple-light: #c4b5fd;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            color: #1e293b;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .code-font {
+            font-family: 'JetBrains Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: var(--card-shadow);
+            border-radius: 16px;
+        }
+
+        /* Token ID box */
+        .token-id-box {
+            width: 48px;
+            height: 48px;
+            background: var(--orange-bg);
+            border: 2px solid var(--orange-primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #c2410c;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .token-id-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+        }
+
+        .token-id-box.active {
+            animation: pulse 0.6s ease;
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+            transform: scale(1.1);
+            background: var(--orange-primary);
+            color: white;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1.1);
+            }
+
+            50% {
+                transform: scale(1.25);
+            }
+        }
+
+        /* Matrix Styling */
+        .matrix-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .matrix-table th {
+            font-size: 0.75rem;
+            color: #64748b;
+            padding: 8px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .matrix-table td {
+            padding: 10px 14px;
+            text-align: right;
+            border: 1px solid #f1f5f9;
+            font-size: 0.85rem;
+            color: #334155;
+            transition: all 0.2s ease;
+        }
+
+        .matrix-table .row-header {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #64748b;
+            text-align: center;
+            width: 40px;
+        }
+
+        .matrix-table tr.selected td:not(.row-header) {
+            background: var(--teal-bg);
+        }
+
+        .matrix-table tr.highlighted td {
+            background: var(--purple-light) !important;
+            border-color: var(--purple-primary);
+            color: #4c1d95;
+            transform: scale(1.02);
+            z-index: 10;
+        }
+
+        /* Output Row */
+        .output-row {
+            padding: 10px 14px;
+            background: var(--teal-bg);
+            border: 1px solid #6ee7b7;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* SVG Line */
+        .connection-line {
+            stroke: var(--purple-primary);
+            stroke-width: 2;
+            stroke-dasharray: 4 4;
+            fill: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .connection-line.visible {
+            opacity: 0.6;
+            animation: dash 20s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -1000;
+            }
+        }
+
+        /* Custom UI */
+        input[type=range] {
+            accent-color: var(--purple-primary);
+        }
+
+        .callout-bubble {
+            position: relative;
+            background: #4c1d95;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            max-width: 240px;
+        }
+
+        .callout-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 20px;
+            border-width: 8px 8px 0;
+            border-style: solid;
+            border-color: #4c1d95 transparent transparent;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl mb-2">Token Embedding Layer
+            </h1>
+            <p class="text-lg text-slate-600">The bridge between discrete Token IDs and dense numerical vectors.</p>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Controls Sidebar -->
+            <div class="lg:col-span-3 space-y-6">
+                <div class="glass-card p-6">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
+                            </path>
+                        </svg>
+                        Controls
+                    </h3>
+
+                    <div class="space-y-5">
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="text-sm font-medium text-slate-600">Vocab Size</label>
+                                <span id="vocab-size-display" class="text-sm font-bold text-purple-600">6</span>
+                            </div>
+                            <input type="range" id="vocab-size-slider" min="4" max="10" value="6" class="w-full">
+                            <p class="text-[10px] text-slate-400 mt-1">Number of unique tokens in the dictionary.</p>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="text-sm font-medium text-slate-600">Embedding Dim</label>
+                                <span id="embed-dim-display" class="text-sm font-bold text-purple-600">3</span>
+                            </div>
+                            <input type="range" id="embed-dim-slider" min="2" max="6" value="3" class="w-full">
+                            <p class="text-[10px] text-slate-400 mt-1">Size of the dense vector for each token.</p>
+                        </div>
+
+                        <button id="randomize-btn"
+                            class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors flex items-center justify-center font-medium shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
+                            </svg>
+                            Randomize Weights
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-card p-5 bg-purple-50/50 border-purple-100">
+                    <h4 class="text-xs font-bold text-purple-900 uppercase tracking-widest mb-2">Did you know?</h4>
+                    <p class="text-xs text-purple-800 leading-relaxed">
+                        In PyTorch, <code class="bg-purple-200 px-1 rounded">nn.Embedding(6, 3)</code> creates a weight
+                        matrix of 18 parameters. For GPT-2, this matrix has <b>38.6 million</b> parameters!
+                    </p>
+                </div>
+            </div>
+
+            <!-- Visualization Area -->
+            <div class="lg:col-span-9 space-y-6">
+                <div class="glass-card p-6 overflow-hidden">
+                    <div class="flex flex-col md:flex-row gap-4 items-start relative min-h-[480px]">
+
+                        <!-- Panel 1: Input IDs -->
+                        <div class="w-full md:w-32 flex flex-col items-center">
+                            <h3 class="text-sm font-bold text-orange-600 mb-4 uppercase tracking-wider">Input IDs</h3>
+                            <div id="id-list-container" class="space-y-3 w-full flex flex-col items-center">
+                                <!-- ID boxes added here -->
+                            </div>
+                            <div class="mt-6 pt-4 border-t border-slate-100 w-full flex flex-col gap-2">
+                                <div class="flex gap-1">
+                                    <select id="id-picker" class="flex-1 text-xs border border-slate-200 rounded p-1">
+                                        <!-- Options added dynamically -->
+                                    </select>
+                                    <button id="add-id-btn"
+                                        class="p-1 px-2 bg-orange-100 text-orange-700 text-xs font-bold rounded">+</button>
+                                </div>
+                                <button id="clear-btn"
+                                    class="text-[10px] text-slate-400 hover:text-red-500 uppercase font-bold tracking-tighter">Clear
+                                    All</button>
+                            </div>
+                        </div>
+
+                        <!-- Connector SVG Layer -->
+                        <svg id="connection-svg" class="absolute inset-0 pointer-events-none w-full h-full">
+                            <!-- Lines drawn dynamically -->
+                        </svg>
+
+                        <!-- Panel 2: Embedding Matrix -->
+                        <div class="flex-1 bg-white rounded-xl border border-slate-100 p-4 shadow-sm z-10">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Embedding Lookup
+                                    Table</h3>
+                                <span id="matrix-shape-tag"
+                                    class="text-[10px] px-2 py-0.5 bg-slate-100 rounded-full font-mono text-slate-500">6
+                                    × 3</span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table id="embedding-matrix-table" class="matrix-table code-font">
+                                    <!-- Table generated dynamically -->
+                                </table>
+                            </div>
+
+                            <!-- Callout 1 -->
+                            <div class="mt-8 relative hidden md:block">
+                                <div class="callout-bubble">
+                                    <strong>Just a Lookup!</strong><br>
+                                    Token ID 3 means "Return row 3". No math, just indexing.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel 3: Output Vectors -->
+                        <div class="w-full md:w-72 flex flex-col items-center">
+                            <h3 class="text-sm font-bold text-teal-600 mb-4 uppercase tracking-wider">Output Vectors
+                            </h3>
+                            <div id="output-list-container" class="w-full space-y-2">
+                                <!-- Output rows added here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tensor Summary -->
+                <div class="glass-card p-6 border-l-4 border-l-teal-500">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800">PyTorch Representation</h3>
+                            <p class="text-xs text-slate-500">The result of <code
+                                    class="bg-slate-100 px-1 rounded">embedding(input_ids)</code></p>
+                        </div>
+                        <span id="final-shape-tag"
+                            class="text-xs font-mono font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded">Shape: (4,
+                            3)</span>
+                    </div>
+                    <pre id="tensor-display"
+                        class="code-font text-sm bg-slate-900 text-teal-300 p-4 rounded-lg overflow-x-auto leading-relaxed">
+tensor([[ 0.8008,  1.6806,  0.3559],
+        [-0.6866,  0.6105,  1.3347],
+        [ 0.8599, -0.3097, -0.3957],
+        [ 0.4396, -0.7581,  1.0783]])
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center text-slate-400 text-sm border-t border-slate-200 pt-8">
+            <p>Interactive Visualization of Chapter 2: Token Embeddings</p>
+        </footer>
+    </div>
+
+    <script>
+        // State Management
+        class EmbeddingModel {
+            constructor() {
+                this.vocabSize = 6;
+                this.embeddingDim = 3;
+                this.inputIds = [2, 3, 5, 1];
+                this.weights = [];
+                this.chapterWeights = [
+                    [1.9269, 1.4873, -0.4974],
+                    [0.4396, -0.7581, 1.0783],
+                    [0.8008, 1.6806, 0.3559],
+                    [-0.6866, 0.6105, 1.3347],
+                    [-0.2316, 0.0418, -0.2516],
+                    [0.8599, -0.3097, -0.3957]
+                ];
+                this.initialize();
+            }
+
+            initialize() {
+                this.generateWeights();
+            }
+
+            generateWeights() {
+                if (this.vocabSize === 6 && this.embeddingDim === 3) {
+                    this.weights = JSON.parse(JSON.stringify(this.chapterWeights));
+                } else {
+                    this.weights = [];
+                    for (let i = 0; i < this.vocabSize; i++) {
+                        const row = [];
+                        for (let j = 0; j < this.embeddingDim; j++) {
+                            // Standard Normal-ish distribution [-2, 2]
+                            row.push(parseFloat((Math.random() * 4 - 2).toFixed(4)));
+                        }
+                        this.weights.push(row);
+                    }
+                }
+            }
+
+            randomize() {
+                this.weights = [];
+                for (let i = 0; i < this.vocabSize; i++) {
+                    const row = [];
+                    for (let j = 0; j < this.embeddingDim; j++) {
+                        row.push(parseFloat((Math.random() * 4 - 2).toFixed(4)));
+                    }
+                    this.weights.push(row);
+                }
+            }
+
+            getOutputs() {
+                return this.inputIds.map(id => this.weights[id]);
+            }
+
+            addId(id) {
+                if (id >= 0 && id < this.vocabSize) {
+                    this.inputIds.push(id);
+                }
+            }
+
+            removeId(index) {
+                this.inputIds.splice(index, 1);
+            }
+
+            clear() {
+                this.inputIds = [];
+            }
+        }
+
+        const model = new EmbeddingModel();
+
+        // UI Selectors
+        const vocabSlider = document.getElementById('vocab-size-slider');
+        const vocabDisplay = document.getElementById('vocab-size-display');
+        const dimSlider = document.getElementById('embed-dim-slider');
+        const dimDisplay = document.getElementById('embed-dim-display');
+        const randomizeBtn = document.getElementById('randomize-btn');
+        const addIdBtn = document.getElementById('add-id-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const idPicker = document.getElementById('id-picker');
+        const matrixTable = document.getElementById('embedding-matrix-table');
+        const idListContainer = document.getElementById('id-list-container');
+        const outputListContainer = document.getElementById('output-list-container');
+        const tensorDisplay = document.getElementById('tensor-display');
+        const connectionSvg = document.getElementById('connection-svg');
+        const matrixShapeTag = document.getElementById('matrix-shape-tag');
+        const finalShapeTag = document.getElementById('final-shape-tag');
+
+        // Render Functions
+        function render() {
+            renderMatrix();
+            renderInputIds();
+            renderOutputs();
+            renderTensor();
+            updateControls();
+
+            // Clean up connections on re-render
+            connectionSvg.innerHTML = '';
+        }
+
+        function updateControls() {
+            vocabDisplay.textContent = model.vocabSize;
+            dimDisplay.textContent = model.embeddingDim;
+            matrixShapeTag.textContent = `${model.vocabSize} × ${model.embeddingDim}`;
+            finalShapeTag.textContent = `Shape: (${model.inputIds.length}, ${model.embeddingDim})`;
+
+            idPicker.innerHTML = '';
+            for (let i = 0; i < model.vocabSize; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `ID ${i}`;
+                idPicker.appendChild(opt);
+            }
+        }
+
+        function renderMatrix() {
+            let html = `<thead><tr><th>ID</th>`;
+            for (let d = 0; d < model.embeddingDim; d++) {
+                html += `<th>d${d}</th>`;
+            }
+            html += `</tr></thead><tbody>`;
+
+            model.weights.forEach((row, i) => {
+                const isUsed = model.inputIds.includes(i);
+                html += `<tr id="matrix-row-${i}" class="${isUsed ? 'selected' : ''}">`;
+                html += `<td class="row-header">${i}</td>`;
+                row.forEach(val => {
+                    html += `<td>${val.toFixed(2)}</td>`;
+                });
+                html += `</tr>`;
+            });
+            html += `</tbody>`;
+            matrixTable.innerHTML = html;
+        }
+
+        function renderInputIds() {
+            idListContainer.innerHTML = '';
+            model.inputIds.forEach((id, idx) => {
+                const box = document.createElement('div');
+                box.className = 'token-id-box code-font';
+                box.textContent = id;
+                box.dataset.idx = idx;
+                box.dataset.idValue = id;
+                box.id = `input-box-${idx}`;
+
+                box.onclick = () => {
+                    model.removeId(idx);
+                    render();
+                };
+
+                box.onmouseenter = () => highlightLookup(idx, id);
+                box.onmouseleave = () => clearHighlight();
+
+                idListContainer.appendChild(box);
+            });
+        }
+
+        function renderOutputs() {
+            outputListContainer.innerHTML = '';
+            const outputs = model.getOutputs();
+            outputs.forEach((vec, idx) => {
+                const row = document.createElement('div');
+                row.className = 'output-row code-font';
+                row.id = `output-row-${idx}`;
+                row.innerHTML = `
+                    <span class="text-teal-700">[${vec.map(v => v.toFixed(2)).join(', ')}]</span>
+                    <span class="text-[10px] bg-teal-100 px-1 rounded text-teal-800 ml-2">ID ${model.inputIds[idx]}</span>
+                `;
+                outputListContainer.appendChild(row);
+            });
+        }
+
+        function renderTensor() {
+            const outputs = model.getOutputs();
+            if (outputs.length === 0) {
+                tensorDisplay.textContent = 'tensor([])';
+                return;
+            }
+            let text = 'tensor([';
+            outputs.forEach((vec, i) => {
+                text += `[${vec.map(v => v.toFixed(4).padStart(8)).join(', ')}]`;
+                text += i < outputs.length - 1 ? ',\n        ' : '';
+            });
+            text += '])';
+            tensorDisplay.textContent = text;
+        }
+
+        // Animation logic
+        function highlightLookup(idx, id) {
+            clearHighlight();
+
+            const inputBox = document.getElementById(`input-box-${idx}`);
+            const matrixRow = document.getElementById(`matrix-row-${id}`);
+            const outputRow = document.getElementById(`output-row-${idx}`);
+
+            if (inputBox && matrixRow && outputRow) {
+                inputBox.classList.add('active');
+                matrixRow.classList.add('highlighted');
+                outputRow.classList.add('ring-2', 'ring-teal-500', 'ring-offset-1');
+
+                drawLines(inputBox, matrixRow, outputRow);
+            }
+        }
+
+        function clearHighlight() {
+            document.querySelectorAll('.token-id-box').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.matrix-table tr').forEach(el => el.classList.remove('highlighted'));
+            document.querySelectorAll('.output-row').forEach(el => el.classList.remove('ring-2', 'ring-teal-500', 'ring-offset-1'));
+            connectionSvg.innerHTML = '';
+        }
+
+        function drawLines(startEl, midEl, endEl) {
+            const svgRect = connectionSvg.getBoundingClientRect();
+
+            const startRect = startEl.getBoundingClientRect();
+            const midRect = midEl.getBoundingClientRect();
+            const endRect = endEl.getBoundingClientRect();
+
+            // Line 1: Input to Matrix
+            const x1 = startRect.right - svgRect.left;
+            const y1 = startRect.top + startRect.height / 2 - svgRect.top;
+            const x2 = midRect.left - svgRect.left;
+            const y2 = midRect.top + midRect.height / 2 - svgRect.top;
+
+            // Line 2: Matrix to Output
+            const x3 = midRect.right - svgRect.left;
+            const y3 = midRect.top + midRect.height / 2 - svgRect.top;
+            const x4 = endRect.left - svgRect.left;
+            const y4 = endRect.top + endRect.height / 2 - svgRect.top;
+
+            const line1 = createSvgLine(x1, y1, x2, y2);
+            const line2 = createSvgLine(x3, y3, x4, y4);
+
+            connectionSvg.appendChild(line1);
+            connectionSvg.appendChild(line2);
+
+            setTimeout(() => {
+                line1.classList.add('visible');
+                line2.classList.add('visible');
+            }, 10);
+        }
+
+        function createSvgLine(x1, y1, x2, y2) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const cp1x = x1 + (x2 - x1) * 0.5;
+            const cp2x = x1 + (x2 - x1) * 0.5;
+
+            const d = `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp2x} ${y2}, ${x2} ${y2}`;
+            line.setAttribute('d', d);
+            line.setAttribute('class', 'connection-line');
+            return line;
+        }
+
+        // Event Listeners
+        vocabSlider.oninput = (e) => {
+            model.vocabSize = parseInt(e.target.value);
+            model.generateWeights();
+            // Clean invalid IDs
+            model.inputIds = model.inputIds.filter(id => id < model.vocabSize);
+            render();
+        };
+
+        dimSlider.oninput = (e) => {
+            model.embeddingDim = parseInt(e.target.value);
+            model.generateWeights();
+            render();
+        };
+
+        randomizeBtn.onclick = () => {
+            model.randomize();
+            render();
+            // Visual feedback on matrix
+            matrixTable.classList.add('opacity-50');
+            setTimeout(() => matrixTable.classList.remove('opacity-50'), 200);
+        };
+
+        addIdBtn.onclick = () => {
+            const val = parseInt(idPicker.value);
+            model.addId(val);
+            render();
+            // Simple animation for the new one
+            setTimeout(() => {
+                const idx = model.inputIds.length - 1;
+                highlightLookup(idx, val);
+                setTimeout(clearHighlight, 1200);
+            }, 100);
+        };
+
+        clearBtn.onclick = () => {
+            model.clear();
+            render();
+        };
+
+        // Window resize adjustment for SVG lines
+        window.onresize = () => clearHighlight();
+
+        // Initial Render
+        render();
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word2Vec Architecture Explorer</title>
+    <!-- MathJax for LaTeX Rendering -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            },
+            startup: {
+                pageReady: () => {
+                    return MathJax.startup.defaultPageReady().then(() => {
+                        if (typeof render === 'function') render();
+                    });
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fafbff;
+            min-height: 100vh;
+            padding: 2rem;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Card Styles */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 16px -2px rgba(99, 102, 241, 0.12);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        /* Toggle Switch */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            background: #f1f5f9;
+            padding: 0.375rem;
+            border-radius: 12px;
+        }
+
+        .toggle-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #64748b;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .toggle-label.active {
+            background: white;
+            color: #8b5cf6;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Sentence Display */
+        .sentence-container {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            padding: 1.5rem 0;
+        }
+
+        .word-token {
+            padding: 0.625rem 1.25rem;
+            border-radius: 24px;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .word-token.input-word {
+            background: #fff7ed;
+            color: #c2410c;
+            border-color: #f97316;
+        }
+
+        .word-token.output-word {
+            background: #ecfdf5;
+            color: #0f766e;
+            border-color: #14b8a6;
+        }
+
+        .word-token.neutral {
+            background: #f8fafc;
+            color: #94a3b8;
+            border-color: #e2e8f0;
+        }
+
+        .word-token .role-label {
+            position: absolute;
+            top: -1.75rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .word-token.input-word .role-label,
+        .word-token.output-word .role-label {
+            opacity: 1;
+        }
+
+        .word-token.input-word .role-label {
+            color: #f97316;
+        }
+
+        .word-token.output-word .role-label {
+            color: #14b8a6;
+        }
+
+        /* Slider Control */
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .slider-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #8b5cf6;
+            color: white;
+            font-size: 1.25rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slider-btn:disabled {
+            background: #e2e8f0;
+            cursor: not-allowed;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: linear-gradient(to right, #f97316, #14b8a6);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #8b5cf6;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        /* Neural Network Diagram */
+        .nn-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2.5rem 1rem;
+            min-height: 320px;
+            position: relative;
+        }
+
+        .nn-layer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .nn-layer-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 0.75rem;
+        }
+
+        .nn-node {
+            width: 110px;
+            padding: 0.6rem 0.5rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            background: white;
+            position: relative;
+            z-index: 2;
+        }
+
+        .nn-node.input {
+            background: #fff7ed;
+            color: #c2410c;
+            border: 2px solid #f97316;
+        }
+
+        .nn-node.hidden {
+            background: #f5f3ff;
+            color: #6d28d9;
+            border: 2px solid #8b5cf6;
+        }
+
+        .nn-node.output {
+            background: #ecfdf5;
+            color: #0f766e;
+            border: 2px solid #14b8a6;
+        }
+
+        .nn-connectors {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .nn-connectors svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        /* Formula Display */
+        .formula-container {
+            background: linear-gradient(135deg, #faf5ff 0%, #f0f9ff 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid #e9d5ff;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .formula-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #8b5cf6;
+            margin-bottom: 1rem;
+        }
+
+        .formula {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 1.125rem;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .formula-math {
+            font-size: 1.25rem;
+            margin-top: 1rem;
+            display: block;
+        }
+
+        .formula .predict {
+            color: #8b5cf6;
+            font-weight: 700;
+        }
+
+        .formula .input-word {
+            color: #f97316;
+            font-weight: 700;
+        }
+
+        .formula .output-word {
+            color: #14b8a6;
+            font-weight: 700;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.input {
+            background: #f97316;
+        }
+
+        .legend-dot.hidden {
+            background: #8b5cf6;
+        }
+
+        .legend-dot.output {
+            background: #14b8a6;
+        }
+
+        /* Concept Box */
+        .concept-box {
+            background: linear-gradient(135deg, #fff7ed 0%, #ecfdf5 100%);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .concept-box.cbow {
+            border-left-color: #f97316;
+        }
+
+        .concept-box.skipgram {
+            border-left-color: #14b8a6;
+        }
+
+        .concept-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .concept-box.cbow .concept-title {
+            color: #c2410c;
+        }
+
+        .concept-box.skipgram .concept-title {
+            color: #0f766e;
+        }
+
+        .concept-desc {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        @keyframes dashMove {
+            to {
+                stroke-dashoffset: -20;
+            }
+        }
+
+        .animated-line {
+            stroke-dasharray: 8, 4;
+            animation: dashMove 1s linear infinite;
+        }
+
+        .window-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .window-size-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .window-size-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #8b5cf6;
+            min-width: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Word2Vec Architecture Explorer</h1>
+        <p class="subtitle">Interactive visualization of CBOW and Skip-gram word embedding architectures</p>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Architecture Mode</span>
+                <div class="toggle-container">
+                    <span class="toggle-label active" data-mode="cbow" onclick="setMode('cbow')">CBOW</span>
+                    <span class="toggle-label" data-mode="skipgram" onclick="setMode('skipgram')">Skip-gram</span>
+                </div>
+            </div>
+
+            <div class="concept-box cbow" id="conceptBox">
+                <div class="concept-title" id="conceptTitle">Continuous Bag of Words (CBOW)</div>
+                <div class="concept-desc" id="conceptDesc">Context Words → Predict → Target Word.</div>
+            </div>
+
+            <div class="window-control">
+                <span class="window-label">Context Window ($k$):</span>
+                <button class="window-size-btn" onclick="changeWindowSize(-1)">−</button>
+                <span class="window-size-value" id="windowSizeValue">2</span>
+                <button class="window-size-btn" onclick="changeWindowSize(1)">+</button>
+            </div>
+
+            <div class="sentence-container" id="sentenceContainer"></div>
+
+            <div class="slider-container">
+                <div class="slider-wrapper">
+                    <button class="slider-btn" onclick="moveFocus(-1)" id="prevBtn">←</button>
+                    <input type="range" id="focusSlider" min="0" max="5" value="2" oninput="updateFocus(this.value)">
+                    <button class="slider-btn" onclick="moveFocus(1)" id="nextBtn">→</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="nn-diagram" id="nnDiagram">
+                <div class="nn-connectors" id="nnConnectors">
+                    <svg id="connectorSvg">
+                        <defs>
+                            <linearGradient id="gradInput" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#f97316" />
+                                <stop offset="100%" stop-color="#8b5cf6" />
+                            </linearGradient>
+                            <linearGradient id="gradOutput" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#8b5cf6" />
+                                <stop offset="100%" stop-color="#14b8a6" />
+                            </linearGradient>
+                            <marker id="arrowMarkerInput" markerWidth="10" markerHeight="10" refX="9" refY="5"
+                                orient="auto">
+                                <path d="M0,0 L10,5 L0,10 L2,5 Z" fill="#8b5cf6" />
+                            </marker>
+                            <marker id="arrowMarkerOutput" markerWidth="10" markerHeight="10" refX="9" refY="5"
+                                orient="auto">
+                                <path d="M0,0 L10,5 L0,10 L2,5 Z" fill="#14b8a6" />
+                            </marker>
+                        </defs>
+                        <g id="connectorLines"></g>
+                    </svg>
+                </div>
+                <div class="nn-layer" id="inputLayer"></div>
+                <div class="nn-layer" id="hiddenLayer">
+                    <span class="nn-layer-label">Hidden</span>
+                    <div class="nn-node hidden">Embedding</div>
+                    <div class="nn-node hidden">Matrix $W$</div>
+                </div>
+                <div class="nn-layer" id="outputLayer"></div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item"><span class="legend-dot input"></span><span id="legendInput">Input</span></div>
+                <div class="legend-item"><span class="legend-dot hidden"></span><span>Hidden Layer</span></div>
+                <div class="legend-item"><span class="legend-dot output"></span><span id="legendOutput">Output</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="formula-container">
+                <div class="formula-label">Current Objective</div>
+                <div class="formula" id="formulaDisplay"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            mode: 'cbow',
+            sentence: ['The', 'cat', 'sat', 'on', 'the', 'mat'],
+            focusIndex: 2,
+            windowSize: 2
+        };
+
+        function setMode(mode) {
+            state.mode = mode;
+            document.querySelectorAll('.toggle-label').forEach(l => l.classList.toggle('active', l.dataset.mode === mode));
+            render();
+        }
+
+        function changeWindowSize(delta) {
+            const newSize = state.windowSize + delta;
+            if (newSize >= 1 && newSize <= 3) {
+                state.windowSize = newSize;
+                document.getElementById('windowSizeValue').textContent = newSize;
+                render();
+            }
+        }
+
+        function updateFocus(value) { state.focusIndex = parseInt(value); render(); }
+        function moveFocus(delta) {
+            const newIndex = state.focusIndex + delta;
+            if (newIndex >= 0 && newIndex < state.sentence.length) {
+                state.focusIndex = newIndex;
+                document.getElementById('focusSlider').value = newIndex;
+                render();
+            }
+        }
+
+        function updateSliderMax() { document.getElementById('focusSlider').max = state.sentence.length - 1; }
+
+        function getWordsForMode() {
+            const { sentence, focusIndex, windowSize, mode } = state;
+            const center = sentence[focusIndex];
+            const context = [];
+            for (let i = 0; i < sentence.length; i++) {
+                if (i !== focusIndex && Math.abs(i - focusIndex) <= windowSize) context.push(sentence[i]);
+            }
+            return mode === 'cbow' ? { input: context, output: [center] } : { input: [center], output: context };
+        }
+
+        function render() {
+            const { mode, focusIndex, windowSize, sentence } = state;
+
+            // Sentence
+            document.getElementById('sentenceContainer').innerHTML = sentence.map((word, i) => {
+                const dist = Math.abs(i - focusIndex);
+                const isCenter = i === focusIndex;
+                const isContext = !isCenter && dist <= windowSize;
+                const role = mode === 'cbow' ? (isCenter ? 'output-word' : (isContext ? 'input-word' : 'neutral'))
+                    : (isCenter ? 'input-word' : (isContext ? 'output-word' : 'neutral'));
+                let lbl = role === 'input-word' ? 'Input' : (role === 'output-word' ? (mode === 'cbow' ? 'Target' : 'Predict') : '');
+                return `<div class="word-token ${role}" onclick="updateFocus(${i})"><span class="role-label">${lbl}</span>${word}</div>`;
+            }).join('');
+
+            // NN Nodes
+            const { input, output } = getWordsForMode();
+            document.getElementById('inputLayer').innerHTML = `<span class="nn-layer-label">Input</span>` + input.map(w => `<div class="nn-node input">"${w}"</div>`).join('');
+            document.getElementById('outputLayer').innerHTML = `<span class="nn-layer-label">Output</span>` + output.map(w => `<div class="nn-node output">"${w}"</div>`).join('');
+
+            // Concept
+            document.getElementById('conceptBox').className = `concept-box ${mode}`;
+            document.getElementById('conceptTitle').textContent = mode === 'cbow' ? 'Continuous Bag of Words (CBOW)' : 'Skip-gram';
+            document.getElementById('conceptDesc').textContent = mode === 'cbow' ? 'Uses context to predict the center word.' : 'Uses center word to predict the context.';
+            document.getElementById('legendInput').textContent = mode === 'cbow' ? 'Input (Context)' : 'Input (Center)';
+            document.getElementById('legendOutput').textContent = mode === 'cbow' ? 'Output (Target)' : 'Output (Context)';
+
+            // Formula
+            const formulaDisplay = document.getElementById('formulaDisplay');
+            const k = windowSize;
+            if (mode === 'cbow') {
+                formulaDisplay.innerHTML = `
+                    <span class="predict">Predict</span> <span class="output-word">'${output[0]}'</span> 
+                    given context [<span class="input-word">${input.join(', ')}</span>]
+                    <span class="formula-math">$$P(w_t \\mid w_{t-${k}}, \\dots, w_{t+${k}})$$</span>
+                `;
+            } else {
+                formulaDisplay.innerHTML = `
+                    <span class="predict">Predict</span> context [<span class="output-word">${output.join(', ')}</span>] 
+                    given <span class="input-word">'${input[0]}'</span>
+                    <span class="formula-math">$$P(w_{t-${k}}, \\dots, w_{t+${k}} \\mid w_t)$$</span>
+                `;
+            }
+
+            // Controls
+            document.getElementById('prevBtn').disabled = focusIndex <= 0;
+            document.getElementById('nextBtn').disabled = focusIndex >= sentence.length - 1;
+
+            // Trigger redraws
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([formulaDisplay, document.getElementById('hiddenLayer')]);
+            }
+            requestAnimationFrame(() => requestAnimationFrame(drawConnectors));
+        }
+
+        function drawConnectors() {
+            const diagram = document.getElementById('nnDiagram');
+            const container = document.getElementById('connectorLines');
+            const inputs = document.getElementById('inputLayer').querySelectorAll('.nn-node');
+            const outputs = document.getElementById('outputLayer').querySelectorAll('.nn-node');
+            const hidden = document.getElementById('hiddenLayer');
+
+            container.innerHTML = '';
+            if (!inputs.length || !outputs.length) return;
+
+            const diagRect = diagram.getBoundingClientRect();
+            const hRect = hidden.getBoundingClientRect();
+            const hXLeft = hRect.left - diagRect.left;
+            const hXRight = hRect.right - diagRect.left;
+            const hY = (hRect.top - diagRect.top) + (hRect.height / 2) + 10;
+
+            const getC = (n) => {
+                const r = n.getBoundingClientRect();
+                return { x: r.left - diagRect.left + r.width / 2, y: r.top - diagRect.top + r.height / 2, r: r.right - diagRect.left, l: r.left - diagRect.left };
+            };
+
+            inputs.forEach(n => {
+                const p = getC(n);
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M ${p.r} ${p.y} C ${(p.r + hXLeft) / 2} ${p.y}, ${(p.r + hXLeft) / 2} ${hY}, ${hXLeft - 2} ${hY}`);
+                path.setAttribute('stroke', 'url(#gradInput)');
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke-width', '2.5');
+                path.setAttribute('marker-end', 'url(#arrowMarkerInput)');
+                path.classList.add('animated-line');
+                container.appendChild(path);
+            });
+
+            outputs.forEach(n => {
+                const p = getC(n);
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M ${hXRight + 2} ${hY} C ${(hXRight + p.l) / 2} ${hY}, ${(hXRight + p.l) / 2} ${p.y}, ${p.l - 2} ${p.y}`);
+                path.setAttribute('stroke', 'url(#gradOutput)');
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke-width', '2.5');
+                path.setAttribute('marker-end', 'url(#arrowMarkerOutput)');
+                path.classList.add('animated-line');
+                container.appendChild(path);
+            });
+        }
+
+        window.addEventListener('resize', () => requestAnimationFrame(drawConnectors));
+        updateSliderMax();
+    </script>
+</body>
+
+</html>

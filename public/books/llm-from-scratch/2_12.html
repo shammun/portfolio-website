@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-to-Embedding Pipeline Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafbff;
+        }
+
+        .mono {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .pipeline-arrow {
+            position: relative;
+            height: 4px;
+            background: #e2e8f0;
+            flex-grow: 1;
+            min-width: 20px;
+        }
+
+        .pipeline-arrow::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: -6px;
+            border: 8px solid transparent;
+            border-left-color: #e2e8f0;
+        }
+
+        .pipeline-arrow.active {
+            background: #8b5cf6;
+        }
+
+        .pipeline-arrow.active::after {
+            border-left-color: #8b5cf6;
+        }
+
+        .stage-icon {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stage-card.active .stage-icon {
+            transform: scale(1.15);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .vector-bar {
+            height: 18px;
+            display: flex;
+            gap: 1px;
+            background: #f1f5f9;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .vector-cell {
+            flex: 1;
+            min-width: 1px;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+            }
+        }
+
+        .animating-stage {
+            animation: pulse-glow 1s infinite;
+        }
+
+        .code-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .code-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 12px;
+            padding: 1.25rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            overflow-x: auto;
+            border-left: 4px solid #8b5cf6;
+            white-space: pre;
+            line-height: 1.6;
+        }
+
+        .output-block {
+            background: #0f172a;
+            color: #94a3b8;
+            border-radius: 12px;
+            padding: 1.25rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            overflow-x: auto;
+            border: 1px solid #334155;
+            white-space: pre;
+            line-height: 1.6;
+        }
+
+        .code-keyword {
+            color: #c678dd;
+            font-weight: 500;
+        }
+
+        .code-func {
+            color: #61afef;
+        }
+
+        .code-str {
+            color: #98c379;
+        }
+
+        .code-comment {
+            color: #5c6370;
+            font-style: italic;
+        }
+
+        .code-num {
+            color: #d19a66;
+        }
+
+        .code-op {
+            color: #56b6c2;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto space-y-8">
+        <!-- Header -->
+        <header class="text-center space-y-2">
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">
+                Text-to-Embedding <span class="text-indigo-600">Pipeline</span>
+            </h1>
+            <p class="text-slate-500 max-w-2xl mx-auto text-sm md:text-base">
+                Discover how LLMs transform your words into mathematical "tensors" that neural networks can understand.
+            </p>
+        </header>
+
+        <!-- Main Input Card -->
+        <section class="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100 space-y-6">
+            <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Human Input Text</label>
+                <div class="flex flex-col md:flex-row gap-3">
+                    <input type="text" id="userInput"
+                        class="flex-1 px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-indigo-500 transition-all text-lg font-medium"
+                        value="Hello, do you like tea?">
+                    <div class="flex gap-2">
+                        <button onclick="runAutoPipeline()"
+                            class="flex-1 md:flex-none px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Run Pipeline
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <span class="text-xs font-bold text-slate-400 self-center mr-2 uppercase tracking-tighter">Try:</span>
+                <button onclick="setSample('Hello, do you like tea?')"
+                    class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-xs font-medium text-slate-600 transition-colors">Default</button>
+                <button onclick="setSample('The quick brown fox jumps.')"
+                    class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-xs font-medium text-slate-600 transition-colors">Literature</button>
+                <button onclick="setSample('Machine learning is fascinating!')"
+                    class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-xs font-medium text-slate-600 transition-colors">Tech</button>
+            </div>
+        </section>
+
+        <!-- Pipeline Track -->
+        <section class="flex items-center justify-between gap-2 overflow-x-auto pb-4 px-2 scrollbar-hide">
+            <div onclick="setActiveStage(1)" id="stage-1"
+                class="stage-card active cursor-pointer flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="stage-icon w-14 h-14 rounded-2xl bg-orange-500 text-white flex items-center justify-center shadow-lg group-hover:scale-105">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+                    </svg>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">String</div>
+                    <div class="text-xs font-bold text-slate-700">Raw Text</div>
+                </div>
+            </div>
+            <div class="pipeline-arrow active" id="arrow-1"></div>
+
+            <div onclick="setActiveStage(2)" id="stage-2"
+                class="stage-card cursor-pointer flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="stage-icon w-14 h-14 rounded-2xl bg-amber-400 text-slate-900 flex items-center justify-center shadow-lg group-hover:scale-105">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <circle cx="6" cy="6" r="3" />
+                        <circle cx="6" cy="18" r="3" />
+                        <line x1="20" y1="4" x2="8.12" y2="15.88" />
+                        <line x1="14.47" y1="14.48" x2="20" y2="20" />
+                        <polyline points="8.12 8.12 12 12" />
+                    </svg>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">BPE</div>
+                    <div class="text-xs font-bold text-slate-700">Tokens</div>
+                </div>
+            </div>
+            <div class="pipeline-arrow" id="arrow-2"></div>
+
+            <div onclick="setActiveStage(3)" id="stage-3"
+                class="stage-card cursor-pointer flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="stage-icon w-14 h-14 rounded-2xl bg-emerald-400 text-slate-900 flex items-center justify-center shadow-lg group-hover:scale-105">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="4" y1="9" x2="20" y2="9" />
+                        <line x1="4" y1="15" x2="20" y2="15" />
+                        <line x1="10" y1="3" x2="8" y2="21" />
+                        <line x1="16" y1="3" x2="14" y2="21" />
+                    </svg>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">IDs</div>
+                    <div class="text-xs font-bold text-slate-700">Token IDs</div>
+                </div>
+            </div>
+            <div class="pipeline-arrow" id="arrow-3"></div>
+
+            <div onclick="setActiveStage(4)" id="stage-4"
+                class="stage-card cursor-pointer flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="stage-icon w-14 h-14 rounded-2xl bg-teal-500 text-white flex items-center justify-center shadow-lg group-hover:scale-105">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Matrix</div>
+                    <div class="text-xs font-bold text-slate-700">Token Emb</div>
+                </div>
+            </div>
+            <div class="pipeline-arrow" id="arrow-4"></div>
+
+            <div onclick="setActiveStage(5)" id="stage-5"
+                class="stage-card cursor-pointer flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="stage-icon w-14 h-14 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shadow-lg group-hover:scale-105">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                    </svg>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Order</div>
+                    <div class="text-xs font-bold text-slate-700">Pos Emb</div>
+                </div>
+            </div>
+            <div class="pipeline-arrow" id="arrow-5"></div>
+
+            <div onclick="setActiveStage(6)" id="stage-6"
+                class="stage-card cursor-pointer flex flex-col items-center gap-2 group min-w-[70px]">
+                <div
+                    class="stage-icon w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg group-hover:scale-105">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                </div>
+                <div class="text-center">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Tensors</div>
+                    <div class="text-xs font-bold text-slate-700">Final Input</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dynamic Content Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <!-- Left: Detail Inspector -->
+            <div class="lg:col-span-2 space-y-6">
+                <div id="inspectorCard"
+                    class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm min-h-[500px]">
+                    <div id="inspectorHeader" class="flex items-center justify-between mb-8">
+                        <h2 class="text-2xl font-black text-slate-800 flex items-center gap-3">
+                            <span id="stageNum"
+                                class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-sm">1</span>
+                            <span id="stageTitle">Raw Text</span>
+                        </h2>
+                        <span
+                            class="px-4 py-1.5 bg-slate-100 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-widest">Stage
+                            Detail</span>
+                    </div>
+
+                    <div id="inspectorContent" class="space-y-6 min-h-[150px]"></div>
+
+                    <!-- Python Code Section -->
+                    <div class="mt-8 pt-8 border-t border-slate-100 space-y-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Python / PyTorch
+                            Implementation</h4>
+                        <div class="code-container">
+                            <div class="space-y-2">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase ml-1">Code</div>
+                                <div id="codeBlock" class="code-block"></div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase ml-1">Simulated Output</div>
+                                <div id="outputBlock" class="output-block"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Technical Context -->
+            <div class="space-y-6">
+                <div class="bg-indigo-50 rounded-3xl p-6 border border-indigo-100">
+                    <h3
+                        class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="3">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="16" x2="12" y2="12" />
+                            <line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
+                        Technical Insights
+                    </h3>
+                    <p id="contextText" class="text-sm text-indigo-900/70 leading-relaxed">
+                        LLMs can't process text directly. This pipeline converts human symbols into mathematical
+                        vectors.
+                    </p>
+                </div>
+
+                <div class="bg-slate-900 rounded-3xl p-6 text-white shadow-lg space-y-4">
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Technical Metadata</h3>
+                    <div id="metaDisplay" class="font-mono text-xs space-y-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Footer -->
+        <footer class="bg-slate-100 rounded-3xl p-8 text-center text-slate-500 text-sm border border-slate-200">
+            <p>Interactive Visualization: Mastering Tokenization and Embedding Layers.</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- State Management ---
+        const VOCAB_SIZE = 50257;
+        const EMBED_DIM = 256;
+        let activeStage = 1;
+        let isAutoPlaying = false;
+
+        function simulateTokenize(text) {
+            if (!text) return [];
+            return text.match(/\s?\w+|[^\w\s]/g) || [];
+        }
+
+        function hashToken(token) {
+            let hash = 0;
+            for (let i = 0; i < token.length; i++) {
+                hash = ((hash << 5) - hash) + token.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return Math.abs(hash) % VOCAB_SIZE;
+        }
+
+        function getPseudoVector(seed, dim = 64) {
+            const vec = [];
+            let val = seed;
+            for (let i = 0; i < dim; i++) {
+                val = (val * 9301 + 49297) % 233280;
+                vec.push((val / 233280) * 2 - 1);
+            }
+            return vec;
+        }
+
+        function highlightPython(code) {
+            let escaped = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const keywords = ['import', 'from', 'def', 'class', 'return', 'if', 'else', 'for', 'in', 'print', 'torch', 'nn', 'as'];
+            const funcs = ['get_encoding', 'encode', 'decode', 'tensor', 'Embedding', 'arange', 'shape', 'tolist', 'weight', 'Size'];
+            const tokenRegex = /(#.*$)|("(?:\\.|[^"])*"|'(?:\\.|[^'])*')|(\b\d+\b)|(\b\w+\b)|([+\-*/%=<>!]=?|[()[\]{},.:])/gm;
+
+            return escaped.replace(tokenRegex, (match, comment, string, number, word, op) => {
+                if (comment) return `<span class="code-comment">${comment}</span>`;
+                if (string) return `<span class="code-str">${string}</span>`;
+                if (number) return `<span class="code-num">${number}</span>`;
+                if (word) {
+                    if (keywords.includes(word)) return `<span class="code-keyword">${word}</span>`;
+                    if (funcs.includes(word)) return `<span class="code-func">${word}</span>`;
+                    return word;
+                }
+                if (op) return `<span class="code-op">${op}</span>`;
+                return match;
+            });
+        }
+
+        function setActiveStage(num) {
+            activeStage = num;
+            updateUI();
+        }
+
+        function setSample(txt) {
+            document.getElementById('userInput').value = txt;
+            setActiveStage(1);
+        }
+
+        function runAutoPipeline() {
+            if (isAutoPlaying) return;
+            isAutoPlaying = true;
+            let current = 1;
+            setActiveStage(current);
+            const interval = setInterval(() => {
+                current++;
+                if (current > 6) {
+                    clearInterval(interval);
+                    isAutoPlaying = false;
+                } else {
+                    setActiveStage(current);
+                }
+            }, 1800);
+        }
+
+        function renderVector(vector, label, id = "") {
+            let cells = '';
+            const slice = vector.slice(0, 48);
+            slice.forEach(val => {
+                const intensity = Math.abs(val);
+                const color = val > 0
+                    ? `rgba(79, 70, 229, ${0.2 + intensity * 0.8})`
+                    : `rgba(244, 63, 94, ${0.2 + intensity * 0.8})`;
+                cells += `<div class="vector-cell" style="background: ${color}"></div>`;
+            });
+
+            return `
+                <div class="space-y-1">
+                    <div class="flex justify-between items-end">
+                        <span class="text-[9px] font-mono text-slate-400 uppercase">${label}</span>
+                        ${id !== "" ? `<span class="text-[8px] font-mono text-slate-300">ID: ${id}</span>` : ''}
+                    </div>
+                    <div class="vector-bar">${cells}</div>
+                </div>
+            `;
+        }
+
+        function updateUI() {
+            const textInput = document.getElementById('userInput').value || "Hello";
+            const tokens = simulateTokenize(textInput);
+            const tokenIds = tokens.map(t => hashToken(t));
+            const tokenEmbs = tokenIds.map(id => getPseudoVector(id, EMBED_DIM));
+            const posEmbs = tokens.map((_, i) => getPseudoVector(i * 1000 + 7, EMBED_DIM));
+            const finalEmbs = tokenEmbs.map((te, i) => te.map((v, j) => v + posEmbs[i][j]));
+
+            const stageInfos = {
+                1: {
+                    title: "Raw Text Input",
+                    color: "#f97316",
+                    context: "LLMs require mathematical input. We start with a raw string, which is essentially just a sequence of characters encoded in UTF-8.",
+                    code: `# Step 1: Human-readable text string\ntext = "${textInput}"\n\n# Inspect basic properties\nprint(f"Type: {type(text)}")\nprint(f"Length: {len(text)} characters")`,
+                    output: `Type: <class 'str'>\nLength: ${textInput.length} characters`
+                },
+                2: {
+                    title: "BPE Tokenization",
+                    color: "#fbbf24",
+                    context: "Byte Pair Encoding (BPE) breaks text into subword units. This is efficient as it balances vocabulary size and word coverage.",
+                    code: `import tiktoken\n\n# Load the GPT-2 tokenizer\nenc = tiktoken.get_encoding("gpt2")\n\n# Convert raw string into list of IDs\nids = enc.encode("${textInput}")\n\n# Get subword strings for each ID\ntokens = [enc.decode([id]) for id in ids]\nprint(f"Tokens: {tokens}")`,
+                    output: `Tokens: [${tokens.map(t => `'${t}'`).join(', ')}]\nCount: ${tokens.length}`
+                },
+                3: {
+                    title: "Token IDs",
+                    color: "#34d399",
+                    context: "Each subword token is mapped to a unique integer. For GPT-2, there are 50,257 possible IDs in the vocabulary.",
+                    code: `import torch\n\n# Wrap the list of IDs into a PyTorch tensor\ntoken_ids = torch.tensor([${tokenIds.join(', ')}])\n\nprint(f"Token IDs: {token_ids}")\nprint(f"Shape: {token_ids.shape}")\nprint(f"Vocab Range: 0 to 50256")`,
+                    output: `Token IDs: tensor([${tokenIds.join(', ')}])\nShape: torch.Size([${tokenIds.length}])\nData Type: int64`
+                },
+                4: {
+                    title: "Token Embeddings",
+                    color: "#14b8a6",
+                    context: "A lookup table maps each ID to a dense vector. These 'embeddings' capture the semantic relationships between words.",
+                    code: `import torch.nn as nn\n\n# Setup Embedding Layer\n# Matrix size: Vocab Size (50257) x Embedding Dim (256)\nemb_layer = nn.Embedding(50257, ${EMBED_DIM})\n\n# Perform Lookup\ntoken_embeddings = emb_layer(token_ids)\nprint(f"Embedding Tensor Shape: {token_embeddings.shape}")`,
+                    output: `Embedding Tensor Shape: torch.Size([${tokens.length}, ${EMBED_DIM}])\nMemory Type: float32`
+                },
+                5: {
+                    title: "Positional Embeddings",
+                    color: "#0891b2",
+                    context: "Transformers don't know word order naturally. We add a 'Position Vector' to tell the model exactly where each token is located.",
+                    code: `seq_len = ${tokens.length}\n# Create position-specific embedding layer\npos_emb_layer = nn.Embedding(seq_len, ${EMBED_DIM})\n\n# Position indices: [0, 1, 2, ...]\npositions = torch.arange(seq_len)\npos_embeddings = pos_emb_layer(positions)\n\nprint(f"Positional Shape: {pos_embeddings.shape}")`,
+                    output: `Indices: [${Array.from({ length: tokens.length }, (_, i) => i).join(', ')}]\nPositional Shape: torch.Size([${tokens.length}, ${EMBED_DIM}])`
+                },
+                6: {
+                    title: "Final Input Embeddings",
+                    color: "#4f46e5",
+                    context: "We sum the token and position vectors. This final tensor represents WHAT the word is and WHERE it is, ready for Attention.",
+                    code: `# Combine what the token is + where it appears\ninput_embeddings = token_embeddings + pos_embeddings\n\nprint(f"Final Input Shape: {input_embeddings.shape}")\nprint("Data is now ready for the Transformer block.")`,
+                    output: `Final Shape: torch.Size([${tokens.length}, ${EMBED_DIM}])\nReady Status: OK (passed to layer_norm next)`
+                }
+            };
+
+            const config = stageInfos[activeStage];
+
+            document.querySelectorAll('.stage-card').forEach((el, i) => {
+                el.classList.toggle('active', (i + 1) === activeStage);
+                el.classList.toggle('animating-stage', isAutoPlaying && (i + 1) === activeStage);
+            });
+            document.querySelectorAll('.pipeline-arrow').forEach((el, i) => {
+                el.classList.toggle('active', (i + 1) < activeStage);
+            });
+
+            const meta = document.getElementById('metaDisplay');
+            if (activeStage === 1) meta.innerHTML = `<div>Type: <span class="text-indigo-400">string</span></div><div>Characters: <span class="text-emerald-400">${textInput.length}</span></div>`;
+            else if (activeStage === 2) meta.innerHTML = `<div>Type: <span class="text-indigo-400">list[str]</span></div><div>Tokens: <span class="text-emerald-400">${tokens.length}</span></div>`;
+            else if (activeStage === 3) meta.innerHTML = `<div>Type: <span class="text-indigo-400">tensor[int64]</span></div><div>Shape: <span class="text-emerald-400">[${tokenIds.length}]</span></div>`;
+            else meta.innerHTML = `<div>Type: <span class="text-indigo-400">tensor[float32]</span></div><div>Shape: <span class="text-emerald-400">[${tokens.length}, ${EMBED_DIM}]</span></div>`;
+
+            document.getElementById('stageNum').innerText = activeStage;
+            document.getElementById('stageTitle').innerText = config.title;
+            document.getElementById('stageNum').style.backgroundColor = config.color;
+            document.getElementById('contextText').innerText = config.context;
+
+            document.getElementById('codeBlock').innerHTML = highlightPython(config.code);
+            document.getElementById('outputBlock').innerHTML = config.output.split('\n').map(line => `>>> ${line}`).join('\n');
+
+            const content = document.getElementById('inspectorContent');
+            let html = '';
+            switch (activeStage) {
+                case 1:
+                    html = `<div class="p-6 bg-orange-50 rounded-2xl border border-orange-100"><div class="text-[10px] font-bold text-orange-400 uppercase mb-2 tracking-widest">Input String</div><div class="text-lg font-medium text-orange-900 leading-relaxed font-mono">"${textInput}"</div></div>`;
+                    break;
+                case 2:
+                    html = `<div class="flex flex-wrap gap-2">${tokens.map(t => `<span class="px-3 py-1.5 bg-amber-50 border-2 border-amber-200 rounded-lg font-mono text-sm text-amber-700">"${t.replace(' ', '·')}"</span>`).join('')}</div>`;
+                    break;
+                case 3:
+                    html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-2">${tokens.map((t, i) => `<div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm font-mono"><span class="text-slate-400">"${t}"</span><span class="font-bold text-emerald-600">${tokenIds[i]}</span></div>`).join('')}</div>`;
+                    break;
+                case 4:
+                    html = `<div class="space-y-4 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">${tokenEmbs.map((v, i) => renderVector(v, `Token: "${tokens[i]}"`, tokenIds[i])).join('')}</div>`;
+                    break;
+                case 5:
+                    html = `<div class="space-y-4 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">${posEmbs.map((v, i) => renderVector(v, `Index: ${i}`)).join('')}</div>`;
+                    break;
+                case 6:
+                    html = `<div class="space-y-4 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">${finalEmbs.map((v, i) => renderVector(v, `Input [${i}]`)).join('')}</div>`;
+                    break;
+            }
+            content.innerHTML = html;
+        }
+
+        document.getElementById('userInput').addEventListener('input', () => {
+            if (activeStage > 1 && !isAutoPlaying) setActiveStage(1);
+            updateUI();
+        });
+
+        updateUI();
+    </script>
+</body>
+
+</html>

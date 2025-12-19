@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tokenization Process Visualization</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            /* Background */
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f0f4ff;
+
+            /* Word tokens (Output/Result) - Teal */
+            --token-word-bg: #ecfdf5;
+            --token-word-border: #6ee7b7;
+            --token-word-text: #047857;
+
+            /* Punctuation tokens (Input/Delimiter) - Orange */
+            --token-punct-bg: #fff7ed;
+            --token-punct-border: #fdba74;
+            --token-punct-text: #c2410c;
+
+            /* Special sequences (Action/Transform) - Purple */
+            --token-special-bg: #f3e8ff;
+            --token-special-border: #c4b5fd;
+            --token-special-text: #7c3aed;
+
+            /* Interactive elements */
+            --button-gradient-start: #a78bfa;
+            --button-gradient-end: #7c3aed;
+            --button-hover: #6d28d9;
+
+            /* Text colors */
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+
+            /* Shadows */
+            --shadow-card: 0 4px 16px rgba(99, 102, 241, 0.12);
+            --shadow-token: 0 2px 8px rgba(99, 102, 241, 0.1);
+
+            /* Layout */
+            --radius-card: 16px;
+            --radius-token: 8px;
+            --radius-button: 10px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 920px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+
+        .header .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(99, 102, 241, 0.08);
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: linear-gradient(135deg, var(--button-gradient-start), var(--button-gradient-end));
+            border-radius: 2px;
+        }
+
+        /* Input Section */
+        .input-section {
+            display: flex;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .text-input {
+            flex: 1;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1rem;
+            padding: 16px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: var(--radius-button);
+            outline: none;
+            transition: all 0.2s ease;
+            background: #f8fafc;
+        }
+
+        .text-input:focus {
+            border-color: var(--button-gradient-end);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+        }
+
+        .tokenize-btn {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--button-gradient-start), var(--button-gradient-end));
+            color: white;
+            border: none;
+            border-radius: var(--radius-button);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tokenize-btn:hover {
+            background: var(--button-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .tokenize-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Strategy Toggle */
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .strategy-option {
+            position: relative;
+        }
+
+        .strategy-option input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .strategy-label {
+            display: block;
+            padding: 16px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: var(--radius-button);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .strategy-label:hover {
+            border-color: #c4b5fd;
+            background: #faf5ff;
+        }
+
+        .strategy-option input:checked+.strategy-label {
+            border-color: var(--button-gradient-end);
+            background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        .strategy-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .strategy-pattern {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--token-special-text);
+            background: rgba(124, 58, 237, 0.08);
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        /* Regex Display */
+        .regex-container {
+            background: #1e1b2e;
+            border-radius: var(--radius-button);
+            padding: 24px;
+            color: #e2e8f0;
+        }
+
+        .regex-pattern {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .regex-part {
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .regex-part.bracket {
+            color: #94a3b8;
+        }
+
+        .regex-part.punct {
+            background: rgba(251, 146, 60, 0.2);
+            color: #fdba74;
+        }
+
+        .regex-part.special {
+            background: rgba(167, 139, 250, 0.2);
+            color: #c4b5fd;
+        }
+
+        .regex-part.whitespace {
+            background: rgba(45, 212, 191, 0.2);
+            color: #5eead4;
+        }
+
+        .regex-part.or {
+            color: #f472b6;
+            font-weight: 600;
+        }
+
+        .regex-explanation {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .regex-legend {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .legend-dot.punct {
+            background: #fdba74;
+        }
+
+        .legend-dot.special {
+            background: #c4b5fd;
+        }
+
+        .legend-dot.whitespace {
+            background: #5eead4;
+        }
+
+        /* Animation Stage */
+        .animation-stage {
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            padding: 24px;
+        }
+
+        .char-display {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 3px;
+            min-height: 60px;
+        }
+
+        .char-box {
+            width: 28px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.1rem;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .char-box.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .char-box.space {
+            background: #f8fafc;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+        }
+
+        .char-box.delimiter {
+            background: rgba(251, 146, 60, 0.15);
+            border-color: var(--token-punct-border);
+            color: var(--token-punct-text);
+        }
+
+        .char-box.cut-left {
+            border-left: 3px solid var(--button-gradient-end);
+            margin-left: 8px;
+        }
+
+        .char-box.cut-right {
+            border-right: 3px solid var(--button-gradient-end);
+            margin-right: 8px;
+        }
+
+        .char-box.grouped {
+            transform: scale(0.95);
+        }
+
+        /* Token Display */
+        .token-display {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            min-height: 50px;
+        }
+
+        .token-box {
+            padding: 10px 16px;
+            border-radius: var(--radius-token);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1rem;
+            font-weight: 500;
+            border: 2px solid;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0;
+            transform: scale(0.8);
+            position: relative;
+        }
+
+        .token-box.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .token-box.word {
+            background: var(--token-word-bg);
+            border-color: var(--token-word-border);
+            color: var(--token-word-text);
+        }
+
+        .token-box.punctuation {
+            background: var(--token-punct-bg);
+            border-color: var(--token-punct-border);
+            color: var(--token-punct-text);
+        }
+
+        .token-box.special {
+            background: var(--token-special-bg);
+            border-color: var(--token-special-border);
+            color: var(--token-special-text);
+        }
+
+        .token-box:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: var(--shadow-token);
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: fixed;
+            background: #1e1b2e;
+            color: white;
+            padding: 14px 18px;
+            border-radius: var(--radius-token);
+            font-size: 0.85rem;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            max-width: 280px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 6px;
+        }
+
+        .tooltip-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .tooltip-label {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .tooltip-value {
+            font-family: 'IBM Plex Mono', monospace;
+            color: #c4b5fd;
+        }
+
+        /* Results Panel */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .result-stat {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: var(--radius-button);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--button-gradient-end);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .token-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: var(--radius-button);
+            min-height: 60px;
+        }
+
+        .token-list .token-box {
+            opacity: 1;
+            transform: scale(1);
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+
+        /* Examples */
+        .examples-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .example-btn {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.85rem;
+            padding: 10px 16px;
+            background: #f1f5f9;
+            color: var(--text-secondary);
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-token);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .example-btn:hover {
+            background: #e2e8f0;
+            color: var(--text-primary);
+        }
+
+        /* Annotations */
+        .annotation {
+            background: linear-gradient(135deg, #fef3c7, #fef9c3);
+            border-left: 4px solid #f59e0b;
+            padding: 16px 20px;
+            border-radius: 0 var(--radius-token) var(--radius-token) 0;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #92400e;
+        }
+
+        .annotation-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #78350f;
+        }
+
+        /* Progress indicator */
+        .progress-bar {
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--button-gradient-start), var(--button-gradient-end));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.7rem;
+            }
+
+            .strategy-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .input-section {
+                flex-direction: column;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Initial state message */
+        .placeholder-message {
+            color: var(--text-muted);
+            font-size: 1rem;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .placeholder-message .icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Tokenization Process Visualization</h1>
+            <p class="subtitle">How LLMs Break Text into Processable Units</p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="card">
+            <div class="card-title">Text Input</div>
+            <div class="input-section">
+                <input type="text" class="text-input" id="textInput" value="Hello, world. Is this-- a test?"
+                    maxlength="200" placeholder="Enter text to tokenize..." aria-label="Text to tokenize">
+                <button class="tokenize-btn" id="tokenizeBtn" aria-label="Tokenize text">
+                    Tokenize
+                </button>
+            </div>
+            <div class="examples-row" style="margin-top: 16px;">
+                <button class="example-btn" data-text="Hello, world!">Simple greeting</button>
+                <button class="example-btn" data-text="Hello, world. Is this-- a test?">Literary excerpt</button>
+                <button class="example-btn" data-text="She said, 'Is this (really) the end?' -- I wasn't sure.">Complex
+                    punctuation</button>
+                <button class="example-btn" data-text="I had always thought Jack Doyle a rather commonplace fellow.">The
+                    Verdict</button>
+            </div>
+        </div>
+
+        <!-- Strategy Toggle -->
+        <div class="card">
+            <div class="card-title">Tokenization Strategy</div>
+            <div class="strategy-grid" role="radiogroup" aria-label="Select tokenization strategy">
+                <div class="strategy-option">
+                    <input type="radio" name="strategy" id="whitespace" value="whitespace">
+                    <label class="strategy-label" for="whitespace">
+                        <div class="strategy-name">Whitespace Only</div>
+                        <span class="strategy-pattern">(\s)</span>
+                    </label>
+                </div>
+                <div class="strategy-option">
+                    <input type="radio" name="strategy" id="basic" value="basic">
+                    <label class="strategy-label" for="basic">
+                        <div class="strategy-name">Basic Punctuation</div>
+                        <span class="strategy-pattern">([,.]|\s)</span>
+                    </label>
+                </div>
+                <div class="strategy-option">
+                    <input type="radio" name="strategy" id="full" value="full" checked>
+                    <label class="strategy-label" for="full">
+                        <div class="strategy-name">Full Punctuation</div>
+                        <span class="strategy-pattern">([,.:;?_!"()']|--|\s)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regex Pattern Display -->
+        <div class="card">
+            <div class="card-title">Active Regex Pattern</div>
+            <div class="regex-container">
+                <div class="regex-pattern" id="regexPattern">
+                    <!-- Populated by JavaScript -->
+                </div>
+                <div class="regex-explanation" id="regexExplanation">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+            <div class="annotation" id="annotation">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Animation Stage -->
+        <div class="card">
+            <div class="card-title">Animation Stage</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="animation-stage" id="animationStage">
+                <div class="placeholder-message">
+                    <div class="icon">✨</div>
+                    <div>Click <strong>Tokenize</strong> to see the magic happen</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="card" id="resultsCard" style="display: none;">
+            <div class="card-title">Tokenization Results</div>
+            <div class="results-grid">
+                <div class="result-stat">
+                    <div class="stat-number" id="totalTokens">0</div>
+                    <div class="stat-label">Total Tokens</div>
+                </div>
+                <div class="result-stat">
+                    <div class="stat-number" id="wordTokens">0</div>
+                    <div class="stat-label">Word Tokens</div>
+                </div>
+                <div class="result-stat">
+                    <div class="stat-number" id="punctTokens">0</div>
+                    <div class="stat-label">Punctuation Tokens</div>
+                </div>
+            </div>
+            <div class="token-list" id="tokenList" aria-label="Token list">
+                <!-- Populated by JavaScript -->
+            </div>
+            <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 12px;">
+                Hover over any token for details
+            </p>
+        </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip" role="tooltip" aria-hidden="true"></div>
+
+    <script>
+        // ============================================
+        // TOKENIZATION VISUALIZATION - MAIN SCRIPT
+        // ============================================
+
+        // Configuration for each strategy
+        const strategies = {
+            whitespace: {
+                pattern: /(\s)/,
+                displayParts: [
+                    { text: '(', class: 'bracket' },
+                    { text: '\\s', class: 'whitespace' },
+                    { text: ')', class: 'bracket' }
+                ],
+                legend: [
+                    { class: 'whitespace', text: '\\s matches any whitespace (space, tab, newline)' }
+                ],
+                annotation: {
+                    title: 'Why Punctuation Stays Attached',
+                    text: 'This is the simplest approach. Notice how punctuation like commas and exclamation marks remain attached to words. "Hello," and "Hello" would be treated as completely different tokens!'
+                }
+            },
+            basic: {
+                pattern: /([,.]|\s)/,
+                displayParts: [
+                    { text: '(', class: 'bracket' },
+                    { text: '[,.]', class: 'punct' },
+                    { text: '|', class: 'or' },
+                    { text: '\\s', class: 'whitespace' },
+                    { text: ')', class: 'bracket' }
+                ],
+                legend: [
+                    { class: 'punct', text: '[,.] matches comma OR period' },
+                    { class: 'whitespace', text: '\\s matches whitespace' }
+                ],
+                annotation: {
+                    title: 'Partial Solution',
+                    text: 'Now commas and periods are separated! But notice that other punctuation like "!" and "?" still stay attached to words. We need a more comprehensive pattern.'
+                }
+            },
+            full: {
+                pattern: /([,.:;?_!"()\']|--|\s)/,
+                displayParts: [
+                    { text: '(', class: 'bracket' },
+                    { text: '[,.:;?_!"()\']', class: 'punct' },
+                    { text: '|', class: 'or' },
+                    { text: '--', class: 'special' },
+                    { text: '|', class: 'or' },
+                    { text: '\\s', class: 'whitespace' },
+                    { text: ')', class: 'bracket' }
+                ],
+                legend: [
+                    { class: 'punct', text: 'Character class matches single punctuation marks' },
+                    { class: 'special', text: '-- matches double-dash as a single unit' },
+                    { class: 'whitespace', text: '\\s matches whitespace' }
+                ],
+                annotation: {
+                    title: 'GPT-Style Preparation',
+                    text: 'This comprehensive pattern is similar to what\'s used for GPT models. By separating every punctuation mark, words like "Hello" and "Hello!" become two tokens ["Hello", "!"] instead of one, keeping the vocabulary smaller and more meaningful.'
+                }
+            }
+        };
+
+        // DOM Elements
+        const textInput = document.getElementById('textInput');
+        const tokenizeBtn = document.getElementById('tokenizeBtn');
+        const animationStage = document.getElementById('animationStage');
+        const regexPattern = document.getElementById('regexPattern');
+        const regexExplanation = document.getElementById('regexExplanation');
+        const annotation = document.getElementById('annotation');
+        const resultsCard = document.getElementById('resultsCard');
+        const progressFill = document.getElementById('progressFill');
+        const tooltip = document.getElementById('tooltip');
+
+        // State
+        let currentStrategy = 'full';
+        let isAnimating = false;
+        let tokenData = [];
+
+        // ============================================
+        // TOKENIZATION LOGIC
+        // ============================================
+
+        function tokenize(text, strategy) {
+            const pattern = strategies[strategy].pattern;
+            let tokens = text.split(pattern);
+            tokens = tokens.map(t => t.trim()).filter(t => t.length > 0);
+            return tokens;
+        }
+
+        function getTokenType(token) {
+            if (/^--$/.test(token)) return 'special';
+            if (/^[,.:;?_!"()']$/.test(token)) return 'punctuation';
+            return 'word';
+        }
+
+        function getDelimiterPattern(strategy) {
+            switch (strategy) {
+                case 'whitespace': return /^\s$/;
+                case 'basic': return /^([,.]|\s)$/;
+                case 'full': return /^([,.:;?_!"()']|--)$|^\s$/;
+            }
+        }
+
+        // ============================================
+        // UI UPDATES
+        // ============================================
+
+        function updateRegexDisplay(strategy) {
+            const config = strategies[strategy];
+
+            // Update pattern display
+            regexPattern.innerHTML = config.displayParts.map(part =>
+                `<span class="regex-part ${part.class}">${escapeHtml(part.text)}</span>`
+            ).join('');
+
+            // Update legend
+            regexExplanation.innerHTML = config.legend.map(item =>
+                `<div class="regex-legend">
+                    <span class="legend-dot ${item.class}"></span>
+                    <span>${escapeHtml(item.text)}</span>
+                </div>`
+            ).join('');
+
+            // Update annotation
+            annotation.innerHTML = `
+                <div class="annotation-title">${config.annotation.title}</div>
+                <div>${config.annotation.text}</div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // ANIMATION
+        // ============================================
+
+        async function runAnimation() {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            const text = textInput.value;
+            if (!text.trim()) {
+                isAnimating = false;
+                return;
+            }
+
+            // Reset
+            resultsCard.style.display = 'none';
+            progressFill.style.width = '0%';
+            tokenData = [];
+
+            // Phase 1: Show characters
+            progressFill.style.width = '25%';
+            await showCharacters(text);
+
+            // Phase 2: Highlight delimiters
+            progressFill.style.width = '50%';
+            await highlightDelimiters(text);
+
+            // Phase 3: Group tokens
+            progressFill.style.width = '75%';
+            await groupTokens(text);
+
+            // Phase 4: Show results
+            progressFill.style.width = '100%';
+            await showResults();
+
+            isAnimating = false;
+        }
+
+        async function showCharacters(text) {
+            animationStage.innerHTML = `
+                <div class="char-display" id="charDisplay"></div>
+                <div class="token-display" id="tokenDisplay"></div>
+            `;
+
+            const charDisplay = document.getElementById('charDisplay');
+
+            // Create character boxes
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const charBox = document.createElement('div');
+                charBox.className = 'char-box' + (char === ' ' ? ' space' : '');
+                charBox.textContent = char === ' ' ? '␣' : char;
+                charBox.dataset.index = i;
+                charDisplay.appendChild(charBox);
+            }
+
+            // Animate characters appearing
+            const boxes = charDisplay.querySelectorAll('.char-box');
+            for (let i = 0; i < boxes.length; i++) {
+                await sleep(30);
+                boxes[i].classList.add('visible');
+            }
+
+            await sleep(300);
+        }
+
+        async function highlightDelimiters(text) {
+            const charDisplay = document.getElementById('charDisplay');
+            const boxes = charDisplay.querySelectorAll('.char-box');
+            const delimPattern = getDelimiterPattern(currentStrategy);
+
+            // For double-dash, we need special handling
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const box = boxes[i];
+
+                // Check for double-dash
+                if (currentStrategy === 'full' && char === '-' && text[i + 1] === '-') {
+                    box.classList.add('delimiter');
+                    boxes[i + 1].classList.add('delimiter');
+                    await sleep(100);
+                    continue;
+                }
+
+                // Skip if already marked (part of double-dash)
+                if (box.classList.contains('delimiter')) continue;
+
+                // Check single character delimiters
+                if (delimPattern.test(char)) {
+                    box.classList.add('delimiter');
+                    await sleep(100);
+                }
+            }
+
+            await sleep(400);
+
+            // Add cut lines
+            let prevWasDelim = false;
+            for (let i = 0; i < boxes.length; i++) {
+                const isDelim = boxes[i].classList.contains('delimiter');
+
+                if (isDelim && !prevWasDelim && i > 0) {
+                    boxes[i].classList.add('cut-left');
+                }
+                if (!isDelim && prevWasDelim && i > 0) {
+                    boxes[i].classList.add('cut-left');
+                }
+
+                prevWasDelim = isDelim;
+            }
+
+            await sleep(500);
+        }
+
+        async function groupTokens(text) {
+            const tokens = tokenize(text, currentStrategy);
+            const tokenDisplay = document.getElementById('tokenDisplay');
+
+            // Store token data for tooltips
+            let charIndex = 0;
+            tokens.forEach((token, idx) => {
+                const startIndex = text.indexOf(token, charIndex);
+                const endIndex = startIndex + token.length - 1;
+                charIndex = endIndex + 1;
+
+                tokenData.push({
+                    text: token,
+                    type: getTokenType(token),
+                    startIndex,
+                    endIndex,
+                    index: idx
+                });
+            });
+
+            // Create token boxes with animation
+            for (let i = 0; i < tokens.length; i++) {
+                const token = tokens[i];
+                const type = getTokenType(token);
+
+                const tokenBox = document.createElement('div');
+                tokenBox.className = `token-box ${type}`;
+                tokenBox.textContent = token;
+                tokenBox.dataset.index = i;
+                tokenDisplay.appendChild(tokenBox);
+
+                await sleep(80);
+                tokenBox.classList.add('visible');
+            }
+
+            // Add hover listeners
+            tokenDisplay.querySelectorAll('.token-box').forEach(box => {
+                box.addEventListener('mouseenter', showTooltip);
+                box.addEventListener('mouseleave', hideTooltip);
+                box.addEventListener('mousemove', moveTooltip);
+            });
+
+            await sleep(300);
+        }
+
+        async function showResults() {
+            const tokens = tokenize(textInput.value, currentStrategy);
+            const wordCount = tokens.filter(t => getTokenType(t) === 'word').length;
+            const punctCount = tokens.filter(t => getTokenType(t) !== 'word').length;
+
+            document.getElementById('totalTokens').textContent = tokens.length;
+            document.getElementById('wordTokens').textContent = wordCount;
+            document.getElementById('punctTokens').textContent = punctCount;
+
+            // Populate token list
+            const tokenList = document.getElementById('tokenList');
+            tokenList.innerHTML = tokens.map((token, idx) => {
+                const type = getTokenType(token);
+                return `<div class="token-box ${type}" data-index="${idx}">${escapeHtml(token)}</div>`;
+            }).join('');
+
+            // Add hover listeners to result tokens
+            tokenList.querySelectorAll('.token-box').forEach(box => {
+                box.addEventListener('mouseenter', showTooltip);
+                box.addEventListener('mouseleave', hideTooltip);
+                box.addEventListener('mousemove', moveTooltip);
+            });
+
+            resultsCard.style.display = 'block';
+            resultsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // ============================================
+        // TOOLTIP
+        // ============================================
+
+        function showTooltip(e) {
+            const idx = parseInt(e.target.dataset.index);
+            const data = tokenData[idx];
+            if (!data) return;
+
+            const typeLabels = {
+                word: 'Word',
+                punctuation: 'Punctuation',
+                special: 'Special Sequence'
+            };
+
+            tooltip.innerHTML = `
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Token:</span>
+                    <span class="tooltip-value">"${escapeHtml(data.text)}"</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Type:</span>
+                    <span class="tooltip-value">${typeLabels[data.type]}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Position:</span>
+                    <span class="tooltip-value">Chars ${data.startIndex}-${data.endIndex}</span>
+                </div>
+            `;
+
+            tooltip.classList.add('visible');
+            moveTooltip(e);
+        }
+
+        function hideTooltip() {
+            tooltip.classList.remove('visible');
+        }
+
+        function moveTooltip(e) {
+            const x = e.clientX + 15;
+            const y = e.clientY + 15;
+
+            // Keep tooltip in viewport
+            const rect = tooltip.getBoundingClientRect();
+            const maxX = window.innerWidth - rect.width - 20;
+            const maxY = window.innerHeight - rect.height - 20;
+
+            tooltip.style.left = Math.min(x, maxX) + 'px';
+            tooltip.style.top = Math.min(y, maxY) + 'px';
+        }
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+
+        function sleep(ms) {
+            // Respect reduced motion preference
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                return Promise.resolve();
+            }
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+
+        // Tokenize button
+        tokenizeBtn.addEventListener('click', runAnimation);
+
+        // Enter key in input
+        textInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') runAnimation();
+        });
+
+        // Strategy toggle
+        document.querySelectorAll('input[name="strategy"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentStrategy = e.target.value;
+                updateRegexDisplay(currentStrategy);
+
+                // Re-tokenize if there's already content
+                if (tokenData.length > 0) {
+                    runAnimation();
+                }
+            });
+        });
+
+        // Example buttons
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                textInput.value = btn.dataset.text;
+                runAnimation();
+            });
+        });
+
+        // Initialize
+        updateRegexDisplay(currentStrategy);
+    </script>
+</body>
+
+</html>

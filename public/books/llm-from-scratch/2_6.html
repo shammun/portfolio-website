@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token-to-ID Mapping Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #fafbff, #f5f7ff);
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .purple-shadow {
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.08);
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .animate-pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .step-transition {
+            transition: all 0.5s ease-in-out;
+        }
+
+        .row-active {
+            background-color: #f3f0ff !important;
+            border-color: #c4b5fd !important;
+            transform: scale(1.02);
+            z-index: 20;
+            position: relative;
+        }
+
+        /* Added smooth scroll to the container specifically */
+        #vocab-table-container {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen p-4 md:p-8 text-slate-800">
+    <div class="max-w-7xl mx-auto space-y-8">
+
+        <!-- Header -->
+        <header class="text-center space-y-2">
+            <h1
+                class="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 flex items-center justify-center gap-3">
+                <i data-lucide="cpu" class="text-purple-600"></i>
+                TOKEN-TO-ID MAPPING EXPLORER
+            </h1>
+            <p class="text-lg text-slate-500">Understanding how human text becomes numerical data for LLMs</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- Left Panel: Vocabulary Table -->
+            <section
+                class="lg:col-span-4 bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100 flex flex-col h-[700px] purple-shadow">
+                <div class="p-6 border-b border-slate-50 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold flex items-center gap-2">
+                            <i data-lucide="book-open" class="text-purple-500 w-5 h-5"></i>
+                            Vocabulary Table
+                        </h2>
+                        <span id="vocab-size"
+                            class="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-500">Size: 0</span>
+                    </div>
+
+                    <div class="relative">
+                        <i data-lucide="search"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                        <input type="text" id="vocab-search" placeholder="Search token or ID..."
+                            class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all text-sm">
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto px-6 py-2 scrollbar-hide" id="vocab-table-container">
+                    <table class="w-full text-left border-separate border-spacing-y-2">
+                        <thead class="sticky top-0 bg-white z-10">
+                            <tr class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                <th class="pb-2">Token (str)</th>
+                                <th class="pb-2 text-center">
+                                    <i data-lucide="arrow-right-left" class="inline w-3 h-3 text-purple-300"></i>
+                                </th>
+                                <th class="pb-2 text-right">ID (int)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vocab-list">
+                            <!-- Rows injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-4 bg-slate-50 text-[10px] text-slate-400 font-mono flex justify-between">
+                    <span>str_to_int: lookup by token</span>
+                    <span>int_to_str: lookup by ID</span>
+                </div>
+            </section>
+
+            <!-- Right Panel: Demo & Pipeline -->
+            <section class="lg:col-span-8 space-y-6">
+
+                <!-- Input Card -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4 purple-shadow">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold flex items-center gap-2 text-slate-700">
+                            <i data-lucide="type" class="text-orange-500 w-5 h-5"></i>
+                            Input Explorer
+                        </h3>
+                        <div class="flex gap-2" id="example-buttons">
+                            <!-- Examples injected by JS -->
+                        </div>
+                    </div>
+                    <textarea id="input-text"
+                        class="w-full h-24 p-4 bg-orange-50 border border-orange-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-300 text-orange-900 placeholder-orange-300 resize-none transition-all shadow-inner"
+                        placeholder="Type some text here..."></textarea>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="process-btn"
+                            class="flex-1 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98]">
+                            <i data-lucide="play" id="btn-icon" class="w-5 h-5"></i>
+                            <span id="btn-text">ENCODE TO TOKEN IDs</span>
+                        </button>
+                        <button id="clear-btn"
+                            class="px-6 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition-all"
+                            onclick="resetSteps()">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pipeline Visualization -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+
+                    <!-- Steps -->
+                    <div class="space-y-4">
+                        <!-- Step 1 -->
+                        <div id="step-1"
+                            class="p-5 rounded-2xl bg-white border-2 border-slate-100 opacity-50 step-transition">
+                            <div class="flex items-center gap-2 mb-3 text-orange-600 font-bold text-sm">
+                                <span
+                                    class="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center">1</span>
+                                Step 1: Tokenize (Splitting)
+                            </div>
+                            <div id="token-container" class="flex flex-wrap gap-2"></div>
+                            <p class="text-[10px] text-slate-400 mt-2 italic">Click a token to find it in the vocabulary
+                            </p>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div id="step-2"
+                            class="p-5 rounded-2xl bg-white border-2 border-slate-100 opacity-50 step-transition">
+                            <div class="flex items-center gap-2 mb-3 text-teal-600 font-bold text-sm">
+                                <span class="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center">2</span>
+                                Step 2: ID Lookup
+                            </div>
+                            <div id="id-lookup-container" class="flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Final Output -->
+                    <div id="step-3"
+                        class="rounded-2xl bg-slate-900 p-6 flex flex-col justify-center opacity-0 scale-95 transition-all duration-700 shadow-xl">
+                        <div class="text-teal-400 font-mono text-xs mb-4 flex items-center gap-2">
+                            <i data-lucide="hash" class="w-3 h-3"></i>
+                            OUTPUT_TENSOR:
+                        </div>
+                        <div id="output-tensor"
+                            class="bg-slate-800 p-4 rounded-xl border border-slate-700 text-teal-100 font-mono text-sm leading-relaxed overflow-x-auto min-h-[60px]">
+                            []
+                        </div>
+                        <div class="mt-6 text-slate-400 text-xs italic flex items-center gap-2">
+                            <i data-lucide="info" class="w-4 h-4"></i>
+                            These integers are what the model actually "reads".
+                        </div>
+                    </div>
+
+                    <!-- Connector Arrow -->
+                    <div
+                        class="hidden md:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0 pointer-events-none">
+                        <i data-lucide="chevron-right" id="connector-arrow"
+                            class="text-slate-100 w-12 h-12 transition-all duration-500"></i>
+                    </div>
+                </div>
+
+                <!-- Callouts -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8" id="callouts-container">
+                    <!-- Callouts injected by JS -->
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const RAW_VOCABULARY = {
+            "!": 0, '"': 1, "'": 2, "(": 3, ")": 4, ",": 5, "--": 6, ".": 7,
+            ":": 8, ";": 9, "?": 10, "A": 11, "Ah": 12, "Among": 13, "And": 14,
+            "Are": 15, "Arrt": 16, "As": 17, "At": 18, "Be": 19, "Begin": 20,
+            "Burlington": 21, "But": 22, "By": 23, "Carlo": 24, "Chicago": 25,
+            "Claude": 26, "Come": 27, "Croft": 28, "Destroyed": 29, "Devonshire": 30,
+            "Don": 31, "Dubarry": 32, "Emperors": 33, "Florence": 34, "For": 35,
+            "Gallery": 36, "Gideon": 37, "Gisburn": 38, "Gisburns": 39, "Grafton": 40,
+            "Greek": 41, "Grindle": 42, "Grindles": 43, "HAD": 44, "Had": 45,
+            "Hang": 46, "Has": 47, "He": 48, "Her": 49, "Hermia": 50,
+            "It": 56, "s": 850, "the": 988, "last": 602, "he": 533, "painted": 746,
+            "you": 1126, "know": 596, "Mrs": 67, "said": 851, "with": 1108,
+            "pardonable": 754, "pride": 793, "truth": 999, "sure": 1001,
+            "<|endoftext|>": 1130, "<|unk|>": 1131
+        };
+
+        const EXAMPLES = [
+            { text: "\"It's the last he painted, you know,\" Mrs. Gisburn said with pardonable pride.", label: "Chapter Example" },
+            { text: "He said the truth.", label: "Simple Sentence" },
+            { text: "\"Are you sure?\"", label: "With Punctuation" }
+        ];
+
+        const CALLOUTS = [
+            { title: "Why Sort Alphabetically?", text: "Tokens are sorted alphabetically before ID assignment. This ensures consistency: '!' always becomes ID 0, and 'A' always comes before 'a'.", icon: "book-open" },
+            { title: "What About Unknown Words?", text: "If you type a word not in our sample vocabulary (e.g., 'Galaxy'), the tokenizer defaults to <span class='font-mono text-purple-600'>&lt;|unk|&gt;</span> (ID 1131).", icon: "message-square" },
+            { title: "Special Tokens", text: "Note <span class='font-mono bg-slate-100 px-1 rounded'>&lt;|endoftext|&gt;</span> (ID 1130). This marks boundaries between different documents.", icon: "hash" },
+            { title: "Vocabulary Scaling", text: "Our demo has ~1,132 tokens. Real LLMs like GPT-4 use over 100,000 tokens for maximum efficiency.", icon: "cpu" }
+        ];
+
+        // --- STATE & UTILS ---
+        let isAnimating = false;
+        let searchQuery = "";
+
+        const tokenize = (text) => {
+            return text.split(/([,.:;?_!"()'']|--|\s)/)
+                .map(t => t.trim())
+                .filter(t => t.length > 0);
+        };
+
+        const encodeTokens = (tokens) => {
+            return tokens.map(token => RAW_VOCABULARY[token] ?? RAW_VOCABULARY["<|unk|>"]);
+        };
+
+        // --- DOM ELEMENTS ---
+        const vocabList = document.getElementById('vocab-list');
+        const vocabSearch = document.getElementById('vocab-search');
+        const vocabSizeEl = document.getElementById('vocab-size');
+        const inputText = document.getElementById('input-text');
+        const processBtn = document.getElementById('process-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnIcon = document.getElementById('btn-icon');
+        const exampleBtnsContainer = document.getElementById('example-buttons');
+        const calloutsContainer = document.getElementById('callouts-container');
+        const tokenContainer = document.getElementById('token-container');
+        const idLookupContainer = document.getElementById('id-lookup-container');
+        const outputTensor = document.getElementById('output-tensor');
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const step3 = document.getElementById('step-3');
+        const connectorArrow = document.getElementById('connector-arrow');
+
+        // --- RENDER FUNCTIONS ---
+        function renderVocabTable() {
+            const sorted = Object.entries(RAW_VOCABULARY)
+                .sort((a, b) => a[1] - b[1])
+                .filter(([token, id]) =>
+                    token.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    id.toString().includes(searchQuery)
+                );
+
+            vocabSizeEl.textContent = `Size: ${Object.keys(RAW_VOCABULARY).length}`;
+
+            vocabList.innerHTML = sorted.map(([token, id]) => `
+                <tr id="vocab-row-${id}" class="transition-all cursor-default border-transparent border-y-2 group">
+                    <td class="p-3 rounded-l-xl bg-[#fff7ed] text-orange-600 font-medium border-l border-y border-transparent transition-all group-hover:border-orange-200">
+                        <span class="font-mono text-sm">"${token}"</span>
+                    </td>
+                    <td class="bg-white flex items-center justify-center p-3 border-y border-transparent transition-all group-hover:border-purple-100">
+                         <i data-lucide="arrow-right" class="w-3 h-3 text-slate-200"></i>
+                    </td>
+                    <td class="p-3 rounded-r-xl bg-[#ecfdf5] text-teal-600 text-right font-mono font-bold border-r border-y border-transparent transition-all group-hover:border-teal-200">
+                        ${id}
+                    </td>
+                </tr>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderExamples() {
+            exampleBtnsContainer.innerHTML = EXAMPLES.map((ex, i) => `
+                <button class="text-xs px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors" onclick="setInputText('${ex.text.replace(/'/g, "\\'")}')">
+                    ${ex.label}
+                </button>
+            `).join('');
+        }
+
+        function renderCallouts() {
+            calloutsContainer.innerHTML = CALLOUTS.map(c => `
+                <div class="bg-white border-l-4 border-purple-400 p-4 rounded-r-lg shadow-sm transition-all hover:shadow-md">
+                    <div class="flex items-center gap-2 mb-1 text-purple-700 font-semibold">
+                        <i data-lucide="${c.icon}" class="w-4 h-4"></i>
+                        <span>${c.title}</span>
+                    </div>
+                    <p class="text-gray-600 text-sm leading-relaxed">${c.text}</p>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // --- ACTIONS ---
+        window.setInputText = (text) => {
+            inputText.value = text;
+            resetSteps();
+        };
+
+        function resetSteps() {
+            step1.classList.add('opacity-50', 'border-slate-100');
+            step1.classList.remove('border-orange-400', 'shadow-md');
+            step2.classList.add('opacity-50', 'border-slate-100');
+            step2.classList.remove('border-teal-400', 'shadow-md');
+            step3.classList.add('opacity-0', 'scale-95');
+            connectorArrow.classList.remove('text-purple-300', 'scale-125');
+            connectorArrow.classList.add('text-slate-100');
+            tokenContainer.innerHTML = '';
+            idLookupContainer.innerHTML = '';
+            outputTensor.textContent = '[]';
+            clearHighlights();
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('#vocab-list tr').forEach(row => row.classList.remove('row-active'));
+        }
+
+        /**
+         * Core logic to highlight and optionally scroll the vocab table
+         * @param {string} token - The string token
+         * @param {boolean} shouldScroll - If true, only scroll the vocab container, NOT the window
+         */
+        function highlightVocabRow(token, shouldScroll = false) {
+            clearHighlights();
+            const id = RAW_VOCABULARY[token];
+            if (id !== undefined) {
+                const row = document.getElementById(`vocab-row-${id}`);
+                if (row) {
+                    row.classList.add('row-active');
+                    if (shouldScroll) {
+                        // Using localized scroll instead of global scrollIntoView
+                        const container = document.getElementById('vocab-table-container');
+                        const topPos = row.offsetTop - container.offsetTop - 50;
+                        container.scrollTo({
+                            top: topPos,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            }
+        }
+
+        async function startPipeline() {
+            if (isAnimating) return;
+            isAnimating = true;
+            resetSteps();
+
+            // UI state
+            processBtn.disabled = true;
+            processBtn.classList.replace('bg-purple-600', 'bg-slate-100');
+            processBtn.classList.replace('text-white', 'text-slate-400');
+            btnText.textContent = 'Processing...';
+            btnIcon.setAttribute('data-lucide', 'rotate-ccw');
+            btnIcon.classList.add('animate-spin');
+            lucide.createIcons();
+
+            const text = inputText.value;
+            const tokens = tokenize(text);
+            const ids = encodeTokens(tokens);
+
+            // Step 1: Tokenize
+            await sleep(400);
+            step1.classList.remove('opacity-50', 'border-slate-100');
+            step1.classList.add('border-orange-400', 'shadow-md');
+
+            tokens.forEach((t, i) => {
+                setTimeout(() => {
+                    const span = document.createElement('span');
+                    span.className = 'px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-mono animate-pop-in cursor-pointer hover:bg-orange-200 transition-colors border border-transparent hover:border-orange-400';
+                    span.textContent = `"${t}"`;
+                    // Hover only highlights
+                    span.onmouseenter = () => highlightVocabRow(t, false);
+                    // Click explicitly scrolls the table container
+                    span.onclick = () => highlightVocabRow(t, true);
+                    span.onmouseleave = () => clearHighlights();
+                    tokenContainer.appendChild(span);
+                }, i * 60);
+            });
+
+            await sleep(1200);
+
+            // Step 2: IDs
+            step2.classList.remove('opacity-50', 'border-slate-100');
+            step2.classList.add('border-teal-400', 'shadow-md');
+            connectorArrow.classList.add('text-purple-300', 'scale-125');
+            connectorArrow.classList.remove('text-slate-100');
+
+            ids.forEach((id, i) => {
+                setTimeout(() => {
+                    const div = document.createElement('div');
+                    div.className = 'flex flex-col items-center animate-pop-in cursor-pointer group';
+                    div.innerHTML = `
+                        <span class="text-[10px] text-slate-400 mb-1">"${tokens[i]}"</span>
+                        <span class="w-10 h-8 flex items-center justify-center bg-teal-100 text-teal-700 rounded font-mono font-bold text-xs group-hover:bg-teal-200 transition-colors border border-transparent group-hover:border-teal-400">${id}</span>
+                    `;
+                    div.onmouseenter = () => highlightVocabRow(tokens[i], false);
+                    div.onclick = () => highlightVocabRow(tokens[i], true);
+                    div.onmouseleave = () => clearHighlights();
+                    idLookupContainer.appendChild(div);
+                }, i * 60);
+            });
+
+            await sleep(1000);
+
+            // Step 3: Final
+            step3.classList.remove('opacity-0', 'scale-95');
+            step3.classList.add('opacity-100', 'scale-100');
+            outputTensor.textContent = `[${ids.join(', ')}]`;
+
+            // Reset UI
+            isAnimating = false;
+            processBtn.disabled = false;
+            processBtn.classList.replace('bg-slate-100', 'bg-purple-600');
+            processBtn.classList.replace('text-slate-400', 'text-white');
+            btnText.textContent = 'ENCODE TO TOKEN IDs';
+            btnIcon.setAttribute('data-lucide', 'play');
+            btnIcon.classList.remove('animate-spin');
+            lucide.createIcons();
+        }
+
+        const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+        // --- EVENT LISTENERS ---
+        vocabSearch.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderVocabTable();
+        });
+
+        processBtn.addEventListener('click', startPipeline);
+
+        // --- INIT ---
+        window.onload = () => {
+            renderVocabTable();
+            renderExamples();
+            renderCallouts();
+            inputText.value = EXAMPLES[0].text;
+            lucide.createIcons();
+        };
+    </script>
+</body>
+
+</html>

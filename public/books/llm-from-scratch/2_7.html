@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPE: Learn How AI Breaks Words Into Pieces</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #fafbff, #f0f4ff);
+            min-height: 100vh;
+            padding: 24px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: #64748b;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        /* Input Section */
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+        }
+
+        .btn-start {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .examples span {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .example-btn {
+            padding: 8px 14px;
+            background: #fef3c7;
+            border: 2px solid #fcd34d;
+            border-radius: 8px;
+            color: #92400e;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-btn:hover {
+            background: #fde68a;
+        }
+
+        /* The Story Section */
+        .story-section {
+            display: none;
+        }
+
+        .story-section.active {
+            display: block;
+        }
+
+        /* Current State Display */
+        .state-display {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .state-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .tokens-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .token-box {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .token-box.char {
+            background: #fff7ed;
+            color: #c2410c;
+            border: 2px solid #fed7aa;
+        }
+
+        .token-box.merged {
+            background: #ecfdf5;
+            color: #047857;
+            border: 2px solid #6ee7b7;
+        }
+
+        .token-box.highlight {
+            background: #ede9fe;
+            color: #6d28d9;
+            border: 2px solid #a78bfa;
+            animation: glow 1s ease-in-out infinite;
+            transform: scale(1.05);
+        }
+
+        @keyframes glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 16px rgba(139, 92, 246, 0.6);
+            }
+        }
+
+        /* The Big Reveal - What's Happening */
+        .action-box {
+            background: linear-gradient(135deg, #faf5ff, #ede9fe);
+            border: 2px solid #c4b5fd;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .action-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #7c3aed;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .merge-visual {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .merge-item {
+            padding: 16px 24px;
+            background: white;
+            border: 3px solid #a78bfa;
+            border-radius: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #6d28d9;
+        }
+
+        .merge-arrow {
+            font-size: 2rem;
+            color: #8b5cf6;
+        }
+
+        .merge-result {
+            padding: 16px 28px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .action-explanation {
+            font-size: 1rem;
+            color: #5b21b6;
+            line-height: 1.6;
+        }
+
+        .action-explanation strong {
+            color: #7c3aed;
+        }
+
+        /* Pair Counts */
+        .pairs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .pair-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .pair-card.winner {
+            background: #ede9fe;
+            border-color: #a78bfa;
+        }
+
+        .pair-text {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 4px;
+        }
+
+        .pair-card.winner .pair-text {
+            color: #6d28d9;
+        }
+
+        .pair-count {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .pair-card.winner .pair-count {
+            color: #7c3aed;
+            font-weight: 600;
+        }
+
+        .winner-star {
+            color: #f59e0b;
+            margin-left: 4px;
+        }
+
+        /* Vocabulary */
+        .vocab-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .vocab-item {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .vocab-item.original {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .vocab-item.new {
+            background: #ecfdf5;
+            color: #047857;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            70% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            border-color: #8b5cf6;
+            color: #7c3aed;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border-color: #7c3aed;
+            color: white;
+        }
+
+        .btn-next:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+            color: white;
+        }
+
+        /* Progress */
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .iteration-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        /* Complete State */
+        .complete-banner {
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            border: 2px solid #6ee7b7;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .complete-banner h3 {
+            font-size: 1.3rem;
+            color: #047857;
+            margin-bottom: 8px;
+        }
+
+        .complete-banner p {
+            color: #059669;
+            line-height: 1.6;
+        }
+
+        /* Initial State */
+        .initial-message {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+        }
+
+        .initial-message .icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        /* How it works callout */
+        .callout {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            border-radius: 0 12px 12px 0;
+            padding: 16px 20px;
+            margin-top: 16px;
+        }
+
+        .callout-title {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .callout p {
+            font-size: 0.95rem;
+            color: #a16207;
+            line-height: 1.5;
+        }
+
+        /* Summary stats */
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #8b5cf6;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🧩 How Byte Pair Encoding (BPE) Works</h1>
+            <p>Watch the BPE algorithm work step-by-step. It's simpler than you think!</p>
+        </header>
+
+        <!-- Step 1: Choose Your Text -->
+        <div class="card">
+            <div class="card-header">
+                <div class="step-number">1</div>
+                <div class="card-title">Choose some text to tokenize</div>
+            </div>
+            <div class="input-section">
+                <div class="input-row">
+                    <input type="text" class="text-input" id="textInput" placeholder="Type something..." maxlength="50">
+                    <button class="btn-start" id="startBtn">Go! →</button>
+                </div>
+                <div class="examples">
+                    <span>Or try:</span>
+                    <button class="example-btn" data-text="banana">banana</button>
+                    <button class="example-btn" data-text="low lower lowest">low lower lowest</button>
+                    <button class="example-btn" data-text="unbreakable">unbreakable</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- The Story Unfolds -->
+        <div class="story-section" id="storySection">
+
+            <!-- Progress -->
+            <div class="card">
+                <div class="iteration-label">
+                    <span>Step <strong id="currentStep">0</strong></span>
+                    <span id="stepStatus">Starting with individual characters</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+
+                <!-- Current Tokens -->
+                <div class="state-display">
+                    <div class="state-label">📝 Current Breakdown of Your Text</div>
+                    <div class="tokens-row" id="tokensDisplay"></div>
+                </div>
+
+                <!-- What's Happening Now -->
+                <div class="action-box" id="actionBox">
+                    <!-- Filled dynamically -->
+                </div>
+
+                <!-- Controls -->
+                <div class="controls">
+                    <button class="btn" id="resetBtn">↺ Start Over</button>
+                    <button class="btn" id="prevBtn" disabled>← Back</button>
+                    <button class="btn btn-next" id="nextBtn">Next Step →</button>
+                </div>
+            </div>
+
+            <!-- Pair Counting -->
+            <div class="card" id="pairsCard">
+                <div class="card-header">
+                    <div class="step-number">?</div>
+                    <div class="card-title">Which pair appears most often?</div>
+                </div>
+                <p style="color: #64748b; margin-bottom: 12px;">
+                    BPE looks at every pair of adjacent tokens and counts them. The most frequent pair wins!
+                </p>
+                <div class="pairs-grid" id="pairsGrid"></div>
+            </div>
+
+            <!-- Vocabulary -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="step-number">📚</div>
+                    <div class="card-title">Vocabulary (unique tokens the AI has learned)</div>
+                </div>
+                <p style="color: #64748b; margin-bottom: 12px;">
+                    Started with <span id="origVocabSize">0</span> unique characters. Now knows <strong
+                        id="vocabSize">0</strong> unique tokens.
+                </p>
+                <div class="vocab-container" id="vocabDisplay"></div>
+
+                <div id="mergeHistorySection" style="margin-top: 20px; display: none;">
+                    <div
+                        style="font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">
+                        Merge History
+                    </div>
+                    <div id="mergeHistoryDisplay" style="font-size: 0.9rem; color: #475569;"></div>
+                </div>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="card" id="summaryCard" style="display: none;">
+                <div class="complete-banner">
+                    <h3>✅ All Done!</h3>
+                    <p>No more pairs appear more than once, so BPE stops here.</p>
+                </div>
+                <div class="summary-stats">
+                    <div class="stat-box">
+                        <div class="stat-value" id="finalTokens">0</div>
+                        <div class="stat-label">Pieces Your Text Became</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="finalVocab">0</div>
+                        <div class="stat-label">Unique Tokens Learned</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="mergeCount">0</div>
+                        <div class="stat-label">Merges Made</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Educational Callout -->
+            <div class="callout">
+                <div class="callout-title">💡 Why does this matter?</div>
+                <p>
+                    This is how ChatGPT and other AI models handle text! By breaking words into pieces,
+                    they can understand ANY word—even made-up ones—because they're built from familiar chunks.
+                </p>
+            </div>
+        </div>
+
+        <!-- Initial State -->
+        <div class="card" id="initialCard">
+            <div class="initial-message">
+                <div class="icon">👆</div>
+                <p>Enter some text above to see BPE in action!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class BPE {
+            constructor(text) {
+                this.originalText = text;
+                // Pre-tokenize: split into words (keeping spaces as separate tokens)
+                this.words = this.preTokenize(text);
+                // Each word becomes a list of characters
+                this.tokenizedWords = this.words.map(w => w.split(''));
+                this.vocabulary = new Set(text.split(''));
+                this.originalVocabSize = this.vocabulary.size;
+                this.history = [];
+                this.iteration = 0;
+                this.newToken = null;
+                this.mergeHistory = [];
+            }
+
+            preTokenize(text) {
+                // Split text into words and spaces
+                // "low lower" becomes ["low", " ", "lower"]
+                const result = [];
+                let current = '';
+
+                for (const char of text) {
+                    if (char === ' ') {
+                        if (current) {
+                            result.push(current);
+                            current = '';
+                        }
+                        result.push(' ');
+                    } else {
+                        current += char;
+                    }
+                }
+                if (current) {
+                    result.push(current);
+                }
+                return result;
+            }
+
+            // Get flat list of all tokens for display
+            get tokens() {
+                const result = [];
+                for (const word of this.tokenizedWords) {
+                    result.push(...word);
+                }
+                return result;
+            }
+
+            countPairs() {
+                const pairs = new Map();
+                // Count pairs WITHIN each word only (not across word boundaries)
+                for (const word of this.tokenizedWords) {
+                    for (let i = 0; i < word.length - 1; i++) {
+                        const a = word[i];
+                        const b = word[i + 1];
+                        // Skip if either token is a space (spaces are word boundaries)
+                        if (a === ' ' || b === ' ') continue;
+                        const key = JSON.stringify([a, b]);
+                        pairs.set(key, (pairs.get(key) || 0) + 1);
+                    }
+                }
+                return pairs;
+            }
+
+            getTopPairs() {
+                const pairCounts = this.countPairs();
+                const result = [];
+                for (const [key, count] of pairCounts) {
+                    const [a, b] = JSON.parse(key);
+                    result.push({ a, b, count });
+                }
+                result.sort((x, y) => y.count - x.count);
+                return result;
+            }
+
+            getBestPair() {
+                const pairs = this.getTopPairs();
+                return pairs.length > 0 && pairs[0].count > 1 ? pairs[0] : null;
+            }
+
+            merge(pair) {
+                // Save state for undo
+                this.history.push({
+                    tokenizedWords: this.tokenizedWords.map(w => [...w]),
+                    vocabulary: new Set(this.vocabulary),
+                    iteration: this.iteration,
+                    newToken: this.newToken,
+                    mergeHistory: [...this.mergeHistory]
+                });
+
+                const merged = pair.a + pair.b;
+
+                // Apply merge to each word
+                this.tokenizedWords = this.tokenizedWords.map(word => {
+                    const newWord = [];
+                    let i = 0;
+
+                    while (i < word.length) {
+                        if (i < word.length - 1 &&
+                            word[i] === pair.a &&
+                            word[i + 1] === pair.b) {
+                            newWord.push(merged);
+                            i += 2;
+                        } else {
+                            newWord.push(word[i]);
+                            i++;
+                        }
+                    }
+                    return newWord;
+                });
+
+                this.vocabulary.add(merged);
+                this.iteration++;
+                this.newToken = merged;
+                this.mergeHistory.push({ a: pair.a, b: pair.b, result: merged });
+
+                return merged;
+            }
+
+            goBack() {
+                if (this.history.length > 0) {
+                    const prev = this.history.pop();
+                    this.tokenizedWords = prev.tokenizedWords;
+                    this.vocabulary = new Set(prev.vocabulary);
+                    this.iteration = prev.iteration;
+                    this.newToken = prev.newToken;
+                    this.mergeHistory = prev.mergeHistory;
+                    return true;
+                }
+                return false;
+            }
+
+            isDone() {
+                const best = this.getBestPair();
+                return !best;
+            }
+
+            reset() {
+                this.tokenizedWords = this.words.map(w => w.split(''));
+                this.vocabulary = new Set(this.originalText.split(''));
+                this.history = [];
+                this.iteration = 0;
+                this.newToken = null;
+                this.mergeHistory = [];
+            }
+
+            getVocabArray() {
+                // Return vocabulary as sorted array (original chars first, then merged tokens by length)
+                const arr = Array.from(this.vocabulary);
+                const origChars = new Set(this.originalText.split(''));
+
+                arr.sort((a, b) => {
+                    const aIsOrig = origChars.has(a) && a.length === 1;
+                    const bIsOrig = origChars.has(b) && b.length === 1;
+                    if (aIsOrig && !bIsOrig) return -1;
+                    if (!aIsOrig && bIsOrig) return 1;
+                    return a.length - b.length || a.localeCompare(b);
+                });
+
+                return arr;
+            }
+        }
+
+        // UI
+        class App {
+            constructor() {
+                this.bpe = null;
+                this.pendingMerge = null;
+
+                // Elements
+                this.textInput = document.getElementById('textInput');
+                this.startBtn = document.getElementById('startBtn');
+                this.storySection = document.getElementById('storySection');
+                this.initialCard = document.getElementById('initialCard');
+                this.tokensDisplay = document.getElementById('tokensDisplay');
+                this.actionBox = document.getElementById('actionBox');
+                this.pairsGrid = document.getElementById('pairsGrid');
+                this.vocabDisplay = document.getElementById('vocabDisplay');
+                this.vocabSize = document.getElementById('vocabSize');
+                this.origVocabSize = document.getElementById('origVocabSize');
+                this.currentStep = document.getElementById('currentStep');
+                this.stepStatus = document.getElementById('stepStatus');
+                this.progressFill = document.getElementById('progressFill');
+                this.nextBtn = document.getElementById('nextBtn');
+                this.prevBtn = document.getElementById('prevBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.summaryCard = document.getElementById('summaryCard');
+
+                this.bind();
+            }
+
+            bind() {
+                this.startBtn.addEventListener('click', () => this.start());
+                this.textInput.addEventListener('keypress', e => {
+                    if (e.key === 'Enter') this.start();
+                });
+
+                document.querySelectorAll('.example-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.textInput.value = btn.dataset.text;
+                        this.start();
+                    });
+                });
+
+                this.nextBtn.addEventListener('click', () => this.next());
+                this.prevBtn.addEventListener('click', () => this.back());
+                this.resetBtn.addEventListener('click', () => this.reset());
+            }
+
+            start() {
+                const text = this.textInput.value.trim();
+                if (text.length < 2) {
+                    alert('Please enter at least 2 characters');
+                    return;
+                }
+
+                this.bpe = new BPE(text);
+                this.pendingMerge = null;
+                this.storySection.classList.add('active');
+                this.initialCard.style.display = 'none';
+                this.summaryCard.style.display = 'none';
+                this.render();
+            }
+
+            next() {
+                if (!this.bpe) return;
+
+                if (this.bpe.isDone()) {
+                    this.showComplete();
+                    return;
+                }
+
+                const pair = this.bpe.getBestPair();
+                if (pair) {
+                    this.bpe.merge(pair);
+                    this.render();
+
+                    if (this.bpe.isDone()) {
+                        this.showComplete();
+                    }
+                }
+            }
+
+            back() {
+                if (!this.bpe) return;
+                this.summaryCard.style.display = 'none';
+                this.bpe.goBack();
+                this.render();
+            }
+
+            reset() {
+                if (!this.bpe) return;
+                this.summaryCard.style.display = 'none';
+                this.bpe.reset();
+                this.render();
+            }
+
+            showComplete() {
+                this.summaryCard.style.display = 'block';
+                document.getElementById('finalTokens').textContent = this.bpe.tokens.length;
+                document.getElementById('finalVocab').textContent = this.bpe.vocabulary.size;
+                document.getElementById('mergeCount').textContent = this.bpe.iteration;
+                this.nextBtn.disabled = true;
+            }
+
+            render() {
+                this.renderTokens();
+                this.renderAction();
+                this.renderPairs();
+                this.renderVocab();
+                this.renderProgress();
+                this.updateButtons();
+            }
+
+            formatToken(t) {
+                // Replace ALL spaces with ␣ so they're visible
+                return t.replace(/ /g, '␣');
+            }
+
+            renderTokens() {
+                const bestPair = this.bpe.getBestPair();
+                let html = '';
+                const tokens = this.bpe.tokens;
+
+                for (let i = 0; i < tokens.length; i++) {
+                    const t = tokens[i];
+                    const isOriginal = t.length === 1;
+
+                    // Check if this is part of the winning pair
+                    let isHighlight = false;
+                    if (bestPair && i < tokens.length - 1) {
+                        if (tokens[i] === bestPair.a && tokens[i + 1] === bestPair.b) {
+                            isHighlight = true;
+                        }
+                    }
+
+                    const classes = ['token-box'];
+                    classes.push(isOriginal ? 'char' : 'merged');
+                    if (isHighlight) classes.push('highlight');
+
+                    html += `<div class="${classes.join(' ')}">${this.formatToken(t)}</div>`;
+                }
+
+                this.tokensDisplay.innerHTML = html;
+            }
+
+            renderAction() {
+                const pair = this.bpe.getBestPair();
+
+                if (this.bpe.isDone()) {
+                    this.actionBox.innerHTML = `
+            <div class="action-title">🎉 Complete!</div>
+            <div class="action-explanation">
+              No pair appears more than once, so there's nothing more to merge.
+              <br>Your text is now broken into <strong>${this.bpe.tokens.length} pieces</strong> 
+              (using ${this.bpe.vocabulary.size} unique tokens in the vocabulary).
+            </div>
+          `;
+                    return;
+                }
+
+                if (this.bpe.iteration === 0) {
+                    this.actionBox.innerHTML = `
+            <div class="action-title">👀 Starting Point</div>
+            <div class="action-explanation">
+              We start by splitting your text into <strong>individual characters</strong>.
+              <br>Click <strong>"Next Step"</strong> to find the most common pair and merge them!
+            </div>
+          `;
+                    return;
+                }
+
+                if (pair) {
+                    this.actionBox.innerHTML = `
+            <div class="action-title">⚡ Next Merge</div>
+            <div class="merge-visual">
+              <div class="merge-item">${this.formatToken(pair.a)}</div>
+              <span style="font-size: 1.5rem; color: #8b5cf6;">+</span>
+              <div class="merge-item">${this.formatToken(pair.b)}</div>
+              <span class="merge-arrow">→</span>
+              <div class="merge-result">${this.formatToken(pair.a + pair.b)}</div>
+            </div>
+            <div class="action-explanation">
+              The pair <strong>"${this.formatToken(pair.a)}" + "${this.formatToken(pair.b)}"</strong> appears 
+              <strong>${pair.count} times</strong> — the most frequent!
+              <br>Click "Next Step" to merge them into a new token.
+            </div>
+          `;
+                }
+            }
+
+            renderPairs() {
+                const pairs = this.bpe.getTopPairs().slice(0, 8);
+
+                if (pairs.length === 0) {
+                    this.pairsGrid.innerHTML = '<p style="color: #94a3b8;">No pairs left to count.</p>';
+                    return;
+                }
+
+                const bestPair = pairs[0];
+
+                this.pairsGrid.innerHTML = pairs.map((p, i) => {
+                    const isWinner = i === 0 && p.count > 1;
+                    return `
+            <div class="pair-card ${isWinner ? 'winner' : ''}">
+              <div class="pair-text">"${this.formatToken(p.a)}" + "${this.formatToken(p.b)}"</div>
+              <div class="pair-count">
+                ${p.count}× ${isWinner ? '<span class="winner-star">★</span>' : ''}
+              </div>
+            </div>
+          `;
+                }).join('');
+            }
+
+            renderVocab() {
+                const origChars = new Set(this.bpe.originalText.split(''));
+                const vocabArray = this.bpe.getVocabArray();
+
+                this.vocabDisplay.innerHTML = vocabArray.map(v => {
+                    const isOriginal = origChars.has(v) && v.length === 1;
+                    const isNew = v === this.bpe.newToken;
+                    return `
+            <div class="vocab-item ${isOriginal ? 'original' : 'new'} ${isNew ? 'new' : ''}">
+              ${this.formatToken(v)}
+            </div>
+          `;
+                }).join('');
+
+                this.vocabSize.textContent = vocabArray.length;
+                this.origVocabSize.textContent = this.bpe.originalVocabSize;
+
+                // Show merge history
+                const historySection = document.getElementById('mergeHistorySection');
+                const historyDisplay = document.getElementById('mergeHistoryDisplay');
+
+                if (this.bpe.mergeHistory.length > 0) {
+                    historySection.style.display = 'block';
+                    historyDisplay.innerHTML = this.bpe.mergeHistory.map((m, i) =>
+                        `<div style="margin-bottom: 4px;">
+              <span style="color: #8b5cf6; font-weight: 600;">${i + 1}.</span> 
+              "${this.formatToken(m.a)}" + "${this.formatToken(m.b)}" → 
+              <span style="color: #059669; font-weight: 600;">"${this.formatToken(m.result)}"</span>
+            </div>`
+                    ).join('');
+                } else {
+                    historySection.style.display = 'none';
+                }
+            }
+
+            renderProgress() {
+                this.currentStep.textContent = this.bpe.iteration;
+
+                // Estimate max steps (rough heuristic)
+                const maxSteps = Math.max(this.bpe.iteration + 1, Math.floor(this.bpe.originalText.length / 2));
+                const progress = (this.bpe.iteration / maxSteps) * 100;
+                this.progressFill.style.width = Math.min(progress, 100) + '%';
+
+                if (this.bpe.iteration === 0) {
+                    this.stepStatus.textContent = 'Starting with individual characters';
+                } else if (this.bpe.isDone()) {
+                    this.stepStatus.textContent = 'Complete! No more merges possible.';
+                } else {
+                    this.stepStatus.textContent = `Made ${this.bpe.iteration} merge${this.bpe.iteration !== 1 ? 's' : ''}`;
+                }
+            }
+
+            updateButtons() {
+                this.prevBtn.disabled = this.bpe.history.length === 0;
+                this.nextBtn.disabled = this.bpe.isDone();
+
+                if (this.bpe.isDone()) {
+                    this.nextBtn.textContent = 'Done! ✓';
+                } else {
+                    this.nextBtn.textContent = 'Next Step →';
+                }
+            }
+        }
+
+        // Initialize
+        new App();
+    </script>
+</body>
+
+</html>
