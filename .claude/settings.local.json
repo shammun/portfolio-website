@@ -42,7 +42,9 @@
       "Bash(then mv index.html chapters-index.html)",
       "Bash(else echo \"File not found in source\")",
       "Bash(fi:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(xxd:*)",
+      "Bash(python:*)"
     ]
   }
 }
