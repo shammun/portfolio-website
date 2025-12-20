@@ -58,7 +58,7 @@ const plannedBooks = [
   },
   {
     title: "Build a DeepSeek Model (From Scratch)",
-    author: "Sebastian Raschka",
+    author: "Dandekar et al.",
     description: "Implementation guide for building DeepSeek-style efficient language models.",
     priority: "high",
     status: "planned",
