@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scaled Dot-Product Attention Visualization</title>
+    <style>
+        :root {
+            --bg-primary: #fafbff;
+            --bg-secondary: #f5f7ff;
+            --card-bg: #ffffff;
+            --shadow-color: rgba(99, 102, 241, 0.12);
+            --shadow-hover: rgba(99, 102, 246, 0.18);
+            --purple-primary: #8b5cf6;
+            --purple-light: #c4b5fd;
+            --orange-primary: #f97316;
+            --orange-light: #fcd34d;
+            --teal-primary: #14b8a6;
+            --teal-light: #6ee7b7;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-radius: 16px;
+            --border-radius-sm: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .attention-viz {
+            padding: 32px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .viz-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .viz-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--purple-primary), var(--teal-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 24px;
+        }
+
+        /* Formula */
+        .formula-container {
+            display: inline-block;
+            background: var(--card-bg);
+            padding: 16px 32px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        .formula {
+            font-family: Georgia, serif;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .formula-text {
+            color: var(--text-secondary);
+        }
+
+        .formula-var,
+        .formula-op,
+        .formula-scale {
+            background: none;
+            border: 2px solid transparent;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-size: 1.4rem;
+            transition: all 0.2s ease;
+        }
+
+        .formula-var.q,
+        .formula-var.qk {
+            color: var(--orange-primary);
+        }
+
+        .formula-var.k {
+            color: var(--purple-primary);
+        }
+
+        .formula-var.v {
+            color: var(--teal-primary);
+        }
+
+        .formula-op {
+            color: var(--purple-primary);
+        }
+
+        .formula-scale {
+            color: var(--orange-primary);
+            background: #fff7ed;
+            border-radius: 4px;
+        }
+
+        .formula-var:hover,
+        .formula-op:hover,
+        .formula-scale:hover {
+            background: #f1f5f9;
+        }
+
+        .formula-var.active,
+        .formula-op.active,
+        .formula-scale.active {
+            border-color: var(--purple-primary);
+            background: #f5f3ff;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: var(--border-radius-sm);
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--purple-primary), #7c3aed);
+            color: white;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary.playing {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover,
+        .btn-secondary.active {
+            background: #f1f5f9;
+            border-color: var(--purple-primary);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary:disabled:hover {
+            background: var(--card-bg);
+            border-color: #e2e8f0;
+            transform: none;
+        }
+
+        .btn-accent {
+            background: linear-gradient(135deg, var(--teal-primary), #0d9488);
+            color: white;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            border: 1px solid #e2e8f0;
+        }
+
+        .speed-control label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .speed-control input[type="range"] {
+            width: 80px;
+            accent-color: var(--purple-primary);
+        }
+
+        .speed-control span {
+            font-weight: 600;
+            color: var(--purple-primary);
+            min-width: 60px;
+        }
+
+        .step-indicator {
+            padding: 8px 16px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            border: 1px solid #e2e8f0;
+            font-weight: 600;
+            color: var(--purple-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        /* Flow Diagram */
+        .flow-diagram {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 24px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 16px var(--shadow-color);
+            overflow-x: auto;
+        }
+
+        .arrow {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        /* Input/Output sections */
+        .input-section,
+        .output-section {
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .input-label,
+        .output-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-box,
+        .output-box {
+            padding: 16px;
+            border-radius: var(--border-radius-sm);
+        }
+
+        .input-box {
+            background: #fff7ed;
+            border: 2px solid var(--orange-light);
+        }
+
+        .output-box {
+            background: #f0fdfa;
+            border: 2px solid var(--teal-light);
+        }
+
+        .output-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        /* Matrix visualization */
+        .matrix-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .matrix-grid {
+            display: grid;
+            gap: 3px;
+        }
+
+        .matrix-cell {
+            border-radius: 2px;
+        }
+
+        .matrix-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-family: 'Consolas', monospace;
+        }
+
+        /* Step Cards */
+        .step-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            min-width: 140px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            box-shadow: 0 4px 8px var(--shadow-color);
+            flex-shrink: 0;
+        }
+
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px var(--shadow-hover);
+            border-color: var(--purple-light);
+        }
+
+        .step-card.active {
+            border-color: var(--purple-primary);
+            background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.25);
+        }
+
+        .step-card.completed {
+            opacity: 0.7;
+            border-color: var(--teal-primary);
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--purple-light), var(--purple-primary));
+            color: white;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .step-card.active .step-number {
+            background: linear-gradient(135deg, var(--purple-primary), #7c3aed);
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+        }
+
+        .step-card.completed .step-number {
+            background: linear-gradient(135deg, var(--teal-primary), #0d9488);
+        }
+
+        .step-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .step-visual {
+            min-height: 80px;
+        }
+
+        /* Step visuals */
+        .weight-matrices {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            justify-content: center;
+        }
+
+        .weight-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .matrix-size {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            font-family: 'Consolas', monospace;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 2px;
+        }
+
+        .matrix-equation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin: 10px 0;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.8rem;
+        }
+
+        .eq-part {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .eq-dim {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .eq-op {
+            color: var(--purple-primary);
+            font-weight: bold;
+            margin: 0 2px;
+        }
+
+        .eq-result {
+            font-weight: 600;
+            color: var(--teal-primary);
+        }
+
+        .qkv-output {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .qkv-box {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .qkv-box.q {
+            background: #fff7ed;
+            color: var(--orange-primary);
+        }
+
+        .qkv-box.k {
+            background: #f5f3ff;
+            color: var(--purple-primary);
+        }
+
+        .qkv-box.v {
+            background: #f0fdfa;
+            color: var(--teal-primary);
+        }
+
+        .dim {
+            font-size: 0.65rem;
+            opacity: 0.7;
+            font-family: 'Consolas', monospace;
+        }
+
+        .matmul-viz {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            justify-content: center;
+        }
+
+        .matmul-operand {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .matmul-operand span {
+            display: block;
+            font-size: 0.6rem;
+            opacity: 0.7;
+        }
+
+        .q-op {
+            background: #fff7ed;
+            color: var(--orange-primary);
+        }
+
+        .k-op {
+            background: #f5f3ff;
+            color: var(--purple-primary);
+        }
+
+        .matmul-symbol {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .attn-matrix {
+            text-align: center;
+        }
+
+        .attn-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .scale-viz {
+            text-align: center;
+        }
+
+        .scale-formula {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: Georgia, serif;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+
+        .scale-num {
+            color: var(--purple-primary);
+        }
+
+        .scale-div {
+            font-size: 1.2rem;
+        }
+
+        .scale-sqrt {
+            background: #fff7ed;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--orange-primary);
+        }
+
+        .scale-reason {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            background: #fef3c7;
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+
+        .softmax-viz {
+            text-align: center;
+        }
+
+        .softmax-formula {
+            font-family: Georgia, serif;
+            font-size: 0.85rem;
+            color: var(--purple-primary);
+            margin-bottom: 12px;
+        }
+
+        .probability-bars {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 4px;
+            height: 50px;
+        }
+
+        .prob-bar {
+            width: 16px;
+            background: linear-gradient(to top, var(--purple-primary), var(--purple-light));
+            border-radius: 3px 3px 0 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            position: relative;
+        }
+
+        .prob-bar span {
+            font-size: 0.5rem;
+            position: absolute;
+            top: -14px;
+            font-family: 'Consolas', monospace;
+        }
+
+        .sum-label {
+            font-size: 0.7rem;
+            color: var(--teal-primary);
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .context-viz {
+            text-align: center;
+        }
+
+        .weighted-sum {
+            font-family: Georgia, serif;
+            font-size: 0.85rem;
+            color: var(--teal-primary);
+            margin-bottom: 8px;
+        }
+
+        /* Code Panel */
+        .code-panel {
+            width: 480px;
+            background: #1e1e1e;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+            display: none;
+        }
+
+        .code-panel.open {
+            display: block;
+        }
+
+        .code-header {
+            background: #252526;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #3e3e42;
+        }
+
+        .code-title {
+            color: #cccccc;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: 1px solid #3e3e42;
+            color: #cccccc;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .btn-icon:hover {
+            background: #3e3e42;
+            border-color: #007acc;
+        }
+
+        .code-content {
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .code-placeholder {
+            color: #6a9955;
+            text-align: center;
+            padding: 32px;
+        }
+
+        .code-content pre {
+            font-family: 'Consolas', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            margin: 0;
+            color: #d4d4d4;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .keyword {
+            color: #c586c0;
+        }
+
+        .string {
+            color: #ce9178;
+        }
+
+        .number {
+            color: #b5cea8;
+        }
+
+        .comment {
+            color: #6a9955;
+            font-style: italic;
+        }
+
+        .function {
+            color: #dcdcaa;
+        }
+
+        .shape-comment {
+            color: #4fc1ff;
+            font-weight: 600;
+        }
+
+        .code-shapes,
+        .code-explanation {
+            background: #252526;
+            padding: 12px 16px;
+            border-top: 1px solid #3e3e42;
+        }
+
+        .shapes-header,
+        .explanation-header {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #4fc1ff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .shapes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .shape-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+        }
+
+        .shape-name {
+            color: #9cdcfe;
+        }
+
+        .shape-value {
+            color: #4ec9b0;
+            font-family: 'Consolas', monospace;
+        }
+
+        .code-explanation p {
+            color: #cccccc;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* Teaching Section */
+        .teaching-section {
+            margin-top: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .teaching-callout {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px var(--shadow-color);
+            overflow: hidden;
+        }
+
+        .callout-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .callout-header:hover {
+            background: #f8fafc;
+        }
+
+        .callout-icon {
+            font-size: 1.2rem;
+        }
+
+        .callout-title {
+            flex: 1;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .callout-toggle {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .callout-content {
+            display: none;
+            padding: 0 20px 20px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .callout-content.open {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .callout-content p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin: 0 0 12px 0;
+        }
+
+        .callout-content ul {
+            margin: 0;
+            padding-left: 20px;
+            color: var(--text-secondary);
+        }
+
+        .callout-content li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .scaling-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .comparison-col {
+            padding: 16px;
+            border-radius: var(--border-radius-sm);
+            background: #f8fafc;
+        }
+
+        .comparison-col h4 {
+            margin: 0 0 12px 0;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .scores,
+        .softmax-result,
+        .gradient {
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            padding: 4px 0;
+        }
+
+        .bad {
+            color: #dc2626;
+        }
+
+        .good {
+            color: var(--teal-primary);
+        }
+
+        .problem {
+            color: #dc2626;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .solution {
+            color: var(--teal-primary);
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: #1e1e1e;
+            border-radius: var(--border-radius);
+            width: 100%;
+            max-width: 800px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            background: #252526;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #3e3e42;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #cccccc;
+            font-size: 1.1rem;
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            color: #cccccc;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+
+        .btn-close:hover {
+            color: white;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-body pre {
+            background: #2d2d30;
+            padding: 16px;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 16px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: #d4d4d4;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #2d2d30;
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--border-radius-sm);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 2000;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .code-panel {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .attention-viz {
+                padding: 16px;
+            }
+
+            .viz-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .formula {
+                font-size: 1rem;
+            }
+
+            .step-card {
+                min-width: 100px;
+                padding: 12px;
+            }
+
+            .scaling-comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="attention-viz">
+        <!-- Header -->
+        <header class="viz-header">
+            <h1>Scaled Dot-Product Attention</h1>
+            <p class="subtitle">Understanding the Self-Attention Mechanism in Transformers</p>
+
+            <!-- Interactive Formula -->
+            <div class="formula-container">
+                <div class="formula">
+                    <span class="formula-text">Attention(</span>
+                    <button class="formula-var q" data-step="1">Q</button>
+                    <span class="formula-text">,</span>
+                    <button class="formula-var k" data-step="1">K</button>
+                    <span class="formula-text">,</span>
+                    <button class="formula-var v" data-step="5">V</button>
+                    <span class="formula-text">) = </span>
+                    <button class="formula-op" data-step="4">softmax</button>
+                    <span class="formula-text">(</span>
+                    <button class="formula-var qk" data-step="2">QK<sup>T</sup></button>
+                    <span class="formula-text"> / </span>
+                    <button class="formula-scale" data-step="3">√d<sub>k</sub></button>
+                    <span class="formula-text">)</span>
+                    <button class="formula-var v" data-step="5">V</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn btn-secondary" id="prev-btn">◀ Prev</button>
+            <button class="btn btn-primary" id="play-btn">▶ Play</button>
+            <button class="btn btn-secondary" id="next-btn">Next ▶</button>
+            <button class="btn btn-secondary" id="reset-btn">↻ Reset</button>
+
+            <div class="step-indicator">
+                <span id="step-display">Step: 0/5</span>
+            </div>
+
+            <button class="btn btn-secondary" id="code-btn">💻 Show Code</button>
+            <button class="btn btn-accent" id="complete-btn">📄 View Complete Class</button>
+
+            <div class="speed-control">
+                <label>Speed:</label>
+                <input type="range" id="speed-range" min="1" max="3" value="2">
+                <span id="speed-label">Medium</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Flow Diagram -->
+            <div class="flow-diagram">
+                <!-- Input -->
+                <div class="input-section">
+                    <div class="input-label">Input Embeddings</div>
+                    <div class="input-box">
+                        <div class="matrix-container">
+                            <div class="matrix-grid" style="grid-template-columns: repeat(3, 12px);" id="input-matrix">
+                            </div>
+                            <span class="matrix-label">(6, 3)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Step 1 -->
+                <div class="step-card" data-step="1" id="step-1">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Create Q, K, V</div>
+                    <div class="step-visual">
+                        <div class="weight-matrices">
+                            <div class="weight-group">
+                                <div class="matrix-grid" style="grid-template-columns: repeat(2, 8px);" id="wq-matrix">
+                                </div>
+                                <span class="matrix-label">W<sub>q</sub></span>
+                                <span class="matrix-size">(3, 2)</span>
+                            </div>
+                            <div class="weight-group">
+                                <div class="matrix-grid" style="grid-template-columns: repeat(2, 8px);" id="wk-matrix">
+                                </div>
+                                <span class="matrix-label">W<sub>k</sub></span>
+                                <span class="matrix-size">(3, 2)</span>
+                            </div>
+                            <div class="weight-group">
+                                <div class="matrix-grid" style="grid-template-columns: repeat(2, 8px);" id="wv-matrix">
+                                </div>
+                                <span class="matrix-label">W<sub>v</sub></span>
+                                <span class="matrix-size">(3, 2)</span>
+                            </div>
+                        </div>
+                        <div class="matrix-equation">
+                            <span class="eq-part">X</span>
+                            <span class="eq-dim">(6,3)</span>
+                            <span class="eq-op">@</span>
+                            <span class="eq-part">W</span>
+                            <span class="eq-dim">(3,2)</span>
+                            <span class="eq-op">=</span>
+                            <span class="eq-result">Q/K/V</span>
+                            <span class="eq-dim">(6,2)</span>
+                        </div>
+                        <div class="qkv-output">
+                            <div class="qkv-box q"><span>Q</span><span class="dim">(6,2)</span></div>
+                            <div class="qkv-box k"><span>K</span><span class="dim">(6,2)</span></div>
+                            <div class="qkv-box v"><span>V</span><span class="dim">(6,2)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Step 2 -->
+                <div class="step-card" data-step="2" id="step-2">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Q × K<sup>T</sup></div>
+                    <div class="step-visual">
+                        <div class="matmul-viz">
+                            <div class="matmul-operand q-op">Q<span>(6,2)</span></div>
+                            <span class="matmul-symbol">×</span>
+                            <div class="matmul-operand k-op">K<sup>T</sup><span>(2,6)</span></div>
+                        </div>
+                        <div class="attn-matrix">
+                            <div class="matrix-grid" style="grid-template-columns: repeat(6, 10px);" id="attn-matrix">
+                            </div>
+                            <div class="attn-label">(6, 6) Attention Scores</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Step 3 -->
+                <div class="step-card" data-step="3" id="step-3">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Scale ÷ √d<sub>k</sub></div>
+                    <div class="step-visual">
+                        <div class="scale-viz">
+                            <div class="scale-formula">
+                                <span class="scale-num">scores</span>
+                                <span class="scale-div">÷</span>
+                                <span class="scale-sqrt">√2 = 1.414</span>
+                            </div>
+                            <div class="scale-reason">
+                                <span>⚠️</span>
+                                <span>Prevents vanishing gradients</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Step 4 -->
+                <div class="step-card" data-step="4" id="step-4">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Softmax</div>
+                    <div class="step-visual">
+                        <div class="softmax-viz">
+                            <div class="softmax-formula">exp(x<sub>i</sub>) / Σexp(x<sub>j</sub>)</div>
+                            <div class="probability-bars" id="prob-bars"></div>
+                            <div class="sum-label">Σ = 1.0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Step 5 -->
+                <div class="step-card" data-step="5" id="step-5">
+                    <div class="step-number">5</div>
+                    <div class="step-title">× V</div>
+                    <div class="step-visual">
+                        <div class="context-viz">
+                            <div class="weighted-sum">Σ(w<sub>i</sub> × v<sub>i</sub>)</div>
+                            <div class="matrix-grid" style="grid-template-columns: repeat(2, 12px);"
+                                id="context-matrix"></div>
+                            <span class="matrix-label">Context (6, 2)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <!-- Output -->
+                <div class="output-section">
+                    <div class="output-label">Context Vectors</div>
+                    <div class="output-box">
+                        <div class="matrix-container">
+                            <div class="matrix-grid" style="grid-template-columns: repeat(2, 12px);" id="output-matrix">
+                            </div>
+                            <span class="matrix-label">(6, 2)</span>
+                        </div>
+                        <div class="output-desc">Enriched representations</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Panel -->
+            <div class="code-panel" id="code-panel">
+                <div class="code-header">
+                    <span class="code-title" id="code-title">💻 PyTorch Implementation</span>
+                    <button class="btn-icon" id="copy-btn">📋 Copy</button>
+                </div>
+                <div class="code-content">
+                    <pre
+                        id="code-display"><span class="comment"># Click a step to see its PyTorch implementation</span></pre>
+                </div>
+                <div class="code-shapes" id="code-shapes" style="display: none;">
+                    <div class="shapes-header">📊 Tensor Shapes</div>
+                    <div class="shapes-grid" id="shapes-grid"></div>
+                </div>
+                <div class="code-explanation" id="code-explanation" style="display: none;">
+                    <div class="explanation-header">📖 Explanation</div>
+                    <p id="explanation-text"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teaching Section -->
+        <div class="teaching-section">
+            <div class="teaching-callout" id="callout-scaling">
+                <div class="callout-header" onclick="toggleCallout('scaling')">
+                    <span class="callout-icon">💡</span>
+                    <span class="callout-title">Why scale by √d_k?</span>
+                    <span class="callout-toggle" id="toggle-scaling">+</span>
+                </div>
+                <div class="callout-content" id="content-scaling">
+                    <div class="scaling-comparison">
+                        <div class="comparison-col">
+                            <h4>Without Scaling</h4>
+                            <div class="scores">Scores: [25, 42]</div>
+                            <div class="softmax-result bad">Softmax: [0.00, 1.00]</div>
+                            <div class="gradient bad">Gradients: ~0.0 ❌</div>
+                            <p class="problem">Problem: Gradients vanish!</p>
+                        </div>
+                        <div class="comparison-col">
+                            <h4>With Scaling (÷√d_k)</h4>
+                            <div class="scores">Scores: [17.7, 29.7]</div>
+                            <div class="softmax-result good">Softmax: [0.15, 0.85]</div>
+                            <div class="gradient good">Gradients: ~0.13 ✓</div>
+                            <p class="solution">Solution: Training works!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="teaching-callout" id="callout-self">
+                <div class="callout-header" onclick="toggleCallout('self')">
+                    <span class="callout-icon">🔄</span>
+                    <span class="callout-title">What makes this 'Self-Attention'?</span>
+                    <span class="callout-toggle" id="toggle-self">+</span>
+                </div>
+                <div class="callout-content" id="content-self">
+                    <p>This is <strong>self-attention</strong> because Q, K, and V all come from the <em>same input
+                            sequence</em>. Each token can attend to every other token (including itself)! This allows
+                        the model to capture relationships and dependencies across the entire sequence.</p>
+                </div>
+            </div>
+
+            <div class="teaching-callout" id="callout-qkv">
+                <div class="callout-header" onclick="toggleCallout('qkv')">
+                    <span class="callout-icon">🎯</span>
+                    <span class="callout-title">Why separate Q, K, V?</span>
+                    <span class="callout-toggle" id="toggle-qkv">+</span>
+                </div>
+                <div class="callout-content" id="content-qkv">
+                    <p>By splitting into three separate projections, the model can learn:</p>
+                    <ul>
+                        <li><strong>Query (Q)</strong>: How to "ask questions" — what information am I looking for?</li>
+                        <li><strong>Key (K)</strong>: How to "index information" — what do I have to offer?</li>
+                        <li><strong>Value (V)</strong>: What information to retrieve — the actual content</li>
+                    </ul>
+                    <p>This separation provides flexibility to capture complex relationships that wouldn't be possible
+                        with direct input comparison.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Complete SelfAttention_v1 Class</h3>
+                <button class="btn-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <pre id="complete-code"></pre>
+                <button class="btn btn-primary btn-full" id="copy-complete-btn">📋 Copy Complete Code</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">✓ Code copied to clipboard!</div>
+
+    <script>
+        // Code snippets
+        const codeSnippets = {
+            step1: {
+                title: "Step 1: Create Queries, Keys, Values",
+                code: `<span class="comment"># Initialize weight matrices</span>
+torch.manual_seed(<span class="number">123</span>)
+d_in = <span class="number">3</span>   <span class="comment"># Input embedding dimension</span>
+d_out = <span class="number">2</span>  <span class="comment"># Output dimension for Q, K, V</span>
+
+W_query = torch.nn.Parameter(torch.rand(d_in, d_out))
+W_key = torch.nn.Parameter(torch.rand(d_in, d_out))
+W_value = torch.nn.Parameter(torch.rand(d_in, d_out))
+
+<span class="comment"># inputs shape: [6, 3] - 6 tokens, 3-dimensional embeddings</span>
+
+<span class="comment"># Compute queries, keys, and values</span>
+queries = inputs @ W_query  <span class="shape-comment"># Shape: (6, 2)</span>
+keys = inputs @ W_key       <span class="shape-comment"># Shape: (6, 2)</span>
+values = inputs @ W_value   <span class="shape-comment"># Shape: (6, 2)</span>
+
+<span class="function">print</span>(<span class="string">f"queries.shape: {queries.shape}"</span>)  <span class="comment"># torch.Size([6, 2])</span>`,
+                shapes: { "inputs": "(6, 3)", "W_query": "(3, 2)", "queries": "(6, 2)", "keys": "(6, 2)", "values": "(6, 2)" },
+                explanation: "Each input token is projected into Q, K, V spaces using learnable weight matrices. The @ operator performs matrix multiplication."
+            },
+            step2: {
+                title: "Step 2: Compute Attention Scores (Q×Kᵀ)",
+                code: `<span class="comment"># Compute attention scores via dot product</span>
+attn_scores = queries @ keys.T  <span class="shape-comment"># Shape: (6, 6)</span>
+
+<span class="comment"># For a single query (e.g., token 2):</span>
+query_2 = queries[<span class="number">1</span>]  <span class="shape-comment"># Shape: (2,)</span>
+attn_scores_2 = query_2 @ keys.T  <span class="shape-comment"># Shape: (6,)</span>
+<span class="function">print</span>(attn_scores_2)
+<span class="comment"># Output: tensor([1.2705, 1.8524, 1.8111, 1.0795, 0.5577, 1.5440])</span>
+
+<span class="comment"># Explanation:</span>
+<span class="comment"># - Each query is compared against ALL keys via dot product</span>
+<span class="comment"># - Result is a 6×6 matrix: position (i,j) = similarity</span>
+<span class="comment"># - Higher values indicate higher similarity</span>`,
+                shapes: { "queries": "(6, 2)", "keys.T": "(2, 6)", "attn_scores": "(6, 6)" },
+                explanation: "The dot product between queries and transposed keys creates an attention scores matrix. Position (i,j) represents how much token i should 'attend to' token j."
+            },
+            step3: {
+                title: "Step 3: Scale by √d_k",
+                code: `<span class="comment"># Get the dimension of keys</span>
+d_k = keys.shape[-<span class="number">1</span>]  <span class="comment"># d_k = 2</span>
+<span class="function">print</span>(<span class="string">f"Key dimension (d_k): {d_k}"</span>)
+
+<span class="comment"># Scale attention scores</span>
+attn_scores_scaled = attn_scores / d_k**<span class="number">0.5</span>  <span class="comment"># Divide by √2 ≈ 1.414</span>
+
+<span class="comment"># Why scale?</span>
+<span class="comment"># Without scaling, large d_k leads to large dot products</span>
+<span class="comment"># Large values → extreme softmax outputs (near 0 or 1)</span>
+<span class="comment"># This causes vanishing gradients during training</span>
+
+<span class="comment"># Example comparison:</span>
+large_scores = torch.tensor([<span class="number">25.0</span>, <span class="number">30.0</span>, <span class="number">42.0</span>])
+softmax_no_scale = F.softmax(large_scores, dim=-<span class="number">1</span>)
+<span class="comment"># Output: tensor([0.0000, 0.0067, 0.9933]) ← Very peaked!</span>`,
+                shapes: { "d_k": "2", "√d_k": "1.414", "attn_scores_scaled": "(6, 6)" },
+                explanation: "Scaling prevents gradient vanishing! Large dot products create peaked softmax distributions with near-zero gradients, making training impossible."
+            },
+            step4: {
+                title: "Step 4: Apply Softmax",
+                code: `<span class="comment"># Apply softmax to convert scores to probability distribution</span>
+attn_weights = torch.softmax(attn_scores_scaled, dim=-<span class="number">1</span>)
+
+<span class="comment"># For single query:</span>
+attn_weights_2 = torch.softmax(attn_scores_2 / d_k**<span class="number">0.5</span>, dim=-<span class="number">1</span>)
+<span class="function">print</span>(attn_weights_2)
+<span class="comment"># Output: tensor([0.1500, 0.2264, 0.2199, 0.1311, 0.0906, 0.1820])</span>
+
+<span class="comment"># Verify it sums to 1.0</span>
+<span class="function">print</span>(<span class="string">f"Sum of weights: {attn_weights_2.sum()}"</span>)  <span class="comment"># 1.0000</span>
+
+<span class="comment"># Softmax formula: exp(x_i) / sum(exp(x_j))</span>
+<span class="comment"># - Converts scores to probabilities (all positive, sum to 1)</span>
+<span class="comment"># - Higher scores → higher probabilities</span>`,
+                shapes: { "attn_scores_scaled": "(6, 6)", "attn_weights": "(6, 6)", "Each row sum": "1.0" },
+                explanation: "Softmax transforms scaled scores into a probability distribution. Each row sums to 1.0, determining how much each token contributes."
+            },
+            step5: {
+                title: "Step 5: Compute Context Vectors (×V)",
+                code: `<span class="comment"># Multiply attention weights by values to get context vectors</span>
+context_vectors = attn_weights @ values  <span class="shape-comment"># Shape: (6, 2)</span>
+
+<span class="comment"># For single query (token 2):</span>
+context_vec_2 = attn_weights_2 @ values  <span class="shape-comment"># Shape: (2,)</span>
+<span class="function">print</span>(context_vec_2)
+<span class="comment"># Output: tensor([0.3061, 0.8210])</span>
+
+<span class="comment"># Interpretation:</span>
+<span class="comment"># context_vec_2 = 0.15*values[0] + 0.23*values[1] + ...</span>
+<span class="comment"># Each context vector is a WEIGHTED AVERAGE of all value vectors</span>
+<span class="comment"># Weights come from attention mechanism</span>
+
+<span class="function">print</span>(<span class="string">f"Final output shape: {context_vectors.shape}"</span>)  <span class="comment"># (6, 2)</span>`,
+                shapes: { "attn_weights": "(6, 6)", "values": "(6, 2)", "context_vectors": "(6, 2)" },
+                explanation: "The final context vectors are weighted sums of all value vectors. Each output contains aggregated information from the entire sequence."
+            }
+        };
+
+        const completeClassCode = `<span class="keyword">import</span> torch
+<span class="keyword">import</span> torch.nn <span class="keyword">as</span> nn
+
+<span class="keyword">class</span> <span class="function">SelfAttention_v1</span>(nn.Module):
+    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="keyword">self</span>, d_in, d_out):
+        <span class="function">super</span>().__init__()
+        <span class="comment"># Initialize learnable weight matrices</span>
+        <span class="keyword">self</span>.W_query = nn.Parameter(torch.rand(d_in, d_out))
+        <span class="keyword">self</span>.W_key = nn.Parameter(torch.rand(d_in, d_out))
+        <span class="keyword">self</span>.W_value = nn.Parameter(torch.rand(d_in, d_out))
+    
+    <span class="keyword">def</span> <span class="function">forward</span>(<span class="keyword">self</span>, x):
+        <span class="comment"># Step 1: Create queries, keys, values</span>
+        keys = x @ <span class="keyword">self</span>.W_key
+        queries = x @ <span class="keyword">self</span>.W_query
+        values = x @ <span class="keyword">self</span>.W_value
+        
+        <span class="comment"># Step 2: Compute attention scores</span>
+        attn_scores = queries @ keys.T  <span class="shape-comment"># Shape: (num_tokens, num_tokens)</span>
+        
+        <span class="comment"># Step 3: Scale by √d_k</span>
+        d_k = keys.shape[<span class="number">-1</span>]
+        attn_scores_scaled = attn_scores / d_k**<span class="number">0.5</span>
+        
+        <span class="comment"># Step 4: Apply softmax</span>
+        attn_weights = torch.softmax(attn_scores_scaled, dim=<span class="number">-1</span>)
+        
+        <span class="comment"># Step 5: Compute context vectors</span>
+        context_vec = attn_weights @ values
+        
+        <span class="keyword">return</span> context_vec
+
+<span class="comment"># Usage example:</span>
+torch.manual_seed(<span class="number">123</span>)
+d_in, d_out = <span class="number">3</span>, <span class="number">2</span>
+sa_v1 = SelfAttention_v1(d_in, d_out)
+
+<span class="comment"># inputs shape: (6, 3) - 6 tokens with 3-dimensional embeddings</span>
+context_vectors = sa_v1(inputs)
+<span class="function">print</span>(context_vectors.shape)  <span class="comment"># torch.Size([6, 2])</span>`;
+
+        // State
+        let currentStep = 0;
+        let isPlaying = false;
+        let speed = 2;
+        let animationTimeout = null;
+
+        // Initialize matrices
+        function createMatrixCells(containerId, rows, cols, color) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            const isSmall = containerId.includes('w');
+            const cellSize = isSmall ? 8 : 10;
+            for (let i = 0; i < rows * cols; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'matrix-cell';
+                cell.style.width = cellSize + 'px';
+                cell.style.height = cellSize + 'px';
+                cell.style.backgroundColor = color;
+                cell.style.opacity = 0.7 + Math.random() * 0.3;
+                container.appendChild(cell);
+            }
+        }
+
+        function createProbBars() {
+            const container = document.getElementById('prob-bars');
+            container.innerHTML = '';
+            const probs = [0.15, 0.23, 0.22, 0.13, 0.09, 0.18];
+            probs.forEach(p => {
+                const bar = document.createElement('div');
+                bar.className = 'prob-bar';
+                bar.style.height = (p * 200) + 'px';
+                bar.innerHTML = `<span>${p.toFixed(2)}</span>`;
+                container.appendChild(bar);
+            });
+        }
+
+        function initializeVisuals() {
+            createMatrixCells('input-matrix', 6, 3, '#f97316');
+            createMatrixCells('wq-matrix', 3, 2, '#f97316');
+            createMatrixCells('wk-matrix', 3, 2, '#8b5cf6');
+            createMatrixCells('wv-matrix', 3, 2, '#14b8a6');
+            createMatrixCells('attn-matrix', 6, 6, '#a855f7');
+            createMatrixCells('context-matrix', 6, 2, '#14b8a6');
+            createMatrixCells('output-matrix', 6, 2, '#0d9488');
+            createProbBars();
+
+            document.getElementById('complete-code').innerHTML = completeClassCode;
+        }
+
+        // Step management
+        function updateStepUI() {
+            // Update step indicator
+            document.getElementById('step-display').textContent = `Step: ${currentStep}/5`;
+
+            // Update prev/next button states
+            document.getElementById('prev-btn').disabled = currentStep <= 0;
+            document.getElementById('next-btn').disabled = currentStep >= 5;
+
+            // Update step cards
+            document.querySelectorAll('.step-card').forEach((card, i) => {
+                card.classList.remove('active', 'completed');
+                if (i + 1 === currentStep) card.classList.add('active');
+                else if (i + 1 < currentStep) card.classList.add('completed');
+            });
+
+            // Update formula
+            document.querySelectorAll('.formula-var, .formula-op, .formula-scale').forEach(el => {
+                el.classList.remove('active');
+                if (parseInt(el.dataset.step) === currentStep) {
+                    el.classList.add('active');
+                }
+            });
+
+            // Update code panel
+            if (currentStep > 0) {
+                const snippet = codeSnippets[`step${currentStep}`];
+                document.getElementById('code-title').textContent = '💻 ' + snippet.title;
+                document.getElementById('code-display').innerHTML = snippet.code;
+
+                // Update shapes
+                const shapesGrid = document.getElementById('shapes-grid');
+                shapesGrid.innerHTML = '';
+                Object.entries(snippet.shapes).forEach(([name, shape]) => {
+                    shapesGrid.innerHTML += `<div class="shape-item"><span class="shape-name">${name}</span><span class="shape-value">${shape}</span></div>`;
+                });
+                document.getElementById('code-shapes').style.display = 'block';
+
+                // Update explanation
+                document.getElementById('explanation-text').textContent = snippet.explanation;
+                document.getElementById('code-explanation').style.display = 'block';
+            } else {
+                document.getElementById('code-title').textContent = '💻 PyTorch Implementation';
+                document.getElementById('code-display').innerHTML = '<span class="comment"># Click a step to see its PyTorch implementation</span>';
+                document.getElementById('code-shapes').style.display = 'none';
+                document.getElementById('code-explanation').style.display = 'none';
+            }
+        }
+
+        function goToStep(step) {
+            currentStep = step;
+            updateStepUI();
+        }
+
+        // Animation
+        function play() {
+            if (currentStep >= 5) currentStep = 0;
+            isPlaying = true;
+            document.getElementById('play-btn').textContent = '⏸ Pause';
+            document.getElementById('play-btn').classList.add('playing');
+            animate();
+        }
+
+        function pause() {
+            isPlaying = false;
+            document.getElementById('play-btn').textContent = '▶ Play';
+            document.getElementById('play-btn').classList.remove('playing');
+            if (animationTimeout) clearTimeout(animationTimeout);
+        }
+
+        function nextStep() {
+            pause();
+            if (currentStep < 5) {
+                currentStep++;
+                updateStepUI();
+            }
+        }
+
+        function prevStep() {
+            pause();
+            if (currentStep > 0) {
+                currentStep--;
+                updateStepUI();
+            }
+        }
+
+        function animate() {
+            if (!isPlaying || currentStep >= 5) {
+                pause();
+                return;
+            }
+            currentStep++;
+            updateStepUI();
+            animationTimeout = setTimeout(animate, 2500 / speed);
+        }
+
+        function reset() {
+            pause();
+            currentStep = 0;
+            updateStepUI();
+        }
+
+        // Callouts
+        function toggleCallout(id) {
+            const content = document.getElementById('content-' + id);
+            const toggle = document.getElementById('toggle-' + id);
+            const isOpen = content.classList.contains('open');
+
+            // Close all
+            document.querySelectorAll('.callout-content').forEach(c => c.classList.remove('open'));
+            document.querySelectorAll('.callout-toggle').forEach(t => t.textContent = '+');
+
+            if (!isOpen) {
+                content.classList.add('open');
+                toggle.textContent = '−';
+            }
+        }
+
+        // Modal
+        function openModal() {
+            document.getElementById('modal-overlay').classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('open');
+        }
+
+        // Copy
+        function copyCode() {
+            const code = document.getElementById('code-display').textContent;
+            navigator.clipboard.writeText(code);
+            showNotification();
+        }
+
+        function copyCompleteCode() {
+            const code = document.getElementById('complete-code').textContent;
+            navigator.clipboard.writeText(code);
+            showNotification();
+        }
+
+        function showNotification() {
+            const notification = document.getElementById('notification');
+            notification.classList.add('show');
+            setTimeout(() => notification.classList.remove('show'), 2000);
+        }
+
+        // Event listeners
+        document.getElementById('play-btn').addEventListener('click', () => {
+            isPlaying ? pause() : play();
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', reset);
+
+        document.getElementById('prev-btn').addEventListener('click', prevStep);
+
+        document.getElementById('next-btn').addEventListener('click', nextStep);
+
+        document.getElementById('code-btn').addEventListener('click', () => {
+            const panel = document.getElementById('code-panel');
+            const btn = document.getElementById('code-btn');
+            if (panel.classList.contains('open')) {
+                panel.classList.remove('open');
+                btn.textContent = '💻 Show Code';
+            } else {
+                panel.classList.add('open');
+                btn.textContent = '💻 Hide Code';
+            }
+        });
+
+        document.getElementById('complete-btn').addEventListener('click', openModal);
+
+        document.getElementById('copy-btn').addEventListener('click', copyCode);
+
+        document.getElementById('copy-complete-btn').addEventListener('click', copyCompleteCode);
+
+        document.querySelectorAll('.step-card').forEach(card => {
+            card.addEventListener('click', () => {
+                pause();
+                goToStep(parseInt(card.dataset.step));
+            });
+        });
+
+        document.querySelectorAll('.formula-var, .formula-op, .formula-scale').forEach(el => {
+            el.addEventListener('click', () => {
+                pause();
+                goToStep(parseInt(el.dataset.step));
+            });
+        });
+
+        document.getElementById('speed-range').addEventListener('input', (e) => {
+            speed = parseInt(e.target.value);
+            const labels = ['Slow', 'Medium', 'Fast'];
+            document.getElementById('speed-label').textContent = labels[speed - 1];
+        });
+
+        document.getElementById('modal-overlay').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modal-overlay')) closeModal();
+        });
+
+        // Initialize
+        initializeVisuals();
+        updateStepUI();
+    </script>
+</body>
+
+</html>

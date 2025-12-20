@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-K-V Transformation Pipeline with PyTorch Code</title>
+    <style>
+        :root {
+            /* Color Palette */
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f5f7ff;
+            --card-white: #ffffff;
+
+            /* Input (Warm Orange) */
+            --input-bg: #fff7ed;
+            --input-border: #fdba74;
+            --input-text: #ea580c;
+            --input-accent: #f97316;
+
+            /* Transformation (Purple) */
+            --transform-light: #c4b5fd;
+            --transform-med: #a78bfa;
+            --transform-dark: #8b5cf6;
+            --transform-deep: #7c3aed;
+
+            /* Output (Cool Teal) */
+            --output-bg: #ecfdf5;
+            --output-border: #6ee7b7;
+            --output-text: #0d9488;
+            --output-accent: #14b8a6;
+
+            /* Code Syntax (Light theme) */
+            --code-keyword: #8b5cf6;
+            --code-function: #0891b2;
+            --code-string: #059669;
+            --code-comment: #64748b;
+            --code-number: #dc2626;
+            --code-bg: #ffffff;
+
+            /* Neutrals */
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --border-light: #e2e8f0;
+
+            /* Shadows */
+            --shadow-purple: 0 4px 8px rgba(99, 102, 241, 0.12);
+            --shadow-small: 0 2px 4px rgba(0, 0, 0, 0.08);
+            --shadow-code: 0 4px 12px rgba(139, 92, 246, 0.15);
+            --hover-glow: 0 0 20px rgba(139, 92, 246, 0.4);
+            --active-highlight: rgba(139, 92, 246, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            color: var(--text-dark);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .visualization-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .code-badge {
+            display: inline-block;
+            background: var(--transform-light);
+            color: var(--transform-deep);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Main Layout */
+        .main-viz {
+            display: grid;
+            grid-template-columns: 200px 1fr 200px;
+            gap: 30px;
+            margin-bottom: 30px;
+            align-items: start;
+        }
+
+        /* Section Labels */
+        .section-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        /* Input Section */
+        .input-section {
+            background: var(--card-white);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-small);
+            animation: fadeIn 0.5s ease 0.2s backwards;
+        }
+
+        .input-card {
+            background: var(--input-bg);
+            border: 2px solid var(--input-border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .dimension-badge {
+            position: absolute;
+            top: -10px;
+            right: 12px;
+            background: var(--input-accent);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .vector-display {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .vector-element {
+            background: white;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--input-text);
+            transition: all 0.3s ease;
+        }
+
+        .vector-element.updating {
+            background: var(--input-accent);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .code-icon-btn {
+            background: var(--transform-light);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            margin-top: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--transform-deep);
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        .code-icon-btn:hover {
+            background: var(--transform-med);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-purple);
+        }
+
+        /* Transformation Paths */
+        .transformation-paths {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        .path {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: var(--card-white);
+            border-radius: 16px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: fadeIn 0.5s ease backwards;
+        }
+
+        .path:nth-child(1) {
+            animation-delay: 0.4s;
+        }
+
+        .path:nth-child(2) {
+            animation-delay: 0.6s;
+        }
+
+        .path:nth-child(3) {
+            animation-delay: 0.8s;
+        }
+
+        .path:hover {
+            border-color: var(--transform-light);
+            box-shadow: var(--hover-glow);
+            transform: translateY(-4px);
+        }
+
+        .path.active {
+            border-color: var(--transform-dark);
+            background: var(--active-highlight);
+            box-shadow: var(--hover-glow);
+        }
+
+        .path.dimmed {
+            opacity: 0.4;
+        }
+
+        .path-arrow {
+            width: 4px;
+            height: 60px;
+            background: linear-gradient(180deg, var(--transform-light) 0%, var(--transform-dark) 100%);
+            border-radius: 2px;
+            position: relative;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .path-arrow::after {
+            content: '⊗';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--transform-dark);
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        /* Matrix Multiplication Visualization */
+        .matmul-visual {
+            background: var(--bg-gradient-start);
+            border: 2px solid var(--transform-light);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            font-size: 11px;
+            font-family: 'Consolas', monospace;
+        }
+
+        .matmul-header {
+            font-weight: 600;
+            color: var(--transform-deep);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .matmul-equation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .matmul-vector {
+            display: inline-flex;
+            flex-direction: row;
+            gap: 4px;
+            padding: 4px;
+            background: var(--input-bg);
+            border-radius: 4px;
+        }
+
+        .matmul-matrix {
+            display: inline-grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            padding: 4px;
+            background: white;
+            border: 1px solid var(--transform-light);
+            border-radius: 4px;
+        }
+
+        .matmul-result {
+            display: inline-flex;
+            flex-direction: row;
+            gap: 4px;
+            padding: 4px;
+            background: var(--output-bg);
+            border-radius: 4px;
+        }
+
+        .matmul-cell {
+            min-width: 32px;
+            padding: 4px;
+            text-align: center;
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .matmul-operator {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--transform-dark);
+        }
+
+        .matmul-breakdown {
+            margin-top: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            font-size: 10px;
+            line-height: 1.6;
+        }
+
+        .matmul-step {
+            color: var(--text-muted);
+            margin: 4px 0;
+        }
+
+        .matmul-highlight {
+            color: var(--transform-deep);
+            font-weight: 600;
+        }
+
+        .weight-matrix {
+            background: white;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+        }
+
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .matrix-cell {
+            background: var(--bg-gradient-start);
+            border: 1px solid var(--border-light);
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            color: var(--text-dark);
+        }
+
+        .path-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--transform-deep);
+            text-align: center;
+        }
+
+        .path-annotation {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Output Section */
+        .output-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeIn 0.5s ease 1s backwards;
+        }
+
+        .output-card {
+            background: var(--card-white);
+            border: 2px solid var(--output-border);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .output-card:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow-small);
+            border-color: var(--output-accent);
+        }
+
+        .output-card.active {
+            background: var(--output-bg);
+            border-color: var(--output-accent);
+        }
+
+        .output-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .output-icon {
+            font-size: 18px;
+        }
+
+        .output-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--output-text);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .output-values {
+            display: flex;
+            gap: 8px;
+        }
+
+        .output-value {
+            background: var(--output-bg);
+            border: 1px solid var(--output-border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--output-text);
+            flex: 1;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .output-value.updating {
+            background: var(--output-accent);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .output-dimension {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Code Panel */
+        .code-panel {
+            background: var(--code-bg);
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            box-shadow: var(--shadow-code);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .code-tabs {
+            display: flex;
+            background: var(--bg-gradient-start);
+            border-bottom: 2px solid var(--border-light);
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn:hover {
+            background: var(--active-highlight);
+            color: var(--transform-dark);
+        }
+
+        .tab-btn.active {
+            color: var(--transform-deep);
+            border-bottom-color: var(--transform-dark);
+            background: white;
+        }
+
+        .code-content {
+            position: relative;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--transform-dark);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .copy-btn:hover {
+            background: var(--transform-deep);
+            transform: translateY(-2px);
+        }
+
+        .copy-btn.copied {
+            background: #059669;
+        }
+
+        pre {
+            margin: 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-dark);
+        }
+
+        code {
+            display: block;
+        }
+
+        /* Syntax Highlighting */
+        .keyword {
+            color: var(--code-keyword);
+            font-weight: 600;
+        }
+
+        .function {
+            color: var(--code-function);
+            font-weight: 500;
+        }
+
+        .string {
+            color: var(--code-string);
+        }
+
+        .comment {
+            color: var(--code-comment);
+            font-style: italic;
+        }
+
+        .number {
+            color: var(--code-number);
+            font-weight: 500;
+        }
+
+        .operator {
+            color: var(--text-dark);
+        }
+
+        /* Controls */
+        .controls {
+            background: var(--card-white);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-small);
+            margin-bottom: 30px;
+        }
+
+        .controls h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-dark);
+        }
+
+        .slider-group {
+            display: grid;
+            grid-template-columns: 60px 1fr 80px;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .slider-group label {
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border-light);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--transform-dark);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--transform-deep);
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--transform-dark);
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-value {
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--transform-dark);
+            text-align: right;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .reset-btn {
+            background: var(--transform-dark);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reset-btn:hover {
+            background: var(--transform-deep);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-purple);
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* Annotations */
+        .annotations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .callout {
+            background: var(--card-white);
+            border-left: 4px solid var(--transform-dark);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--shadow-small);
+        }
+
+        .callout-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .callout-icon {
+            font-size: 20px;
+        }
+
+        .callout-header h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .callout-content {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .callout-content pre {
+            background: var(--bg-gradient-start);
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+
+        /* Analogy Section */
+        .analogy-section {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #fbbf24;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .analogy-section h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 16px;
+        }
+
+        .analogy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .analogy-item {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: var(--shadow-small);
+        }
+
+        .analogy-item strong {
+            display: block;
+            color: #92400e;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .analogy-item p {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-viz {
+                grid-template-columns: 180px 1fr 180px;
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .main-viz {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .transformation-paths {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 12px;
+            }
+
+            .output-section {
+                flex-direction: row;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .transformation-paths {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .output-section {
+                flex-direction: column;
+            }
+
+            .slider-group {
+                grid-template-columns: 50px 1fr 70px;
+                gap: 8px;
+            }
+
+            .code-tabs {
+                font-size: 11px;
+            }
+
+            .tab-btn {
+                padding: 10px 12px;
+            }
+
+            .annotations {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="visualization-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Query-Key-Value Transformation Pipeline</h1>
+            <p class="subtitle">How One Input Creates Three Different Perspectives</p>
+            <span class="code-badge">💻 Click any transformation to see PyTorch code</span>
+        </div>
+
+        <!-- Main Visualization -->
+        <div class="main-viz">
+            <!-- Input Section -->
+            <div class="input-section">
+                <div class="section-label">INPUT EMBEDDING</div>
+                <div class="input-card">
+                    <div class="dimension-badge">d_in = 3</div>
+                    <div class="vector-display" id="input-vector">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                <button class="code-icon-btn" onclick="showCode('initialization')" aria-label="View input code">
+                    &lt;/&gt; View Code
+                </button>
+            </div>
+
+            <!-- Transformation Paths -->
+            <div class="transformation-paths">
+                <!-- Query Path -->
+                <div class="path query-path" data-type="query" onclick="selectPath('query')" role="button" tabindex="0"
+                    aria-label="Query transformation">
+                    <div class="path-arrow"></div>
+                    <div class="weight-matrix">
+                        <div class="matrix-grid" id="query-matrix">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="path-label">QUERY WEIGHTS (W<sub>q</sub>)</div>
+                    <div class="path-annotation">What am I looking for?</div>
+
+                    <!-- Matrix Multiplication Visualization -->
+                    <div class="matmul-visual" id="query-matmul">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Key Path -->
+                <div class="path key-path" data-type="key" onclick="selectPath('key')" role="button" tabindex="0"
+                    aria-label="Key transformation">
+                    <div class="path-arrow"></div>
+                    <div class="weight-matrix">
+                        <div class="matrix-grid" id="key-matrix">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="path-label">KEY WEIGHTS (W<sub>k</sub>)</div>
+                    <div class="path-annotation">What do I have?</div>
+
+                    <!-- Matrix Multiplication Visualization -->
+                    <div class="matmul-visual" id="key-matmul">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Value Path -->
+                <div class="path value-path" data-type="value" onclick="selectPath('value')" role="button" tabindex="0"
+                    aria-label="Value transformation">
+                    <div class="path-arrow"></div>
+                    <div class="weight-matrix">
+                        <div class="matrix-grid" id="value-matrix">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="path-label">VALUE WEIGHTS (W<sub>v</sub>)</div>
+                    <div class="path-annotation">What content do I contain?</div>
+
+                    <!-- Matrix Multiplication Visualization -->
+                    <div class="matmul-visual" id="value-matmul">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Section -->
+            <div class="output-section">
+                <!-- Query Output -->
+                <div class="output-card query-output" onclick="selectPath('query')" role="button"
+                    aria-label="Query vector output">
+                    <div class="output-header">
+                        <div class="output-icon">🎯</div>
+                        <div class="output-label">QUERY VECTOR (Q)</div>
+                    </div>
+                    <div class="output-values" id="query-output">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="output-dimension">d_out = 2</div>
+                </div>
+
+                <!-- Key Output -->
+                <div class="output-card key-output" onclick="selectPath('key')" role="button"
+                    aria-label="Key vector output">
+                    <div class="output-header">
+                        <div class="output-icon">🔑</div>
+                        <div class="output-label">KEY VECTOR (K)</div>
+                    </div>
+                    <div class="output-values" id="key-output">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="output-dimension">d_out = 2</div>
+                </div>
+
+                <!-- Value Output -->
+                <div class="output-card value-output" onclick="selectPath('value')" role="button"
+                    aria-label="Value vector output">
+                    <div class="output-header">
+                        <div class="output-icon">📦</div>
+                        <div class="output-label">VALUE VECTOR (V)</div>
+                    </div>
+                    <div class="output-values" id="value-output">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="output-dimension">d_out = 2</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Code Display Panel -->
+        <div class="code-panel" role="region" aria-label="PyTorch code viewer">
+            <div class="code-tabs" role="tablist">
+                <button class="tab-btn active" data-tab="initialization" onclick="showCode('initialization')" role="tab"
+                    aria-selected="true">
+                    Initialization
+                </button>
+                <button class="tab-btn" data-tab="query" onclick="showCode('query')" role="tab">
+                    Query
+                </button>
+                <button class="tab-btn" data-tab="key" onclick="showCode('key')" role="tab">
+                    Key
+                </button>
+                <button class="tab-btn" data-tab="value" onclick="showCode('value')" role="tab">
+                    Value
+                </button>
+                <button class="tab-btn" data-tab="all" onclick="showCode('all')" role="tab">
+                    All Together
+                </button>
+            </div>
+
+            <div class="code-content">
+                <button class="copy-btn" onclick="copyCode()" aria-label="Copy code to clipboard">
+                    Copy Code
+                </button>
+                <pre><code class="python" id="code-display"></code></pre>
+            </div>
+        </div>
+
+        <!-- Interactive Controls -->
+        <div class="controls">
+            <h3>Adjust Input Values</h3>
+            <div class="slider-group">
+                <label for="slider-0">x[0]</label>
+                <input type="range" id="slider-0" min="-1" max="1" step="0.01" value="0.43"
+                    oninput="updateInput(0, this.value)" aria-label="Input element 0">
+                <span class="slider-value" id="value-0">0.43</span>
+            </div>
+            <div class="slider-group">
+                <label for="slider-1">x[1]</label>
+                <input type="range" id="slider-1" min="-1" max="1" step="0.01" value="0.56"
+                    oninput="updateInput(1, this.value)" aria-label="Input element 1">
+                <span class="slider-value" id="value-1">0.56</span>
+            </div>
+            <div class="slider-group">
+                <label for="slider-2">x[2]</label>
+                <input type="range" id="slider-2" min="-1" max="1" step="0.01" value="0.78"
+                    oninput="updateInput(2, this.value)" aria-label="Input element 2">
+                <span class="slider-value" id="value-2">0.78</span>
+            </div>
+
+            <div class="control-buttons">
+                <button class="reset-btn" onclick="resetValues()">Reset to Default</button>
+                <label class="toggle">
+                    <input type="checkbox" id="highlight-toggle" onchange="toggleHighlight()">
+                    <span>Highlight Active Path</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Educational Annotations -->
+        <div class="annotations">
+            <div class="callout">
+                <div class="callout-header">
+                    <span class="callout-icon">💡</span>
+                    <h4>Why Three Transformations?</h4>
+                </div>
+                <div class="callout-content">
+                    <p>The same input creates three different "views" of the information. This separation allows the
+                        attention mechanism to ask questions (Q), match them to relevant content (K), and retrieve
+                        specific information (V). It's like having three specialized lenses looking at the same data.
+                    </p>
+                    <pre><code><span class="comment"># Same x_2, different transformations</span>
+<span class="keyword">q</span> = x_2 @ W_query  <span class="comment"># Different weights = different view</span>
+<span class="keyword">k</span> = x_2 @ W_key    <span class="comment"># Each learns different patterns</span>
+<span class="keyword">v</span> = x_2 @ W_value  <span class="comment"># During model training</span></code></pre>
+                </div>
+            </div>
+
+            <div class="callout">
+                <div class="callout-header">
+                    <span class="callout-icon">🔧</span>
+                    <h4>Why Are the Matrices Different?</h4>
+                </div>
+                <div class="callout-content">
+                    <p>Each weight matrix (W<sub>q</sub>, W<sub>k</sub>, W<sub>v</sub>) is independently learnable
+                        during training. They learn to extract different aspects of the input—W<sub>q</sub> learns how
+                        to formulate good "questions", W<sub>k</sub> learns good "indexing", and W<sub>v</sub> learns
+                        what actual content to pass forward.</p>
+                    <pre><code><span class="comment"># During training, these update via backprop:</span>
+W_query.requires_grad = <span class="keyword">True</span>  <span class="comment"># Learns "how to ask"</span>
+W_key.requires_grad = <span class="keyword">True</span>    <span class="comment"># Learns "how to index"</span>
+W_value.requires_grad = <span class="keyword">True</span>  <span class="comment"># Learns "what to retrieve"</span></code></pre>
+                </div>
+            </div>
+
+            <div class="callout">
+                <div class="callout-header">
+                    <span class="callout-icon">📐</span>
+                    <h4>Dimension Change</h4>
+                </div>
+                <div class="callout-content">
+                    <p>Notice: Input has 3 dimensions → Output has 2 dimensions. This projection to d_out is
+                        intentional. In practice, d_out might equal d_in, or be different. In multi-head attention
+                        (coming next), we often use smaller d_out per head.</p>
+                    <pre><code><span class="comment"># Shape transformation</span>
+x_2.shape        <span class="comment"># [3] - input dimension</span>
+W_query.shape    <span class="comment"># [3, 2] - projects 3D → 2D</span>
+query_2.shape    <span class="comment"># [2] - output dimension</span></code></pre>
+                </div>
+            </div>
+
+            <div class="callout">
+                <div class="callout-header">
+                    <span class="callout-icon">⏭️</span>
+                    <h4>What Happens Next?</h4>
+                </div>
+                <div class="callout-content">
+                    <p>After creating Q, K, V vectors for ALL tokens: (1) Compare Queries with Keys → attention scores,
+                        (2) Apply softmax → attention weights, (3) Weight and sum Values → context vectors.</p>
+                    <pre><code><span class="comment"># Step 2: Compute attention scores</span>
+attn_scores = queries @ keys.T
+
+<span class="comment"># Step 3: Normalize with softmax</span>
+attn_weights = torch.softmax(attn_scores, dim=-<span class="number">1</span>)
+
+<span class="comment"># Step 4: Aggregate values</span>
+context = attn_weights @ values</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Library Analogy -->
+        <div class="analogy-section">
+            <h3>🔍 The Library Database Analogy</h3>
+            <div class="analogy-grid">
+                <div class="analogy-item">
+                    <strong>Query (Q) 🎯</strong>
+                    <p>Your search request: "I need information about neural networks"</p>
+                </div>
+                <div class="analogy-item">
+                    <strong>Key (K) 🔑</strong>
+                    <p>Book catalog cards with topics: "AI", "Cooking", "History"</p>
+                </div>
+                <div class="analogy-item">
+                    <strong>Value (V) 📦</strong>
+                    <p>Actual book content that you retrieve when there's a match</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        const state = {
+            input: [0.43, 0.56, 0.78],
+            W_query: [[0.29, 0.87], [0.21, 0.34], [0.45, 0.67]],
+            W_key: [[0.15, 0.92], [0.67, 0.23], [0.88, 0.41]],
+            W_value: [[0.76, 0.54], [0.32, 0.89], [0.61, 0.28]],
+            activeTransformation: null,
+            activeCodeTab: 'initialization',
+            highlightActive: false
+        };
+
+        // Matrix Multiplication
+        function matrixMultiply(vector, matrix) {
+            const result = [];
+            for (let col = 0; col < matrix[0].length; col++) {
+                let sum = 0;
+                for (let row = 0; row < matrix.length; row++) {
+                    sum += vector[row] * matrix[row][col];
+                }
+                result.push(sum);
+            }
+            return result;
+        }
+
+        // Calculate Transformations
+        function calculateQ() {
+            return matrixMultiply(state.input, state.W_query);
+        }
+
+        function calculateK() {
+            return matrixMultiply(state.input, state.W_key);
+        }
+
+        function calculateV() {
+            return matrixMultiply(state.input, state.W_value);
+        }
+
+        // Update Display
+        function updateDisplay() {
+            // Update input vector
+            const inputVector = document.getElementById('input-vector');
+            inputVector.innerHTML = state.input.map((val, i) =>
+                `<div class="vector-element" id="input-${i}">${val.toFixed(2)}</div>`
+            ).join('');
+
+            // Update weight matrices
+            updateMatrix('query-matrix', state.W_query);
+            updateMatrix('key-matrix', state.W_key);
+            updateMatrix('value-matrix', state.W_value);
+
+            // Update outputs
+            updateOutput('query-output', calculateQ());
+            updateOutput('key-output', calculateK());
+            updateOutput('value-output', calculateV());
+
+            // Update matrix multiplication visualizations
+            updateMatMulVisual('query-matmul', state.input, state.W_query, calculateQ(), 'Query');
+            updateMatMulVisual('key-matmul', state.input, state.W_key, calculateK(), 'Key');
+            updateMatMulVisual('value-matmul', state.input, state.W_value, calculateV(), 'Value');
+        }
+
+        function updateMatMulVisual(id, input, matrix, result, type) {
+            const container = document.getElementById(id);
+
+            const vectorHTML = input.map(v => `<span class="matmul-cell">${v.toFixed(2)}</span>`).join('');
+            const matrixHTML = matrix.flat().map(v => `<span class="matmul-cell">${v.toFixed(2)}</span>`).join('');
+            const resultHTML = result.map(v => `<span class="matmul-cell">${v.toFixed(2)}</span>`).join('');
+
+            // Calculate first output element breakdown
+            const calc0 = `${input[0].toFixed(2)} × ${matrix[0][0].toFixed(2)} + ${input[1].toFixed(2)} × ${matrix[1][0].toFixed(2)} + ${input[2].toFixed(2)} × ${matrix[2][0].toFixed(2)}`;
+            const sum0 = (input[0] * matrix[0][0] + input[1] * matrix[1][0] + input[2] * matrix[2][0]).toFixed(2);
+
+            container.innerHTML = `
+                <div class="matmul-header">${type} = Input @ W<sub>${type.toLowerCase()[0]}</sub></div>
+                <div class="matmul-equation">
+                    <div class="matmul-vector">${vectorHTML}</div>
+                    <span class="matmul-operator">@</span>
+                    <div class="matmul-matrix">${matrixHTML}</div>
+                    <span class="matmul-operator">=</span>
+                    <div class="matmul-result">${resultHTML}</div>
+                </div>
+                <div class="matmul-breakdown">
+                    <div class="matmul-step">
+                        <span class="matmul-highlight">First element:</span><br/>
+                        ${calc0} = <span class="matmul-highlight">${sum0}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateMatrix(id, matrix) {
+            const container = document.getElementById(id);
+            container.innerHTML = matrix.flat().map(val =>
+                `<div class="matrix-cell">${val.toFixed(2)}</div>`
+            ).join('');
+        }
+
+        function updateOutput(id, values) {
+            const container = document.getElementById(id);
+            container.innerHTML = values.map((val, i) =>
+                `<div class="output-value" id="${id}-${i}">${val.toFixed(2)}</div>`
+            ).join('');
+        }
+
+        // Input Slider Handling
+        function updateInput(index, value) {
+            state.input[index] = parseFloat(value);
+            document.getElementById(`value-${index}`).textContent = value;
+
+            // Animate input change
+            const inputEl = document.getElementById(`input-${index}`);
+            if (inputEl) {
+                inputEl.classList.add('updating');
+                setTimeout(() => inputEl.classList.remove('updating'), 300);
+            }
+
+            // Update calculations
+            updateDisplay();
+
+            // Update code if relevant tab is active
+            if (state.activeCodeTab !== 'initialization') {
+                showCode(state.activeCodeTab);
+            }
+        }
+
+        // Reset Function
+        function resetValues() {
+            state.input = [0.43, 0.56, 0.78];
+            document.getElementById('slider-0').value = 0.43;
+            document.getElementById('slider-1').value = 0.56;
+            document.getElementById('slider-2').value = 0.78;
+            document.getElementById('value-0').textContent = '0.43';
+            document.getElementById('value-1').textContent = '0.56';
+            document.getElementById('value-2').textContent = '0.78';
+            updateDisplay();
+            showCode(state.activeCodeTab);
+        }
+
+        // Path Selection
+        function selectPath(type) {
+            state.activeTransformation = type;
+
+            // Update visual states
+            const paths = document.querySelectorAll('.path');
+            paths.forEach(path => {
+                const pathType = path.getAttribute('data-type');
+                if (pathType === type) {
+                    path.classList.add('active');
+                    path.classList.remove('dimmed');
+                } else {
+                    path.classList.remove('active');
+                    if (state.highlightActive) {
+                        path.classList.add('dimmed');
+                    }
+                }
+            });
+
+            // Update output cards
+            const outputs = document.querySelectorAll('.output-card');
+            outputs.forEach(output => {
+                if (output.classList.contains(`${type}-output`)) {
+                    output.classList.add('active');
+                } else {
+                    output.classList.remove('active');
+                }
+            });
+
+            // Show corresponding code
+            showCode(type);
+        }
+
+        // Toggle Highlight
+        function toggleHighlight() {
+            state.highlightActive = document.getElementById('highlight-toggle').checked;
+            if (state.activeTransformation) {
+                selectPath(state.activeTransformation);
+            } else if (!state.highlightActive) {
+                const paths = document.querySelectorAll('.path');
+                paths.forEach(path => path.classList.remove('dimmed'));
+            }
+        }
+
+        // Code Display
+        function showCode(tab) {
+            state.activeCodeTab = tab;
+
+            // Update tab buttons
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(btn => {
+                if (btn.getAttribute('data-tab') === tab) {
+                    btn.classList.add('active');
+                    btn.setAttribute('aria-selected', 'true');
+                } else {
+                    btn.classList.remove('active');
+                    btn.setAttribute('aria-selected', 'false');
+                }
+            });
+
+            // Get code content
+            const codeDisplay = document.getElementById('code-display');
+            const code = getCodeForTab(tab);
+            codeDisplay.innerHTML = syntaxHighlight(code);
+        }
+
+        function getCodeForTab(tab) {
+            const inp = state.input.map(v => v.toFixed(2)).join(', ');
+            const q = calculateQ().map(v => v.toFixed(2)).join(', ');
+            const k = calculateK().map(v => v.toFixed(2)).join(', ');
+            const v = calculateV().map(v => v.toFixed(2)).join(', ');
+
+            const codes = {
+                initialization: `import torch
+import torch.nn as nn
+
+# Define dimensions
+d_in = 3   # Input embedding dimension
+d_out = 2  # Output dimension for Q, K, V
+
+# Example input embedding (token x_2)
+x_2 = torch.tensor([${inp}])
+
+# Initialize trainable weight matrices
+torch.manual_seed(123)
+W_query = nn.Parameter(torch.rand(d_in, d_out), requires_grad=False)
+W_key = nn.Parameter(torch.rand(d_in, d_out), requires_grad=False)
+W_value = nn.Parameter(torch.rand(d_in, d_out), requires_grad=False)
+
+print(f"Input shape: {x_2.shape}")      # [3]
+print(f"Weight shape: {W_query.shape}") # [3, 2]`,
+
+                query: `# === QUERY TRANSFORMATION ===
+
+# Step 1: Matrix multiplication
+query_2 = x_2 @ W_query
+
+# What's happening mathematically:
+# [x0, x1, x2] @ [[w00, w01],  = [q0, q1]
+#                  [w10, w11],
+#                  [w20, w21]]
+
+# Step 2: Detailed calculation
+# q0 = x0*w00 + x1*w10 + x2*w20
+# q0 = ${state.input[0].toFixed(2)}*${state.W_query[0][0].toFixed(2)} + ${state.input[1].toFixed(2)}*${state.W_query[1][0].toFixed(2)} + ${state.input[2].toFixed(2)}*${state.W_query[2][0].toFixed(2)} = ${calculateQ()[0].toFixed(2)}
+
+# q1 = x0*w01 + x1*w11 + x2*w21
+# q1 = ${state.input[0].toFixed(2)}*${state.W_query[0][1].toFixed(2)} + ${state.input[1].toFixed(2)}*${state.W_query[1][1].toFixed(2)} + ${state.input[2].toFixed(2)}*${state.W_query[2][1].toFixed(2)} = ${calculateQ()[1].toFixed(2)}
+
+print(f"Query vector: {query_2}")       # tensor([${q}])
+print(f"Query shape: {query_2.shape}")  # torch.Size([2])
+
+# Interpretation: This vector represents
+# "what information this token is searching for"`,
+
+                key: `# === KEY TRANSFORMATION ===
+
+# Step 1: Matrix multiplication
+key_2 = x_2 @ W_key
+
+# Same operation, different weights
+# [${inp}] @ [[${state.W_key[0][0].toFixed(2)}, ${state.W_key[0][1].toFixed(2)}],
+#             [${state.W_key[1][0].toFixed(2)}, ${state.W_key[1][1].toFixed(2)}],
+#             [${state.W_key[2][0].toFixed(2)}, ${state.W_key[2][1].toFixed(2)}]]
+
+print(f"Key vector: {key_2}")         # tensor([${k}])
+print(f"Key shape: {key_2.shape}")    # torch.Size([2])
+
+# Interpretation: This vector acts as an "index"
+# that other tokens will compare their queries against`,
+
+                value: `# === VALUE TRANSFORMATION ===
+
+# Step 1: Matrix multiplication
+value_2 = x_2 @ W_value
+
+# Same input, third different transformation
+# [${inp}] @ [[${state.W_value[0][0].toFixed(2)}, ${state.W_value[0][1].toFixed(2)}],
+#             [${state.W_value[1][0].toFixed(2)}, ${state.W_value[1][1].toFixed(2)}],
+#             [${state.W_value[2][0].toFixed(2)}, ${state.W_value[2][1].toFixed(2)}]]
+
+print(f"Value vector: {value_2}")      # tensor([${v}])
+print(f"Value shape: {value_2.shape}") # torch.Size([2])
+
+# Interpretation: This is the actual "content"
+# that will be retrieved and aggregated`,
+
+                all: `# === COMPLETE Q-K-V TRANSFORMATION ===
+
+import torch
+import torch.nn as nn
+
+# Setup
+d_in, d_out = 3, 2
+x_2 = torch.tensor([${inp}])
+
+# Initialize weights (normally learned during training)
+torch.manual_seed(123)
+W_query = nn.Parameter(torch.rand(d_in, d_out))
+W_key = nn.Parameter(torch.rand(d_in, d_out))
+W_value = nn.Parameter(torch.rand(d_in, d_out))
+
+# Transform input into three representations
+query_2 = x_2 @ W_query  # "What am I looking for?"
+key_2 = x_2 @ W_key      # "What do I offer?"
+value_2 = x_2 @ W_value  # "What content do I have?"
+
+# Results
+print(f"Input:  {x_2}")        # [${inp}]
+print(f"Query:  {query_2}")    # [${q}]
+print(f"Key:    {key_2}")      # [${k}]
+print(f"Value:  {value_2}")    # [${v}]
+
+# All shapes
+print(f"Input shape: {x_2.shape}")        # [3]
+print(f"Query shape: {query_2.shape}")    # [2]
+print(f"Key shape: {key_2.shape}")        # [2]
+print(f"Value shape: {value_2.shape}")    # [2]
+
+# Key insight: Same input -> Three different views!`
+            };
+
+            return codes[tab] || codes.initialization;
+        }
+
+        // Syntax Highlighting
+        function syntaxHighlight(code) {
+            // First escape HTML
+            let highlighted = code
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            // Apply syntax highlighting
+            highlighted = highlighted
+                // Keywords
+                .replace(/\b(import|torch|def|class|return|print|True|False|for|in|if|else)\b/g, '<span class="keyword">$1</span>')
+                // Functions and methods
+                .replace(/\b(tensor|rand|Parameter|nn|softmax|Size)\b/g, '<span class="function">$1</span>')
+                // Strings (must come before comments to avoid conflicts)
+                .replace(/(&quot;[^&quot;]*&quot;|'[^']*')/g, '<span class="string">$1</span>')
+                // f-strings specifically
+                .replace(/\bf(&quot;[^&quot;]*&quot;)/g, '<span class="function">f</span><span class="string">$1</span>')
+                // Comments
+                .replace(/(#[^\n]*)/g, '<span class="comment">$1</span>')
+                // Numbers
+                .replace(/\b(\d+\.?\d*)\b/g, '<span class="number">$1</span>');
+
+            return highlighted;
+        }
+
+        // Copy Code
+        function copyCode() {
+            const codeDisplay = document.getElementById('code-display');
+            const code = codeDisplay.textContent;
+
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copied ✓';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy Code';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        // Keyboard Navigation
+        document.querySelectorAll('.path').forEach(path => {
+            path.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const type = path.getAttribute('data-type');
+                    selectPath(type);
+                }
+            });
+        });
+
+        // Initialize
+        function initializeVisualization() {
+            updateDisplay();
+            showCode('initialization');
+        }
+
+        // Start
+        initializeVisualization();
+    </script>
+</body>
+
+</html>

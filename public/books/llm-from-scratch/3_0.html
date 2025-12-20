@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: Coding Attention Mechanisms</title>
+    <style>
+        :root {
+            --bg-start: #fafbff;
+            --bg-end: #f5f7ff;
+            --card-bg: #ffffff;
+            --header-grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success: #10b981;
+            --interactive: #f97316;
+            --action-primary: #8b5cf6;
+            --action-secondary: #a78bfa;
+            --text-heading: #1e293b;
+            --text-body: #64748b;
+            --shadow-purple: rgba(99, 102, 241, 0.12);
+            --radius-lg: 16px;
+            --radius-md: 13px;
+            --radius-sm: 8px;
+            --font-main: system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: linear-gradient(to bottom, var(--bg-start), var(--bg-end));
+            color: var(--text-body);
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* --- Header Section --- */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            font-size: 18px;
+            color: var(--action-primary);
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .intro-text {
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 15px;
+            color: var(--text-body);
+        }
+
+        /* --- Roadmap --- */
+        .roadmap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px 0;
+            margin-bottom: 40px;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .roadmap::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50px;
+            right: 50px;
+            height: 2px;
+            background: #e2e8f0;
+            z-index: 0;
+            transform: translateY(-50%);
+        }
+
+        .node {
+            position: relative;
+            z-index: 1;
+            background: var(--card-bg);
+            border: 2px solid #e2e8f0;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            min-width: 140px;
+            box-shadow: 0 4px 12px var(--shadow-purple);
+        }
+
+        .node:hover {
+            transform: translateY(-3px);
+            border-color: var(--action-secondary);
+        }
+
+        .node.active {
+            border-color: var(--action-primary);
+            background: var(--action-primary);
+            color: white;
+        }
+
+        .node .icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .node .label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- Quick Nav Grid --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: 0 10px 25px var(--shadow-purple);
+            transition: transform 0.3s ease;
+            border: 1px solid rgba(99, 102, 241, 0.05);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .section-header {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card h3 {
+            color: var(--text-heading);
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        /* --- Concept Preview Grid --- */
+        .concept-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .concept-card {
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid #edf2f7;
+            cursor: help;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .concept-card:hover {
+            background: #f8fafc;
+            border-color: var(--action-secondary);
+        }
+
+        .concept-card .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .concept-card h4 {
+            font-size: 14px;
+            color: var(--text-heading);
+            margin-bottom: 4px;
+        }
+
+        .concept-card p {
+            font-size: 12px;
+        }
+
+        .hover-reveal {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            right: 0;
+            background: var(--text-heading);
+            color: white;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 10;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .concept-card:hover .hover-reveal {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* --- Checklist & Warning --- */
+        .check-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .check-item svg {
+            color: var(--success);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .warning-card {
+            border-left: 4px solid var(--interactive);
+        }
+
+        .warning-item {
+            font-size: 14px;
+            margin-bottom: 8px;
+            padding-left: 10px;
+        }
+
+        /* --- Detailed Sections --- */
+        .detail-section {
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .detail-section.visible {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .part-card {
+            border-top: 4px solid var(--action-primary);
+            margin-bottom: 20px;
+        }
+
+        .part-1 {
+            border-color: var(--interactive);
+        }
+
+        .part-2 {
+            border-color: var(--action-primary);
+        }
+
+        .part-3 {
+            border-color: var(--success);
+        }
+
+        .part-4 {
+            border-color: var(--interactive);
+        }
+
+        .part-5 {
+            border-color: var(--action-primary);
+        }
+
+        .subsection {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .subsection h4 {
+            color: var(--text-heading);
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+
+        .analogy-box {
+            background: #fffaf0;
+            border: 1px dashed var(--interactive);
+            padding: 15px;
+            border-radius: var(--radius-sm);
+            margin: 15px 0;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .roadmap::before {
+                display: none;
+            }
+
+            .roadmap {
+                flex-direction: row;
+                gap: 10px;
+                padding-bottom: 20px;
+            }
+
+            .node {
+                min-width: 120px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="section-header" style="justify-content: center; color: var(--action-primary);">
+                COURSE MODULE: CHAPTER 3
+            </div>
+            <h1>Coding Attention Mechanisms</h1>
+            <p class="subtitle">The Revolutionary Component Powering Modern LLMs</p>
+            <p class="intro-text">
+                Attention mechanisms represent one of the most significant breakthroughs in deep learning, enabling
+                models like GPT to understand context and relationships across long sequences. In this chapter, we'll
+                build attention from the ground up—starting with simple concepts and progressing to the multi-head
+                attention used in production transformers.
+            </p>
+        </header>
+
+        <!-- Roadmap -->
+        <div class="roadmap" id="roadmap">
+            <div class="node active" data-target="part1">
+                <span class="icon">🟠</span>
+                <span class="label">The Problem</span>
+            </div>
+            <div class="node" data-target="part2">
+                <span class="icon">🟣</span>
+                <span class="label">Fundamentals</span>
+            </div>
+            <div class="node" data-target="part3">
+                <span class="icon">🟢</span>
+                <span class="label">Scaled Attention</span>
+            </div>
+            <div class="node" data-target="part4">
+                <span class="icon">🟠</span>
+                <span class="label">Causal Masking</span>
+            </div>
+            <div class="node" data-target="part5">
+                <span class="icon">🔵</span>
+                <span class="label">Multi-Head</span>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Main Content Area -->
+            <div class="main-content" id="content-area">
+
+                <!-- Placeholder / Initial View: Key Concepts -->
+                <div class="card" id="overview-card">
+                    <div class="section-header" style="color: var(--action-primary);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0-4-4H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a4 4 0 0 1 4-4h6z"></path>
+                        </svg>
+                        KEY CONCEPTS PREVIEW
+                    </div>
+                    <h3>Core Pillars of this Chapter</h3>
+                    <div class="concept-grid">
+                        <div class="concept-card">
+                            <div class="icon">🔄</div>
+                            <h4>Self-Attention</h4>
+                            <p>Tokens attend to each other within the same sequence.</p>
+                            <div class="hover-reveal">Example: In "The cat sat", "sat" looks at "cat" to understand who
+                                is doing the action.</div>
+                        </div>
+                        <div class="concept-card">
+                            <div class="icon">🔑</div>
+                            <h4>Query-Key-Value</h4>
+                            <p>The "database" framework for retrieving information.</p>
+                            <div class="hover-reveal">Q: Search term, K: Catalog entry, V: Actual content. Q matches K
+                                to get V.</div>
+                        </div>
+                        <div class="concept-card">
+                            <div class="icon">🎭</div>
+                            <h4>Causal Masking</h4>
+                            <p>Prevents looking at future tokens during generation.</p>
+                            <div class="hover-reveal">Critical for GPT models so they learn to predict the next word
+                                without "cheating".</div>
+                        </div>
+                        <div class="concept-card">
+                            <div class="icon">👥</div>
+                            <h4>Multi-Head</h4>
+                            <p>Parallel mechanisms learning different patterns.</p>
+                            <div class="hover-reveal">One head might learn grammar, another learns facts, another learns
+                                style.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Detail Sections -->
+                <!-- Part 1 -->
+                <div id="part1" class="card part-card part-1 detail-section visible">
+                    <div class="section-header" style="color: var(--interactive);">PART 1: THE PROBLEM & MOTIVATION
+                    </div>
+                    <h3>1.1 Modeling Long Sequences</h3>
+                    <p>Before attention, neural networks (RNNs/LSTMs) had a "memory bottleneck." They tried to compress
+                        an entire sentence into one fixed-size vector.</p>
+                    <div class="analogy-box">
+                        "It's like trying to summarize a movie by remembering only one sentence from each scene—you lose
+                        the connections between events."
+                    </div>
+                    <div class="subsection">
+                        <h4>1.2 Capturing Dependencies</h4>
+                        <p>Attention creates direct connections between tokens, regardless of distance. Instead of a
+                            bottleneck, it's a weighted graph of relationships.</p>
+                    </div>
+                </div>
+
+                <!-- Part 2 -->
+                <div id="part2" class="card part-card part-2 detail-section">
+                    <div class="section-header" style="color: var(--action-primary);">PART 2: SELF-ATTENTION
+                        FUNDAMENTALS</div>
+                    <h3>2.1 Basics & Context Vectors</h3>
+                    <p>Self-attention transforms static embeddings into "context-aware" representations. A word's
+                        meaning changes based on the words around it.</p>
+                    <div class="subsection">
+                        <h4>2.2 Simple Self-Attention (No Weights)</h4>
+                        <p>We begin by calculating similarities using Dot Products, turning them into weights via
+                            Softmax, and producing a weighted sum of embeddings.</p>
+                        <div class="code-block">
+                            # Intuition:
+                            scores = query_token @ all_keys.T
+                            weights = softmax(scores)
+                            context_vector = weights @ all_values
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Part 3 -->
+                <div id="part3" class="card part-card part-3 detail-section">
+                    <div class="section-header" style="color: var(--success);">PART 3: SCALED DOT-PRODUCT ATTENTION
+                    </div>
+                    <h3>3.1 Trainable Weights (Q, K, V)</h3>
+                    <p>We introduce <code>Wq</code>, <code>Wk</code>, and <code>Wv</code>. These matrices allow the
+                        model to learn <em>how</em> to project data for the best retrieval.</p>
+                    <div class="analogy-box">
+                        <strong>The Library Analogy:</strong><br>
+                        <strong>Query (Q):</strong> "What am I looking for?"<br>
+                        <strong>Key (K):</strong> "What does each item contain?"<br>
+                        <strong>Value (V):</strong> "The actual content."
+                    </div>
+                    <div class="subsection">
+                        <h4>3.2 The Four Steps</h4>
+                        <ol style="margin-left: 20px; font-size: 14px;">
+                            <li>Project Input to Q, K, V</li>
+                            <li>Compute Scores (Q @ K.T)</li>
+                            <li><strong>Scale by √d_k</strong> (Prevents gradient vanishing)</li>
+                            <li>Softmax & Weighted Sum</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Part 4 -->
+                <div id="part4" class="card part-card part-4 detail-section">
+                    <div class="section-header" style="color: var(--interactive);">PART 4: CAUSAL & MASKED ATTENTION
+                    </div>
+                    <h3>4.1 Hiding the Future</h3>
+                    <p>In GPT, we generate text one word at a time. During training, we must mask tokens at position
+                        <code>i+1</code> so the model doesn't "cheat" by looking ahead.</p>
+                    <div class="subsection">
+                        <h4>4.2 The Masking Trick</h4>
+                        <p>We apply a lower-triangular mask of <code>-∞</code> to the scores before Softmax.
+                            <code>softmax(-∞) = 0</code>, effectively deleting future connections.</p>
+                    </div>
+                </div>
+
+                <!-- Part 5 -->
+                <div id="part5" class="card part-card part-5 detail-section">
+                    <div class="section-header" style="color: var(--action-primary);">PART 5: MULTI-HEAD ATTENTION</div>
+                    <h3>5.1 Multiple Perspectives</h3>
+                    <p>One head might be an expert in syntax, while another focuses on facts. By using multiple heads,
+                        we can capture complex linguistic nuances simultaneously.</p>
+                    <div class="subsection">
+                        <h4>5.2 Parallel Implementation</h4>
+                        <p>In production, we don't loop through heads. We use tensor reshaping (<code>view</code> and
+                            <code>transpose</code>) to compute all heads in one massive matrix operation.</p>
+                        <div class="code-block">
+                            # Shape Transformation Flow:
+                            (batch, seq, dim) -> (batch, seq, heads, head_dim)
+                            -> (batch, heads, seq, head_dim)
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Learning Objectives -->
+                <div class="card">
+                    <div class="section-header" style="color: var(--success);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        LEARNING OBJECTIVES
+                    </div>
+                    <div class="check-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>Understand long-range dependencies</span>
+                    </div>
+                    <div class="check-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>Implement self-attention from scratch</span>
+                    </div>
+                    <div class="check-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>Master the Q-K-V mechanism</span>
+                    </div>
+                    <div class="check-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>Apply causal masking</span>
+                    </div>
+                    <div class="check-item">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>Build efficient Multi-Head modules</span>
+                    </div>
+                </div>
+
+                <!-- Prerequisites -->
+                <div class="card warning-card">
+                    <div class="section-header" style="color: var(--interactive);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                            </path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        PREREQUISITES
+                    </div>
+                    <div class="warning-item">• PyTorch basics (nn.Module)</div>
+                    <div class="warning-item">• Tensor operations (matmul, view)</div>
+                    <div class="warning-item">• Dot product intuition</div>
+                    <div class="warning-item">• Basic OOP in Python</div>
+                </div>
+
+                <!-- Progress Tracker -->
+                <div class="card" style="background: var(--header-grad); color: white;">
+                    <h4 style="font-size: 14px; margin-bottom: 8px;">Your Roadmap Progress</h4>
+                    <div style="height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden;">
+                        <div id="progress-bar"
+                            style="height: 100%; width: 20%; background: white; transition: width 0.3s ease;"></div>
+                    </div>
+                    <p style="font-size: 11px; margin-top: 8px; opacity: 0.9;">Click the roadmap nodes to navigate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const nodes = document.querySelectorAll('.node');
+            const sections = document.querySelectorAll('.detail-section');
+            const progressBar = document.getElementById('progress-bar');
+            const overviewCard = document.getElementById('overview-card');
+
+            const progressMap = {
+                'part1': '20%',
+                'part2': '40%',
+                'part3': '60%',
+                'part4': '80%',
+                'part5': '100%'
+            };
+
+            nodes.forEach((node, index) => {
+                node.addEventListener('click', () => {
+                    const targetId = node.getAttribute('data-target');
+
+                    // Update active node
+                    nodes.forEach(n => n.classList.remove('active'));
+                    node.classList.add('active');
+
+                    // Show target section, hide others
+                    sections.forEach(sec => {
+                        sec.classList.remove('visible');
+                        if (sec.id === targetId) {
+                            sec.classList.add('visible');
+                        }
+                    });
+
+                    // Hide overview on navigation
+                    overviewCard.style.display = 'none';
+
+                    // Update Progress
+                    progressBar.style.width = progressMap[targetId];
+
+                    // Smooth Scroll to content
+                    document.getElementById('content-area').scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self-Attention Visualization</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            min-height: 100vh;
+            color: #1e293b;
+            padding: 24px;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 32px; }
+        .header h1 { font-size: 32px; font-weight: 700; color: #1e293b; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .header p { font-size: 15px; color: #64748b; font-weight: 400; }
+        .main-card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.08), 0 10px 20px -2px rgba(99, 102, 241, 0.12);
+            margin-bottom: 24px;
+        }
+        .token-section { margin-bottom: 24px; }
+        .section-label { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+        .tokens-container { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+        .token-pill {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 12px 20px; border-radius: 24px; background: #f8fafc;
+            border: 2px solid #e2e8f0; cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); min-width: 85px;
+        }
+        .token-pill:hover { border-color: #cbd5e1; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+        .token-pill.selected { background: #fff7ed; border-color: #f97316; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15); }
+        .token-word { font-size: 15px; font-weight: 600; color: #1e293b; margin-bottom: 2px; }
+        .token-pill.selected .token-word { color: #ea580c; }
+        .token-position { font-size: 11px; font-weight: 500; color: #94a3b8; font-family: 'JetBrains Mono', monospace; }
+        .visualization-area { position: relative; height: 200px; margin: 24px 0; }
+        .svg-container { width: 100%; height: 100%; }
+        .svg-container svg { width: 100%; height: 100%; }
+        .attention-path { fill: none; stroke-linecap: round; transition: opacity 0.3s ease; }
+        .attention-path.faded { opacity: 0.15 !important; }
+        .attention-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; fill: #475569; pointer-events: none; }
+        .token-node { cursor: pointer; }
+        .token-node-bg { fill: #f8fafc; stroke: #e2e8f0; stroke-width: 2; transition: all 0.25s ease; }
+        .token-node.selected .token-node-bg { fill: #fff7ed; stroke: #f97316; }
+        .token-node-text { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; fill: #1e293b; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+        .token-node.selected .token-node-text { fill: #ea580c; }
+        .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+        @media (max-width: 768px) { .bottom-section { grid-template-columns: 1fr; } }
+        .weights-panel { background: #f8fafc; border-radius: 16px; padding: 20px; }
+        .weights-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .weights-title { font-size: 14px; font-weight: 600; color: #1e293b; }
+        .weights-sum { font-size: 12px; font-weight: 500; color: #64748b; background: #e2e8f0; padding: 4px 10px; border-radius: 12px; }
+        .weight-bar-container { margin-bottom: 10px; }
+        .weight-bar-label { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .weight-token-name { font-size: 13px; font-weight: 500; color: #475569; }
+        .weight-value { font-size: 12px; font-weight: 600; color: #0891b2; font-family: 'JetBrains Mono', monospace; }
+        .weight-bar-track { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+        .weight-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #14b8a6 0%, #0891b2 100%); transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .weight-bar-container.self-attention .weight-bar-fill { background: linear-gradient(90deg, #a78bfa 0%, #8b5cf6 100%); }
+        .explanation-panel { background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border-radius: 16px; padding: 20px; border: 1px solid #e9d5ff; }
+        .explanation-title { font-size: 14px; font-weight: 600; color: #7c3aed; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .explanation-title svg { width: 18px; height: 18px; }
+        .explanation-item { margin-bottom: 12px; }
+        .explanation-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
+        .explanation-value { font-size: 14px; font-weight: 500; color: #1e293b; }
+        .explanation-value .highlight { color: #0891b2; font-weight: 600; }
+        .explanation-value .highlight-purple { color: #8b5cf6; font-weight: 600; }
+        .explanation-insight { margin-top: 16px; padding-top: 16px; border-top: 1px solid #e9d5ff; font-size: 13px; color: #64748b; line-height: 1.5; }
+        .steps-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        @media (max-width: 900px) { .steps-section { grid-template-columns: 1fr; } }
+        .step-card {
+            background: #ffffff; border-radius: 16px; padding: 20px;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.06), 0 4px 12px rgba(99, 102, 241, 0.08);
+            cursor: pointer; transition: all 0.25s ease; border: 2px solid transparent;
+        }
+        .step-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(99, 102, 241, 0.1), 0 8px 20px rgba(99, 102, 241, 0.12); }
+        .step-card.active.orange { border-color: #f97316; background: #fffbf7; }
+        .step-card.active.purple { border-color: #8b5cf6; background: #faf8ff; }
+        .step-card.active.teal { border-color: #14b8a6; background: #f0fdfa; }
+        .step-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .step-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; font-size: 14px; font-weight: 700; }
+        .step-card.orange .step-number { background: #fff7ed; color: #ea580c; }
+        .step-card.purple .step-number { background: #f5f3ff; color: #7c3aed; }
+        .step-card.teal .step-number { background: #ecfdf5; color: #0d9488; }
+        .step-toggle { font-size: 11px; font-weight: 500; color: #94a3b8; display: flex; align-items: center; gap: 4px; }
+        .step-toggle svg { width: 14px; height: 14px; transition: transform 0.25s ease; }
+        .step-card.active .step-toggle svg { transform: rotate(180deg); }
+        .step-title { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+        .step-description { font-size: 13px; color: #64748b; line-height: 1.5; }
+        .step-formula { margin-top: 10px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #475569; }
+        .code-panel { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, margin-top 0.3s ease, opacity 0.3s ease; opacity: 0; margin-top: 0; }
+        .step-card.active .code-panel { max-height: 500px; opacity: 1; margin-top: 16px; }
+        .code-block { background: #1e293b; border-radius: 12px; padding: 16px; overflow-x: auto; }
+        .code-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #334155; }
+        .code-lang { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+        .code-lang svg { width: 14px; height: 14px; }
+        .copy-btn { background: #334155; border: none; color: #94a3b8; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 4px; }
+        .copy-btn:hover { background: #475569; color: #e2e8f0; }
+        .copy-btn.copied { background: #059669; color: #ffffff; }
+        .code-content { font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; color: #e2e8f0; white-space: pre; overflow-x: auto; }
+        .code-content .keyword { color: #c084fc; }
+        .code-content .function { color: #60a5fa; }
+        .code-content .string { color: #4ade80; }
+        .code-content .number { color: #fbbf24; }
+        .code-content .comment { color: #64748b; font-style: italic; }
+        .code-content .builtin { color: #f472b6; }
+        .tooltip { position: absolute; background: #1e293b; color: #ffffff; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 500; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; z-index: 100; white-space: nowrap; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+        .tooltip.visible { opacity: 1; }
+        .tooltip::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #1e293b; }
+        .teaching-section { margin-top: 24px; }
+        .teaching-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        @media (max-width: 768px) { .teaching-grid { grid-template-columns: 1fr; } }
+        .teaching-card { background: #ffffff; border-radius: 12px; padding: 16px; border: 1px solid #e2e8f0; }
+        .teaching-question { font-size: 13px; font-weight: 600; color: #7c3aed; margin-bottom: 8px; }
+        .teaching-answer { font-size: 13px; color: #64748b; line-height: 1.5; }
+        .arrow-marker { fill: #14b8a6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Self-Attention: How Tokens Attend to Each Other</h1>
+            <p>Click any token to see its attention pattern across the sequence</p>
+        </header>
+
+        <div class="main-card">
+            <div class="token-section">
+                <div class="section-label">Select a Query Token</div>
+                <div class="tokens-container" id="tokenContainer"></div>
+            </div>
+
+            <div class="visualization-area">
+                <div class="svg-container">
+                    <svg id="attentionSvg" viewBox="0 0 900 200" preserveAspectRatio="xMidYMid meet">
+                        <defs>
+                            <linearGradient id="tealGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#14b8a6"/>
+                                <stop offset="100%" style="stop-color:#0891b2"/>
+                            </linearGradient>
+                            <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#a78bfa"/>
+                                <stop offset="100%" style="stop-color:#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                        <g id="attentionPaths"></g>
+                        <g id="tokenNodes"></g>
+                    </svg>
+                </div>
+                <div class="tooltip" id="tooltip"></div>
+            </div>
+
+            <div class="bottom-section">
+                <div class="weights-panel">
+                    <div class="weights-header">
+                        <div class="weights-title">Attention Weights (α)</div>
+                        <div class="weights-sum">Sum = 1.00</div>
+                    </div>
+                    <div id="weightsContainer"></div>
+                </div>
+
+                <div class="explanation-panel">
+                    <div class="explanation-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+                        </svg>
+                        Attention Analysis
+                    </div>
+                    <div class="explanation-item">
+                        <div class="explanation-label">Query Token</div>
+                        <div class="explanation-value" id="queryToken">journey</div>
+                    </div>
+                    <div class="explanation-item">
+                        <div class="explanation-label">Highest Attention</div>
+                        <div class="explanation-value" id="highestAttention">Loading...</div>
+                    </div>
+                    <div class="explanation-item">
+                        <div class="explanation-label">Lowest Attention</div>
+                        <div class="explanation-value" id="lowestAttention">Loading...</div>
+                    </div>
+                    <div class="explanation-insight" id="insightText">Loading insight...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="steps-section">
+            <div class="step-card orange" data-step="1">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-toggle">
+                        <span>PyTorch</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                </div>
+                <div class="step-title">Dot Product → Attention Scores</div>
+                <div class="step-description">Compute similarity between the query token and all keys using dot product.</div>
+                <div class="step-formula">ω = Q · K = Σ(qᵢ × kᵢ)</div>
+                <div class="code-panel">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <div class="code-lang">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                                PyTorch
+                            </div>
+                            <button class="copy-btn" onclick="copyCode(this, 'code1')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                Copy
+                            </button>
+                        </div>
+                        <div class="code-content" id="code1"><span class="keyword">import</span> torch
+
+<span class="comment"># Input embeddings: 6 tokens × 3 dimensions</span>
+inputs <span class="keyword">=</span> torch<span class="keyword">.</span><span class="function">tensor</span>([
+    [<span class="number">0.43</span>, <span class="number">0.15</span>, <span class="number">0.89</span>],  <span class="comment"># Your</span>
+    [<span class="number">0.55</span>, <span class="number">0.87</span>, <span class="number">0.66</span>],  <span class="comment"># journey</span>
+    [<span class="number">0.57</span>, <span class="number">0.85</span>, <span class="number">0.64</span>],  <span class="comment"># starts</span>
+    [<span class="number">0.22</span>, <span class="number">0.58</span>, <span class="number">0.33</span>],  <span class="comment"># with</span>
+    [<span class="number">0.77</span>, <span class="number">0.25</span>, <span class="number">0.10</span>],  <span class="comment"># one</span>
+    [<span class="number">0.05</span>, <span class="number">0.80</span>, <span class="number">0.55</span>]   <span class="comment"># step</span>
+])
+
+<span class="comment"># Compute attention scores via dot product</span>
+<span class="comment"># Shape: (6, 6) - each token attends to all tokens</span>
+attn_scores <span class="keyword">=</span> torch<span class="keyword">.</span><span class="function">matmul</span>(inputs, inputs<span class="keyword">.</span><span class="function">T</span>)
+
+<span class="builtin">print</span>(attn_scores[<span class="number">1</span>])  <span class="comment"># "journey" attending to all</span>
+<span class="comment"># tensor([0.9544, 1.4950, 1.4754, 0.8434, 0.7070, 1.0865])</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card purple" data-step="2">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-toggle">
+                        <span>PyTorch</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                </div>
+                <div class="step-title">Softmax → Attention Weights</div>
+                <div class="step-description">Normalize scores to probabilities that sum to 1 using softmax.</div>
+                <div class="step-formula">α = exp(ω) / Σexp(ω)</div>
+                <div class="code-panel">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <div class="code-lang">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                                PyTorch
+                            </div>
+                            <button class="copy-btn" onclick="copyCode(this, 'code2')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                Copy
+                            </button>
+                        </div>
+                        <div class="code-content" id="code2"><span class="keyword">import</span> torch<span class="keyword">.</span>nn<span class="keyword">.</span>functional <span class="keyword">as</span> F
+
+<span class="comment"># Apply softmax along the last dimension (keys)</span>
+<span class="comment"># Each row sums to 1.0</span>
+attn_weights <span class="keyword">=</span> F<span class="keyword">.</span><span class="function">softmax</span>(attn_scores, dim<span class="keyword">=</span><span class="number">-1</span>)
+
+<span class="comment"># "journey" (index 1) attention weights</span>
+<span class="builtin">print</span>(attn_weights[<span class="number">1</span>])
+<span class="comment"># tensor([0.1385, 0.2379, 0.2333, 0.1240, 0.1082, 0.1581])</span>
+
+<span class="comment"># Verify weights sum to 1</span>
+<span class="builtin">print</span>(attn_weights[<span class="number">1</span>]<span class="keyword">.</span><span class="function">sum</span>())  <span class="comment"># tensor(1.0000)</span>
+
+<span class="comment"># Interpretation: "journey" gives:</span>
+<span class="comment">#   23.79% attention to itself</span>
+<span class="comment">#   23.33% attention to "starts"</span>
+<span class="comment">#   15.81% attention to "step"</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card teal" data-step="3">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-toggle">
+                        <span>PyTorch</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                </div>
+                <div class="step-title">Weighted Sum → Context Vector</div>
+                <div class="step-description">Create enriched representation by weighting all token embeddings.</div>
+                <div class="step-formula">z = Σ(αᵢ × xᵢ)</div>
+                <div class="code-panel">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <div class="code-lang">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                                PyTorch
+                            </div>
+                            <button class="copy-btn" onclick="copyCode(this, 'code3')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                Copy
+                            </button>
+                        </div>
+                        <div class="code-content" id="code3"><span class="comment"># Compute context vectors for all tokens</span>
+<span class="comment"># Matrix multiply: (6×6) @ (6×3) = (6×3)</span>
+context_vectors <span class="keyword">=</span> torch<span class="keyword">.</span><span class="function">matmul</span>(attn_weights, inputs)
+
+<span class="comment"># Context vector for "journey"</span>
+<span class="builtin">print</span>(context_vectors[<span class="number">1</span>])
+<span class="comment"># tensor([0.4435, 0.5765, 0.5765])</span>
+
+<span class="comment"># This is a weighted blend of ALL token embeddings!</span>
+<span class="comment"># Manual verification for "journey":</span>
+z_journey <span class="keyword">=</span> (
+    <span class="number">0.1385</span> <span class="keyword">*</span> inputs[<span class="number">0</span>] <span class="keyword">+</span>  <span class="comment"># Your</span>
+    <span class="number">0.2379</span> <span class="keyword">*</span> inputs[<span class="number">1</span>] <span class="keyword">+</span>  <span class="comment"># journey (self)</span>
+    <span class="number">0.2333</span> <span class="keyword">*</span> inputs[<span class="number">2</span>] <span class="keyword">+</span>  <span class="comment"># starts</span>
+    <span class="number">0.1240</span> <span class="keyword">*</span> inputs[<span class="number">3</span>] <span class="keyword">+</span>  <span class="comment"># with</span>
+    <span class="number">0.1082</span> <span class="keyword">*</span> inputs[<span class="number">4</span>] <span class="keyword">+</span>  <span class="comment"># one</span>
+    <span class="number">0.1581</span> <span class="keyword">*</span> inputs[<span class="number">5</span>]    <span class="comment"># step</span>
+)
+<span class="builtin">print</span>(z_journey)  <span class="comment"># Same result!</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="teaching-section">
+            <div class="teaching-grid">
+                <div class="teaching-card">
+                    <div class="teaching-question">Why "Self" Attention?</div>
+                    <div class="teaching-answer">It's called "self"-attention because each token attends to tokens within the <strong>same</strong> sequence—it looks at itself and its neighbors, not at a separate input.</div>
+                </div>
+                <div class="teaching-card">
+                    <div class="teaching-question">Why Dot Product?</div>
+                    <div class="teaching-answer">The dot product measures similarity between vectors. When two embeddings point in similar directions (semantically related), their dot product is higher.</div>
+                </div>
+                <div class="teaching-card">
+                    <div class="teaching-question">Why Softmax?</div>
+                    <div class="teaching-answer">Softmax converts raw scores into probabilities that sum to 1. This normalizes attention so we can interpret weights as "percentage of attention."</div>
+                </div>
+                <div class="teaching-card">
+                    <div class="teaching-question">What is a Context Vector?</div>
+                    <div class="teaching-answer">The context vector is a weighted combination of all tokens. Tokens with higher attention weights contribute more to the final representation.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tokens = ['Your', 'journey', 'starts', 'with', 'one', 'step'];
+        const positions = ['x¹', 'x²', 'x³', 'x⁴', 'x⁵', 'x⁶'];
+        
+        const attentionWeights = {
+            'Your':    [0.2028, 0.1940, 0.1917, 0.1202, 0.1182, 0.1732],
+            'journey': [0.1385, 0.2379, 0.2333, 0.1240, 0.1082, 0.1581],
+            'starts':  [0.1396, 0.2379, 0.2338, 0.1249, 0.1114, 0.1524],
+            'with':    [0.1454, 0.2101, 0.2075, 0.1482, 0.1280, 0.1609],
+            'one':     [0.1671, 0.2146, 0.2164, 0.1497, 0.2057, 0.1418],
+            'step':    [0.1339, 0.2111, 0.2057, 0.1374, 0.0955, 0.2163]
+        };
+
+        const insights = {
+            'Your': '"Your" distributes attention relatively evenly, with slightly more focus on itself and "journey" — establishing the possessive relationship in the sentence.',
+            'journey': '"journey" attends most strongly to "starts" (23.33%) and itself (23.79%), showing how semantically related words (both about beginnings) have similar embeddings.',
+            'starts': '"starts" mirrors "journey"\'s pattern, attending strongly to both "journey" (23.79%) and itself — the semantic similarity is bidirectional.',
+            'with': '"with" distributes attention broadly, with higher focus on "journey" and "starts" — connecting the action to its context.',
+            'one': '"one" has notably high self-attention (20.57%), and also attends to "starts" — linking the quantity to the action.',
+            'step': '"step" attends most to itself (21.63%) and "journey" (21.11%), semantically connecting the concrete action with the abstract concept.'
+        };
+
+        let selectedToken = 'journey';
+        const svgWidth = 900, svgHeight = 200, nodeY = 160, nodeWidth = 70, nodeHeight = 36, nodeSpacing = 130;
+        const startX = (svgWidth - (tokens.length - 1) * nodeSpacing) / 2;
+
+        function getNodeX(index) { return startX + index * nodeSpacing; }
+
+        function init() {
+            createTokenPills();
+            createSVGNodes();
+            updateVisualization();
+            setupStepCards();
+        }
+
+        function createTokenPills() {
+            const container = document.getElementById('tokenContainer');
+            container.innerHTML = '';
+            tokens.forEach((token, index) => {
+                const pill = document.createElement('div');
+                pill.className = `token-pill ${token === selectedToken ? 'selected' : ''}`;
+                pill.innerHTML = `<span class="token-word">${token}</span><span class="token-position">${positions[index]}</span>`;
+                pill.addEventListener('click', () => selectToken(token));
+                container.appendChild(pill);
+            });
+        }
+
+        function createSVGNodes() {
+            const nodesGroup = document.getElementById('tokenNodes');
+            nodesGroup.innerHTML = '';
+            tokens.forEach((token, index) => {
+                const x = getNodeX(index);
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                group.setAttribute('class', `token-node ${token === selectedToken ? 'selected' : ''}`);
+                group.setAttribute('data-token', token);
+                
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', x - nodeWidth / 2);
+                rect.setAttribute('y', nodeY - nodeHeight / 2);
+                rect.setAttribute('width', nodeWidth);
+                rect.setAttribute('height', nodeHeight);
+                rect.setAttribute('rx', 18);
+                rect.setAttribute('class', 'token-node-bg');
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x);
+                text.setAttribute('y', nodeY);
+                text.setAttribute('class', 'token-node-text');
+                text.textContent = token;
+                
+                group.appendChild(rect);
+                group.appendChild(text);
+                group.addEventListener('click', () => selectToken(token));
+                nodesGroup.appendChild(group);
+            });
+        }
+
+        function selectToken(token) {
+            selectedToken = token;
+            document.querySelectorAll('.token-pill').forEach((pill, index) => {
+                pill.classList.toggle('selected', tokens[index] === token);
+            });
+            document.querySelectorAll('.token-node').forEach(node => {
+                node.classList.toggle('selected', node.dataset.token === token);
+            });
+            updateVisualization();
+        }
+
+        function createAttentionPath(fromIndex, toIndex, weight) {
+            const fromX = getNodeX(fromIndex), toX = getNodeX(toIndex);
+            const isSelf = fromIndex === toIndex;
+            let pathD, labelX, labelY;
+            
+            if (isSelf) {
+                const loopHeight = 40 + weight * 30;
+                pathD = `M ${fromX - 15} ${nodeY - nodeHeight / 2} C ${fromX - 25} ${nodeY - loopHeight} ${fromX + 25} ${nodeY - loopHeight} ${fromX + 15} ${nodeY - nodeHeight / 2}`;
+                labelX = fromX;
+                labelY = nodeY - loopHeight - 5;
+            } else {
+                const midX = (fromX + toX) / 2;
+                const distance = Math.abs(toIndex - fromIndex);
+                const arcHeight = 30 + distance * 15 + weight * 40;
+                pathD = `M ${fromX} ${nodeY - nodeHeight / 2} Q ${midX} ${nodeY - arcHeight} ${toX} ${nodeY - nodeHeight / 2}`;
+                labelX = midX;
+                labelY = nodeY - arcHeight + 15;
+            }
+            return { pathD, labelX, labelY, isSelf };
+        }
+
+        function updateVisualization() {
+            const pathsGroup = document.getElementById('attentionPaths');
+            pathsGroup.innerHTML = '';
+            
+            const weights = attentionWeights[selectedToken];
+            const selectedIndex = tokens.indexOf(selectedToken);
+            const weightedIndices = weights.map((w, i) => ({ index: i, weight: w })).sort((a, b) => a.weight - b.weight);
+            
+            weightedIndices.forEach(({ index, weight }, drawOrder) => {
+                const { pathD, labelX, labelY, isSelf } = createAttentionPath(selectedIndex, index, weight);
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathD);
+                path.setAttribute('class', 'attention-path');
+                path.setAttribute('stroke', isSelf ? 'url(#purpleGradient)' : 'url(#tealGradient)');
+                path.setAttribute('stroke-width', 2 + weight * 8);
+                path.setAttribute('opacity', 0.4 + weight * 0.6);
+                path.setAttribute('data-from', selectedToken);
+                path.setAttribute('data-to', tokens[index]);
+                path.setAttribute('data-weight', weight);
+                
+                const pathLength = 200;
+                path.style.strokeDasharray = pathLength;
+                path.style.strokeDashoffset = pathLength;
+                path.style.animation = `drawPath 0.5s ease-out ${drawOrder * 0.05}s forwards`;
+                
+                path.addEventListener('mouseenter', (e) => handlePathHover(e, path));
+                path.addEventListener('mouseleave', handlePathLeave);
+                pathsGroup.appendChild(path);
+                
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', labelX);
+                label.setAttribute('y', labelY);
+                label.setAttribute('class', 'attention-label');
+                label.setAttribute('text-anchor', 'middle');
+                label.textContent = (weight * 100).toFixed(1) + '%';
+                label.style.opacity = 0;
+                label.style.animation = `fadeIn 0.3s ease-out ${0.3 + drawOrder * 0.05}s forwards`;
+                pathsGroup.appendChild(label);
+            });
+            
+            updateWeightsPanel(weights);
+            updateExplanationPanel(weights);
+        }
+
+        function updateWeightsPanel(weights) {
+            const container = document.getElementById('weightsContainer');
+            container.innerHTML = '';
+            const selectedIndex = tokens.indexOf(selectedToken);
+            
+            tokens.forEach((token, index) => {
+                const weight = weights[index];
+                const isSelf = index === selectedIndex;
+                const div = document.createElement('div');
+                div.className = `weight-bar-container ${isSelf ? 'self-attention' : ''}`;
+                div.innerHTML = `
+                    <div class="weight-bar-label">
+                        <span class="weight-token-name">${token}${isSelf ? ' (self)' : ''}</span>
+                        <span class="weight-value">${(weight * 100).toFixed(2)}%</span>
+                    </div>
+                    <div class="weight-bar-track"><div class="weight-bar-fill" style="width: 0%"></div></div>
+                `;
+                container.appendChild(div);
+                requestAnimationFrame(() => {
+                    div.querySelector('.weight-bar-fill').style.width = `${weight * 100 / 0.25 * 100}%`;
+                });
+            });
+        }
+
+        function updateExplanationPanel(weights) {
+            document.getElementById('queryToken').textContent = `"${selectedToken}"`;
+            let maxWeight = 0, maxIndex = 0, minWeight = 1, minIndex = 0;
+            weights.forEach((w, i) => {
+                if (w > maxWeight) { maxWeight = w; maxIndex = i; }
+                if (w < minWeight) { minWeight = w; minIndex = i; }
+            });
+            const selectedIndex = tokens.indexOf(selectedToken);
+            const maxIsSelf = maxIndex === selectedIndex;
+            
+            document.getElementById('highestAttention').innerHTML = 
+                `<span class="${maxIsSelf ? 'highlight-purple' : 'highlight'}">${tokens[maxIndex]}</span> (${(maxWeight * 100).toFixed(2)}%)`;
+            document.getElementById('lowestAttention').innerHTML = 
+                `<span class="highlight">${tokens[minIndex]}</span> (${(minWeight * 100).toFixed(2)}%)`;
+            document.getElementById('insightText').textContent = insights[selectedToken];
+        }
+
+        function handlePathHover(event, path) {
+            document.querySelectorAll('.attention-path').forEach(p => {
+                if (p !== path) p.classList.add('faded');
+            });
+            const tooltip = document.getElementById('tooltip');
+            const fromToken = path.dataset.from, toToken = path.dataset.to;
+            const weight = parseFloat(path.dataset.weight);
+            tooltip.textContent = `${fromToken} → ${toToken}: ${(weight * 100).toFixed(2)}%`;
+            const rect = path.getBoundingClientRect();
+            const containerRect = document.querySelector('.svg-container').getBoundingClientRect();
+            tooltip.style.left = `${rect.left + rect.width / 2 - containerRect.left}px`;
+            tooltip.style.top = `${rect.top - containerRect.top - 40}px`;
+            tooltip.classList.add('visible');
+        }
+
+        function handlePathLeave() {
+            document.querySelectorAll('.attention-path').forEach(p => p.classList.remove('faded'));
+            document.getElementById('tooltip').classList.remove('visible');
+        }
+
+        function setupStepCards() {
+            document.querySelectorAll('.step-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('.copy-btn')) return;
+                    const isActive = card.classList.contains('active');
+                    document.querySelectorAll('.step-card').forEach(c => c.classList.remove('active'));
+                    if (!isActive) card.classList.add('active');
+                });
+            });
+        }
+
+        function copyCode(button, codeId) {
+            const codeElement = document.getElementById(codeId);
+            const codeText = codeElement.textContent;
+            navigator.clipboard.writeText(codeText).then(() => {
+                button.classList.add('copied');
+                button.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+                setTimeout(() => {
+                    button.classList.remove('copied');
+                    button.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy`;
+                }, 2000);
+            });
+        }
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes drawPath { to { stroke-dashoffset: 0; } }
+            @keyframes fadeIn { to { opacity: 1; } }
+        `;
+        document.head.appendChild(style);
+
+        document.addEventListener('DOMContentLoaded', init);
+        if (document.readyState !== 'loading') init();
+    </script>
+</body>
+</html>

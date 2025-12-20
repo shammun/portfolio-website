@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Guide: Multi-Head Attention Tensor Transformations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Fira+Code:wght@400;500&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f1f5f9;
+        }
+
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .stage-btn {
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .stage-btn.active {
+            border-left-color: #6366f1;
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .memory-slot {
+            width: 6px;
+            height: 6px;
+            border-radius: 1px;
+            transition: all 0.3s ease;
+        }
+
+        /* Layout Grid */
+        .app-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr 420px;
+            grid-template-rows: 64px 1fr 200px;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .header-area {
+            grid-column: 1 / 4;
+        }
+
+        .sidebar-left {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+        }
+
+        .viewport-area {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
+            position: relative;
+        }
+
+        .sidebar-right {
+            grid-column: 3 / 4;
+            grid-row: 2 / 3;
+        }
+
+        .footer-area {
+            grid-column: 1 / 4;
+            grid-row: 3 / 4;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .warning-box {
+            background: linear-gradient(135deg, rgba(234, 179, 8, 0.05) 0%, rgba(251, 191, 36, 0.05) 100%);
+            border: 1px solid rgba(234, 179, 8, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .success-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+
+<body class="overflow-hidden">
+
+    <div class="app-grid bg-slate-950">
+
+        <!-- Header -->
+        <header class="header-area bg-slate-900 border-b border-slate-800 px-6 flex items-center justify-between z-50">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center font-black text-white shadow-lg shadow-indigo-500/20">
+                    T</div>
+                <div>
+                    <h1 class="font-bold text-slate-200 tracking-tight text-sm">Complete Guide to Multi-Head Attention
+                    </h1>
+                    <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest leading-none">Tensor Shape
+                        Transformations Explained</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex bg-slate-800 p-1 rounded-lg shadow-inner">
+                    <button id="prev-btn" class="p-1.5 hover:bg-slate-700 rounded text-slate-400"><svg
+                            xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m15 18-6-6 6-6" />
+                        </svg></button>
+                    <div id="stage-counter"
+                        class="px-3 py-1 text-xs font-bold text-slate-300 min-w-[60px] text-center code-font">1/9</div>
+                    <button id="next-btn" class="p-1.5 hover:bg-slate-700 rounded text-slate-400"><svg
+                            xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m9 18 6-6-6-6" />
+                        </svg></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar Left -->
+        <aside class="sidebar-left border-r border-slate-800 bg-slate-900 overflow-y-auto p-4">
+            <h2 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                The Complete Journey
+            </h2>
+            <div id="stages-list" class="space-y-1"></div>
+
+            <div class="mt-6 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                <h3 class="text-[9px] font-bold text-slate-400 uppercase mb-2">Quick Reference</h3>
+                <div class="text-[10px] text-slate-300 space-y-1">
+                    <div><span class="text-indigo-400">Batch:</span> 2 sequences</div>
+                    <div><span class="text-indigo-400">Tokens:</span> 4 per sequence</div>
+                    <div><span class="text-indigo-400">Heads:</span> 8 attention heads</div>
+                    <div><span class="text-indigo-400">Head Dim:</span> 32 features</div>
+                    <div><span class="text-indigo-400">Total d_out:</span> 256 (8×32)</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Viewport -->
+        <section class="viewport-area bg-slate-950 overflow-hidden border-b border-slate-800/50">
+            <div id="canvas-container" class="w-full h-full"></div>
+
+            <!-- HUD -->
+            <div class="absolute top-4 left-4 pointer-events-none">
+                <div class="bg-slate-900/90 border border-slate-700 p-4 rounded-xl shadow-2xl backdrop-blur-md">
+                    <h3 class="text-[9px] font-bold text-slate-500 uppercase mb-1">Current Tensor Shape</h3>
+                    <div id="current-shape" class="text-3xl font-black text-indigo-400 code-font tracking-tight">--
+                    </div>
+                    <div id="shape-meaning" class="text-[10px] text-slate-400 mt-1 font-medium">--</div>
+                    <div id="status-contig"
+                        class="mt-2 inline-block text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">--
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-slate-800 space-y-1 text-[10px] font-medium text-slate-400">
+                        <div class="flex justify-between gap-4"><span>Total Elements:</span> <span id="hud-elements"
+                                class="text-slate-200">2,048</span></div>
+                        <div class="flex justify-between gap-4"><span>Memory:</span> <span class="text-slate-200">8,192
+                                B</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Axis Labels -->
+            <div
+                class="absolute bottom-4 left-4 text-[10px] font-bold text-slate-600 flex flex-col gap-1 uppercase tracking-tighter bg-slate-900/40 p-2 rounded border border-slate-800/50">
+                <span id="label-x">X-Axis: Batch Separation</span>
+                <span id="label-y">Y-Axis: Rows (Tokens/Heads)</span>
+                <span id="label-z">Z-Axis: Feature Depth (Dim)</span>
+            </div>
+        </section>
+
+        <!-- Sidebar Right -->
+        <aside class="sidebar-right border-l border-slate-800 bg-slate-900 flex flex-col shadow-2xl overflow-y-auto">
+            <div class="p-6 flex-1 overflow-y-auto bg-slate-900">
+                <div id="info-panel" class="fade-in">
+                    <h2
+                        class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22v-5" />
+                            <path d="M9 7V2" />
+                            <path d="M15 7V2" />
+                            <path d="M12 12V7" />
+                            <path d="M20 12v10" />
+                            <path d="M4 12v10" />
+                            <path d="M2 12h20" />
+                            <path d="M7 22h10" />
+                        </svg>
+                        What's Happening?
+                    </h2>
+                    <div id="stage-explanation" class="text-sm text-slate-100 leading-relaxed font-semibold mb-4"></div>
+
+                    <!-- Beginner-friendly explanation box -->
+                    <div id="beginner-box" class="mb-6"></div>
+
+                    <h2
+                        class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 16v-4" />
+                            <path d="M12 8h.01" />
+                        </svg>
+                        Why This Step?
+                    </h2>
+                    <div id="stage-why"
+                        class="text-xs text-slate-400 leading-relaxed bg-slate-950 p-4 rounded-xl border border-slate-800 mb-4">
+                    </div>
+
+                    <h2
+                        class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21 16-4 4-4-4" />
+                            <path d="M17 20V4" />
+                            <path d="m3 8 4-4 4 4" />
+                            <path d="M7 4v16" />
+                        </svg>
+                        Technical Details
+                    </h2>
+                    <div id="stage-logic" class="text-[11px] text-slate-400 space-y-2 mb-4"></div>
+
+                    <!-- Key Insight Box -->
+                    <div id="key-insight" class="mb-4"></div>
+
+                    <!-- Code Trace -->
+                    <div class="border-t border-slate-800 pt-4">
+                        <h2 class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">PyTorch Code
+                        </h2>
+                        <div class="bg-[#0d1117] p-4 rounded-lg border border-slate-800">
+                            <pre id="code-block" class="code-font text-[11px] text-indigo-200 leading-relaxed"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Footer -->
+        <footer class="footer-area border-t border-slate-800 bg-slate-950 p-4 flex gap-6 overflow-hidden shadow-inner">
+            <div class="w-[250px] shrink-0">
+                <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Physical Memory Layout
+                </h3>
+                <p class="text-[9px] text-slate-400 leading-relaxed mb-3">This shows how data is stored in RAM. When we
+                    transpose, the logical view changes but physical memory doesn't immediately reorganize.
+                </p>
+                <div class="grid grid-cols-2 gap-2 text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
+                    <span class="flex items-center gap-2"><span
+                            class="w-3 h-3 rounded-sm bg-indigo-500 shadow-md"></span> Batch 1</span>
+                    <span class="flex items-center gap-2"><span
+                            class="w-3 h-3 rounded-sm bg-amber-500 shadow-md"></span> Batch 2</span>
+                </div>
+            </div>
+            <div id="memory-grid"
+                class="flex-1 flex flex-wrap content-start gap-1 p-3 bg-slate-900/60 rounded-xl border border-slate-800/50 shadow-inner overflow-y-auto">
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        const STAGES = [
+            {
+                title: "Step 0: Input Embeddings",
+                shape: [2, 4, 512],
+                shapeMeaning: "(Batch, Tokens, Embedding_Dim)",
+                contig: true,
+                explanation: "This is where we start: 2 independent sequences in a batch, each containing 4 tokens. Each token is represented as a 512-dimensional embedding vector.",
+                beginnerExplain: `<div class="info-box">
+                    <div class="text-xs font-bold text-indigo-300 mb-2">🎯 Think of it like this:</div>
+                    <div class="text-xs text-slate-300 leading-relaxed">
+                        • <strong>Batch dimension (2)</strong>: We're processing 2 sentences simultaneously<br>
+                        • <strong>Token dimension (4)</strong>: Each sentence has 4 words/tokens<br>
+                        • <strong>Embedding dimension (512)</strong>: Each word is a vector with 512 numbers describing it<br><br>
+                        <em>Example: If our sentences were "The cat sat" and "A dog ran", we'd have 2 sentences × 4 words × 512 features = 4,096 total numbers.</em>
+                    </div>
+                </div>`,
+                why: "This is the 'ground truth' input state coming from the embedding layer. The data is perfectly contiguous in memory because it's freshly created - the physical layout in RAM exactly matches our logical tensor dimensions.",
+                logic: `• <strong>Total elements:</strong> 2 × 4 × 512 = 4,096 floating-point numbers<br>
+                        • <strong>Memory layout:</strong> [Batch, Sequence, Features] - contiguous<br>
+                        • <strong>Each element:</strong> 32-bit float (4 bytes)<br>
+                        • <strong>Total memory:</strong> 4,096 × 4 = 16,384 bytes (16 KB)`,
+                code: `# Input from embedding layer
+x = torch.randn(2, 4, 512)
+
+# Check properties
+print(x.shape)  # torch.Size([2, 4, 512])
+print(x.is_contiguous())  # True
+
+# Memory is laid out as:
+# [Seq1_Token1, Seq1_Token2, Seq1_Token3, Seq1_Token4,
+#  Seq2_Token1, Seq2_Token2, ...]`,
+                keyInsight: `<div class="success-box">
+                    <div class="text-xs font-bold text-emerald-300 mb-1">✓ Key Point:</div>
+                    <div class="text-xs text-slate-300">This is the standard output format from an embedding layer. Every element is stored sequentially in memory, making access very fast.</div>
+                </div>`
+            },
+            {
+                title: "Step 1: Query Projection",
+                shape: [2, 4, 256],
+                shapeMeaning: "(Batch, Tokens, d_out)",
+                contig: true,
+                explanation: "We apply a linear transformation using weight matrix W_query to project our 512-dimensional embeddings down to 256 dimensions. This creates the 'Query' representation for attention.",
+                beginnerExplain: `<div class="info-box">
+                    <div class="text-xs font-bold text-indigo-300 mb-2">🎯 Think of it like this:</div>
+                    <div class="text-xs text-slate-300 leading-relaxed">
+                        • We're <strong>compressing</strong> each 512-number vector into a 256-number vector<br>
+                        • This is done via matrix multiplication: <code>Query = Input @ W_query</code><br>
+                        • We do the same for Keys and Values (creating 3 different projections)<br>
+                        • Why 256? Because we'll split it into <strong>8 heads × 32 dimensions = 256</strong><br><br>
+                        <em>Analogy: Like taking a high-resolution photo (512 pixels) and creating a compressed version (256 pixels) that still captures the important features.</em>
+                    </div>
+                </div>`,
+                why: "We project from 512 to 256 dimensions to create a task-specific representation. The 256 dimensions are chosen because they'll be split across 8 attention heads (256 = 8 heads × 32 dimensions per head). This projection extracts semantic features relevant for the attention mechanism.",
+                logic: `• <strong>Transformation:</strong> X @ W_query + bias<br>
+                        • <strong>W_query shape:</strong> (512, 256) - learned during training<br>
+                        • <strong>Output shape:</strong> (2, 4, 256)<br>
+                        • <strong>Same operation</strong> creates Keys and Values with separate weight matrices<br>
+                        • <strong>Memory:</strong> Still contiguous, token-by-token layout preserved`,
+                code: `# Linear projection to Query space
+# W_query is a (512, 256) weight matrix
+queries = self.W_query(x)  # Shape: (2, 4, 256)
+
+# Similarly for keys and values
+keys = self.W_key(x)      # Shape: (2, 4, 256)
+values = self.W_value(x)  # Shape: (2, 4, 256)
+
+# All three are still contiguous
+print(queries.is_contiguous())  # True`,
+                keyInsight: `<div class="info-box">
+                    <div class="text-xs font-bold text-indigo-300 mb-1">💡 Critical Insight:</div>
+                    <div class="text-xs text-slate-300">We project to <strong>d_out = 256</strong> (not 512) because this dimension will be <em>partitioned</em> across multiple heads. Each of our 8 heads gets 256÷8 = 32 dimensions to work with.</div>
+                </div>`
+            },
+            {
+                title: "Step 2: Split into Heads",
+                shape: [2, 4, 8, 32],
+                shapeMeaning: "(Batch, Tokens, Heads, Head_Dim)",
+                contig: true,
+                explanation: "We logically partition the 256 dimensions into 8 parallel attention 'heads', each with 32 features. This is done using .view() which is a metadata-only operation - no data is moved in memory!",
+                beginnerExplain: `<div class="info-box">
+                    <div class="text-xs font-bold text-indigo-300 mb-2">🎯 Think of it like this:</div>
+                    <div class="text-xs text-slate-300 leading-relaxed">
+                        • We're taking our 256 numbers and <strong>organizing them into 8 groups of 32</strong><br>
+                        • No data is copied or moved - we're just <em>relabeling</em> how we view it<br>
+                        • <strong>.view()</strong> is like reshaping a deck of cards without shuffling them<br>
+                        • Each "head" will learn to pay attention to different aspects of the input<br><br>
+                        <em>Example: Head 1 might focus on grammar, Head 2 on semantics, Head 3 on syntax, etc.</em>
+                    </div>
+                </div>`,
+                why: "Multi-head attention allows the model to attend to information from different representation subspaces simultaneously. By splitting into 8 heads, we let each head specialize in capturing different types of relationships (e.g., syntactic, semantic, positional). The .view() operation is zero-cost - it only changes the shape metadata.",
+                logic: `• <strong>Partition:</strong> 256 dimensions → 8 heads × 32 dimensions per head<br>
+                        • <strong>Operation:</strong> <code>x.view(batch, tokens, num_heads, head_dim)</code><br>
+                        • <strong>Cost:</strong> Zero! Only metadata changes, no data movement<br>
+                        • <strong>Stride pattern:</strong> (1024, 256, 32, 1) - data still sequential<br>
+                        • <strong>Memory:</strong> Still perfectly contiguous`,
+                code: `# Split embedding into multiple heads
+# This is a "view" - no data is copied!
+queries = queries.view(2, 4, 8, 32)
+keys = keys.view(2, 4, 8, 32)
+values = values.view(2, 4, 8, 32)
+
+# Verify it's still contiguous
+print(queries.is_contiguous())  # True
+print(queries.stride())  # (1024, 256, 32, 1)
+
+# The 256 features are now seen as 8×32`,
+                keyInsight: `<div class="success-box">
+                    <div class="text-xs font-bold text-emerald-300 mb-1">⚡ Performance Insight:</div>
+                    <div class="text-xs text-slate-300"><strong>.view()</strong> is extremely fast because it only changes how we <em>interpret</em> the data, not where it lives in memory. Think of it as changing the labels on boxes without moving the contents.</div>
+                </div>`
+            },
+            {
+                title: "Step 3: Transpose (The Critical Flip)",
+                shape: [2, 8, 4, 32],
+                shapeMeaning: "(Batch, Heads, Tokens, Head_Dim)",
+                contig: false,
+                explanation: "We swap dimensions 1 (Tokens) and 2 (Heads) using .transpose(1, 2). Now we have 8 rows (one per head) where each row contains all 4 tokens for that head. This makes the data non-contiguous!",
+                beginnerExplain: `<div class="warning-box">
+                    <div class="text-xs font-bold text-amber-300 mb-2">⚠️ This is the KEY step - pay close attention!</div>
+                    <div class="text-xs text-slate-300 leading-relaxed">
+                        <strong>Before transpose:</strong> Shape (2, 4, 8, 32)<br>
+                        • 4 rows (tokens), each row has 8 heads of data<br>
+                        • Layout: Token1_Head1, Token1_Head2, ..., Token1_Head8, Token2_Head1, ...<br><br>
+                        
+                        <strong>After transpose:</strong> Shape (2, 8, 4, 32)<br>
+                        • 8 rows (heads), each row has 4 tokens of data<br>
+                        • <strong>Physical memory unchanged!</strong> Still: Token1_Head1, Token1_Head2, ...<br>
+                        • But now we <em>access</em> it as: Head1_Token1, Head1_Token2, Head1_Token3, Head1_Token4...<br><br>
+                        
+                        <em>Result: To read "Head 1's data", we must jump around in memory!</em>
+                    </div>
+                </div>`,
+                why: "This transpose is CRITICAL for GPU optimization. By organizing data as (Batch, Heads, Tokens, Dim), all tokens for a specific head are logically adjacent. This allows the GPU to process all 8 heads in parallel efficiently. However, the physical memory is still in the old order, making this non-contiguous.",
+                logic: `• <strong>Operation:</strong> Swap dimension 1 ↔ dimension 2<br>
+                        • <strong>Logical view:</strong> (Batch, Heads, Tokens, Head_Dim)<br>
+                        • <strong>Physical memory:</strong> UNCHANGED! Still token-first ordering<br>
+                        • <strong>Contiguous status:</strong> ❌ FALSE - accessing data now requires "jumps"<br>
+                        • <strong>Why non-contiguous?</strong> To read Head1's data, we access indices [0, 8, 16, 24, ...] - not sequential!`,
+                code: `# Transpose to bring heads to dimension 1
+# BEFORE: (2, 4, 8, 32) - tokens first
+queries = queries.transpose(1, 2)
+keys = keys.transpose(1, 2)
+values = values.transpose(1, 2)
+# AFTER: (2, 8, 4, 32) - heads first
+
+# Now non-contiguous!
+print(queries.is_contiguous())  # False ⚠️
+
+# Stride changed: was (1024, 256, 32, 1)
+#                 now (1024, 32, 256, 1)
+# Notice: to go to next token in same head,
+# we skip 256 positions (not sequential!)`,
+                keyInsight: `<div class="warning-box">
+                    <div class="text-xs font-bold text-amber-300 mb-1">🔑 THE Critical Understanding:</div>
+                    <div class="text-xs text-slate-300"><strong>Transpose does NOT move data in RAM.</strong> It only changes the "stride" pattern - how we calculate memory addresses when accessing elements. This is why it becomes non-contiguous: we're now accessing memory in a scattered pattern instead of sequentially.</div>
+                </div>`
+            },
+            {
+                title: "Step 4: Compute Attention",
+                shape: [2, 8, 4, 32],
+                shapeMeaning: "(Batch, Heads, Tokens, Head_Dim)",
+                contig: false,
+                explanation: "Each of the 8 heads independently computes attention: calculating scores (Q @ K^T), applying softmax, and creating context vectors (scores @ V). All heads process in parallel.",
+                beginnerExplain: `<div class="info-box">
+                    <div class="text-xs font-bold text-indigo-300 mb-2">🎯 Think of it like this:</div>
+                    <div class="text-xs text-slate-300 leading-relaxed">
+                        <strong>For each of the 8 heads, independently:</strong><br>
+                        1. <strong>Compute scores:</strong> How much should each token attend to every other token?<br>
+                        &nbsp;&nbsp;&nbsp;Formula: scores = (Q @ K^T) / √32<br>
+                        2. <strong>Apply softmax:</strong> Convert scores to probabilities (sum to 1)<br>
+                        3. <strong>Create context:</strong> Mix the Values using these probabilities<br>
+                        &nbsp;&nbsp;&nbsp;Formula: context = softmax(scores) @ V<br><br>
+                        
+                        <em>Why parallel heads work now: Each head's 4 tokens are logically grouped together after the transpose, making GPU parallel processing efficient!</em>
+                    </div>
+                </div>`,
+                why: "The transpose we did in Step 3 pays off here! Each head can now process its 4 tokens efficiently. The attention mechanism mixes information ACROSS tokens (within a sequence) but keeps heads INDEPENDENT. This is the core computation of self-attention.",
+                logic: `• <strong>Per-Head Operation:</strong> Attention(Q, K, V) for each of 8 heads<br>
+                        • <strong>Score matrix:</strong> (4, 4) for each head - token-to-token attention<br>
+                        • <strong>Formula:</strong> softmax((Q @ K^T) / √head_dim) @ V<br>
+                        • <strong>Output shape:</strong> Still (2, 8, 4, 32) - same as input<br>
+                        • <strong>Parallelism:</strong> All 8 heads computed simultaneously on GPU`,
+                code: `# Standard Scaled Dot-Product Attention
+# Applied independently to each of 8 heads
+
+# 1. Compute attention scores
+# queries: (2, 8, 4, 32)
+# keys: (2, 8, 4, 32)
+attn_scores = queries @ keys.transpose(2, 3)
+# Result: (2, 8, 4, 4) - 4×4 score matrix per head
+
+# 2. Scale and softmax
+scale = self.head_dim ** 0.5
+attn_weights = torch.softmax(attn_scores / scale, dim=-1)
+attn_weights = self.dropout(attn_weights)
+
+# 3. Apply to values
+context = attn_weights @ values
+# Result: (2, 8, 4, 32) - enriched vectors`,
+                keyInsight: `<div class="info-box">
+                    <div class="text-xs font-bold text-indigo-300 mb-1">💡 Why the transpose was necessary:</div>
+                    <div class="text-xs text-slate-300">With shape (Batch, Heads, Tokens, Dim), matrix operations like <code>Q @ K^T</code> naturally operate on the token dimension (dim=-2), processing all heads in parallel. This is why we transposed earlier!</div>
+                </div>`
+            },
+            {
+                title: "Step 5: Transpose Back",
+                shape: [2, 4, 8, 32],
+                shapeMeaning: "(Batch, Tokens, Heads, Head_Dim)",
+                contig: false,
+                explanation: "We swap dimensions back to token-first order using another .transpose(1, 2). Each of the 4 tokens now has its 8 head results together. Still non-contiguous because data hasn't been physically reorganized yet!",
+                beginnerExplain: `<div class="warning-box">
+                    <div class="text-xs font-bold text-amber-300 mb-2">⚠️ Still non-contiguous!</div>
+                    <div class="text-xs text-slate-300 leading-relaxed">
+                        <strong>Before:</strong> (2, 8, 4, 32) - Head-first organization<br>
+                        • Head1: Token1, Token2, Token3, Token4<br>
+                        • Head2: Token1, Token2, Token3, Token4<br>
+                        • ... (8 heads total)<br><br>
+                        
+                        <strong>After:</strong> (2, 4, 8, 32) - Token-first organization<br>
+                        • Token1: Head1, Head2, ..., Head8<br>
+                        • Token2: Head1, Head2, ..., Head8<br>
+                        • ... (4 tokens total)<br><br>
+                        
+                        <strong>Problem:</strong> Token1's 8 heads are physically scattered in memory!<br>
+                        Physical memory is still: Head1_Token1, Head2_Token1, Head3_Token1, ...<br>
+                        <em>We need them together: Token1_Head1, Token1_Head2, Token1_Head3, ...</em>
+                    </div>
+                </div>`,
+                why: "We must restore token-first order before merging heads. However, the data for 'Token 1' is physically scattered across the buffer (every 8th position). We cannot use .view() to merge the heads yet because .view() requires contiguous memory. That's why the next step (contiguous()) is mandatory.",
+                logic: `• <strong>Operation:</strong> Swap dimension 1 ↔ dimension 2 (reverse of Step 3)<br>
+                        • <strong>Logical view:</strong> (Batch, Tokens, Heads, Head_Dim)<br>
+                        • <strong>Physical memory:</strong> STILL head-first! Not reorganized<br>
+                        • <strong>Contiguous status:</strong> ❌ FALSE - data scattered in memory<br>
+                        • <strong>Next step required:</strong> Must call .contiguous() before .view()`,
+                code: `# Transpose back to token-first organization
+# BEFORE: (2, 8, 4, 32) - heads first
+context = context.transpose(1, 2)
+# AFTER: (2, 4, 8, 32) - tokens first
+
+# Still non-contiguous!
+print(context.is_contiguous())  # False ⚠️
+
+# We CANNOT do this yet:
+# context = context.view(2, 4, 256)  # ERROR!
+# Because Token1's 8 heads are NOT adjacent in RAM
+
+# We MUST fix memory layout first (next step)`,
+                keyInsight: `<div class="warning-box">
+                    <div class="text-xs font-bold text-amber-300 mb-1">⚠️ Why we can't skip to .view():</div>
+                    <div class="text-xs text-slate-300"><strong>.view()</strong> requires contiguous memory. Right now, to get Token1's complete data (all 8 heads × 32 dims), we'd have to jump around in memory. We need <strong>.contiguous()</strong> to physically reorganize the data first.</div>
+                </div>`
+            },
+            {
+                title: "Step 6: Make Contiguous",
+                shape: [2, 4, 8, 32],
+                shapeMeaning: "(Batch, Tokens, Heads, Head_Dim)",
+                contig: true,
+                explanation: "The .contiguous() operation physically reorganizes data in RAM to match our logical view. This is a real data copy operation that moves bytes around to create sequential memory layout.",
+                beginnerExplain: `<div class="success-box">
+                    <div class="text-xs font-bold text-emerald-300 mb-2">✓ Memory Reorganization Happening!</div>
+                    <div class="text-xs text-slate-300 leading-relaxed">
+                        <strong>Before .contiguous():</strong><br>
+                        Physical RAM: [H1T1, H2T1, H3T1, ..., H8T1, H1T2, H2T2, ...]<br>
+                        Logical view: Token1 = [H1, H2, H3, ..., H8] ← scattered!<br><br>
+                        
+                        <strong>After .contiguous():</strong><br>
+                        Physical RAM: [T1H1, T1H2, T1H3, ..., T1H8, T2H1, T2H2, ...]<br>
+                        Logical view: Token1 = [H1, H2, H3, ..., H8] ← together!<br><br>
+                        
+                        <strong>Cost:</strong> Must copy/rearrange 2,048 numbers in memory<br>
+                        <strong>Benefit:</strong> Now we can safely use .view() to merge heads!<br><br>
+                        
+                        <em>This is like reorganizing a messy drawer - takes time, but everything's accessible afterward!</em>
+                    </div>
+                </div>`,
+                why: "This is a mandatory cleanup step. The GPU physically re-orders the bytes in RAM to match our current [Batch, Token, Head, Dim] view. Without this, the next .view() operation would fail or produce incorrect results. It's a real memory copy operation, so it has a performance cost, but it's necessary.",
+                logic: `• <strong>Operation:</strong> Physical data reorganization in RAM<br>
+                        • <strong>Cost:</strong> O(n) memory copy - must touch every element<br>
+                        • <strong>Result:</strong> is_contiguous() becomes True<br>
+                        • <strong>Memory layout:</strong> Now Token1's 8 heads ARE sequential<br>
+                        • <strong>Enables:</strong> Can now use .view() to reshape safely`,
+                code: `# Physically reorganize memory layout
+# This COPIES data to make it contiguous
+context = context.contiguous()
+
+# Now it's safe!
+print(context.is_contiguous())  # True ✓
+
+# Stride is now: (1024, 256, 32, 1)
+# This means: sequential access works!
+# Token1's data: positions [0, 1, 2, ..., 255]
+# Token2's data: positions [256, 257, 258, ..., 511]
+
+# Now we can safely merge heads (next step)`,
+                keyInsight: `<div class="info-box">
+                    <div class="text-xs font-bold text-indigo-300 mb-1">💡 Performance vs Correctness:</div>
+                    <div class="text-xs text-slate-300"><strong>.contiguous()</strong> costs time (must copy data) but is necessary for correctness. PyTorch will throw an error if you try <code>.view()</code> on non-contiguous tensors. This is a safety feature to prevent subtle bugs!</div>
+                </div>`
+            },
+            {
+                title: "Step 7: Merge Heads",
+                shape: [2, 4, 256],
+                shapeMeaning: "(Batch, Tokens, d_out)",
+                contig: true,
+                explanation: "Now that memory is contiguous, we use .view() to merge the 8 heads back together. The 8 separate head outputs (32 dims each) are concatenated into a single 256-dimensional vector per token.",
+                beginnerExplain: `<div class="success-box">
+                    <div class="text-xs font-bold text-emerald-300 mb-2">✓ Combining Head Results</div>
+                    <div class="text-xs text-slate-300 leading-relaxed">
+                        <strong>What we're doing:</strong><br>
+                        • Each token has 8 head outputs, each of size 32<br>
+                        • We're concatenating them: [Head1, Head2, ..., Head8]<br>
+                        • Result: 8 × 32 = 256 dimensions per token<br><br>
+                        
+                        <strong>How .view() works:</strong><br>
+                        Before: (2, 4, 8, 32) - explicitly separated heads<br>
+                        After: (2, 4, 256) - heads merged into one vector<br><br>
+                        
+                        <strong>Why it's safe now:</strong><br>
+                        Because .contiguous() made Token1's 256 values sequential in memory, .view() can safely reinterpret them as a single 256-dim vector!<br><br>
+                        
+                        <em>Analogy: Like merging 8 separate chapters into one continuous story.</em>
+                    </div>
+                </div>`,
+                why: "The attention 'round trip' is finished. We've returned to the original sequence format (Batch, Tokens, Features) needed for subsequent layers like LayerNorm and Feed-Forward networks. The .view() operation is zero-cost again because memory is now contiguous.",
+                logic: `• <strong>Operation:</strong> Concatenate heads: 8 × 32 → 256 features<br>
+                        • <strong>Formula:</strong> <code>x.view(batch, tokens, num_heads * head_dim)</code><br>
+                        • <strong>Cost:</strong> Zero! Just metadata change (because contiguous)<br>
+                        • <strong>Final shape:</strong> (2, 4, 256) - ready for output projection<br>
+                        • <strong>Memory:</strong> Still contiguous, perfectly sequential`,
+                code: `# Merge all heads back into single embedding
+# This is safe because we called .contiguous()!
+context = context.view(2, 4, 256)
+
+# Verify
+print(context.shape)  # torch.Size([2, 4, 256])
+print(context.is_contiguous())  # True
+
+# The 256 features per token are now:
+# [Head1_dim1, Head1_dim2, ..., Head1_dim32,
+#  Head2_dim1, Head2_dim2, ..., Head2_dim32,
+#  ...,
+#  Head8_dim1, Head8_dim2, ..., Head8_dim32]`,
+                keyInsight: `<div class="success-box">
+                    <div class="text-xs font-bold text-emerald-300 mb-1">✓ Back to Original Format:</div>
+                    <div class="text-xs text-slate-300">We started with (2, 4, 512) embeddings, projected to (2, 4, 256), and now we're back to (2, 4, 256). This format is compatible with the rest of the transformer architecture!</div>
+                </div>`
+            },
+            {
+                title: "Step 8: Output Projection",
+                shape: [2, 4, 256],
+                shapeMeaning: "(Batch, Tokens, d_out)",
+                contig: true,
+                explanation: "The final linear layer (out_proj) mixes information across all attention heads. This is a learned transformation that combines the contributions of all heads into a final representation.",
+                beginnerExplain: `<div class="info-box">
+                    <div class="text-xs font-bold text-indigo-300 mb-2">🎯 The Final Mixing Step</div>
+                    <div class="text-xs text-slate-300 leading-relaxed">
+                        <strong>Why do we need this?</strong><br>
+                        • Each head learned different patterns independently<br>
+                        • But they might have redundancies or need balancing<br>
+                        • <strong>out_proj</strong> learns how to best combine their insights<br><br>
+                        
+                        <strong>What it does:</strong><br>
+                        • Applies a learned linear transformation: output = context @ W_out + b<br>
+                        • W_out is a (256, 256) matrix learned during training<br>
+                        • This lets the model learn: "Head 1 is 60% important, Head 2 is 20%, ..."<br><br>
+                        
+                        <strong>Result:</strong><br>
+                        Shape stays (2, 4, 256), but values are now optimally combined!<br><br>
+                        
+                        <em>Analogy: Like having 8 experts give opinions, then a manager weighs them to make a final decision.</em>
+                    </div>
+                </div>`,
+                why: "The out_proj layer serves two key purposes: (1) It reduces redundancy by learning optimal combinations of head outputs, and (2) It adds learnable parameters that help the model learn how to best utilize information from all heads. In the original Transformer paper, this is called W_O.",
+                logic: `• <strong>Transformation:</strong> context @ W_out + bias<br>
+                        • <strong>W_out shape:</strong> (256, 256) - learned parameters<br>
+                        • <strong>Purpose:</strong> Mix information across all heads<br>
+                        • <strong>Output:</strong> (2, 4, 256) - ready for next layer<br>
+                        • <strong>Learnable:</strong> W_out and bias trained end-to-end`,
+                code: `# Final projection to mix head outputs
+# This is a standard Linear layer
+context = self.out_proj(context)
+
+# Shape unchanged
+print(context.shape)  # torch.Size([2, 4, 256])
+
+# But now the 256 features are:
+# - Optimally combined from all 8 heads
+# - Reduced redundancy
+# - Learned during training
+
+# This is the final output of Multi-Head Attention!
+# Ready to pass to LayerNorm and Feed-Forward`,
+                keyInsight: `<div class="success-box">
+                    <div class="text-xs font-bold text-emerald-300 mb-1">✓ Complete Multi-Head Attention!</div>
+                    <div class="text-xs text-slate-300">We've successfully: (1) Split input into multiple heads, (2) Let each head attend independently, (3) Merged heads back together, and (4) Mixed their outputs. This is the complete multi-head attention mechanism used in transformers!</div>
+                </div>`
+            }
+        ];
+
+        class TensorViz {
+            constructor() {
+                this.stageIndex = 0;
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x020617);
+                this.container = document.getElementById('canvas-container');
+
+                this.camera = new THREE.PerspectiveCamera(40, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+                this.camera.position.set(24, 18, 28);
+                this.camera.lookAt(0, 0, 0);
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.container.appendChild(this.renderer.domElement);
+
+                this.group = new THREE.Group();
+                this.scene.add(this.group);
+
+                this.initLights();
+                this.initUI();
+                this.initInteractions();
+                this.updateStage();
+                this.animate();
+
+                window.addEventListener('resize', () => this.onResize());
+            }
+
+            initLights() {
+                const amb = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(amb);
+                const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+                dir.position.set(20, 50, 20);
+                this.scene.add(dir);
+            }
+
+            initUI() {
+                const list = document.getElementById('stages-list');
+                STAGES.forEach((s, i) => {
+                    const el = document.createElement('button');
+                    el.className = `stage-btn w-full text-left p-3 mb-1 rounded flex flex-col hover:bg-slate-800/50 transition-colors`;
+                    el.innerHTML = `
+                        <span class="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Step ${i}</span>
+                        <span class="text-[11px] font-bold text-slate-200">${s.title.split(': ')[1]}</span>
+                    `;
+                    el.onclick = () => { this.stageIndex = i; this.updateStage(); };
+                    list.appendChild(el);
+                });
+            }
+
+            initInteractions() {
+                let drag = false, last = { x: 0, y: 0 };
+                this.renderer.domElement.addEventListener('mousedown', e => { drag = true; last = { x: e.clientX, y: e.clientY }; });
+                window.addEventListener('mousemove', e => {
+                    if (!drag) return;
+                    this.group.rotation.y += (e.clientX - last.x) * 0.005;
+                    this.group.rotation.x += (e.clientY - last.y) * 0.005;
+                    last = { x: e.clientX, y: e.clientY };
+                });
+                window.addEventListener('mouseup', () => drag = false);
+
+                document.getElementById('next-btn').onclick = () => { if (this.stageIndex < 8) { this.stageIndex++; this.updateStage(); } };
+                document.getElementById('prev-btn').onclick = () => { if (this.stageIndex > 0) { this.stageIndex--; this.updateStage(); } };
+            }
+
+            resetCamera() {
+                this.group.rotation.set(0, 0, 0);
+                this.camera.position.set(24, 18, 28);
+                this.camera.lookAt(0, 0, 0);
+            }
+
+            onResize() {
+                this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+            }
+
+            updateStage() {
+                const s = STAGES[this.stageIndex];
+
+                // Text Updates
+                const panel = document.getElementById('info-panel');
+                panel.classList.remove('fade-in');
+                void panel.offsetWidth;
+                panel.classList.add('fade-in');
+
+                document.getElementById('stage-counter').innerText = `${this.stageIndex + 1} / 9`;
+                document.getElementById('current-shape').innerText = `(${s.shape.join(', ')})`;
+                document.getElementById('shape-meaning').innerText = s.shapeMeaning;
+                document.getElementById('stage-explanation').innerText = s.explanation;
+                document.getElementById('beginner-box').innerHTML = s.beginnerExplain;
+                document.getElementById('stage-why').innerText = s.why;
+                document.getElementById('stage-logic').innerHTML = s.logic;
+                document.getElementById('code-block').innerText = s.code;
+                document.getElementById('key-insight').innerHTML = s.keyInsight;
+
+                const badge = document.getElementById('status-contig');
+                badge.innerText = s.contig ? "Contiguous ✓" : "Non-Contiguous ⚠️";
+                badge.className = `mt-2 inline-block text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${s.contig ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`;
+
+                document.querySelectorAll('.stage-btn').forEach((b, i) => b.classList.toggle('active', i === this.stageIndex));
+
+                // Correct Axis Labeling
+                const labelY = document.getElementById('label-y');
+                if (this.stageIndex === 3 || this.stageIndex === 4) {
+                    labelY.innerText = "Y-Axis: Head Rows (8)";
+                } else {
+                    labelY.innerText = "Y-Axis: Token Rows (4)";
+                }
+
+                this.renderTensor(s);
+                this.renderMemory(s);
+            }
+
+            renderTensor(s) {
+                while (this.group.children.length > 0) this.group.remove(this.group.children[0]);
+
+                const colors = ["#6366f1", "#10b981", "#8b5cf6", "#f43f5e", "#f59e0b", "#06b6d4", "#ec4899", "#2dd4bf"];
+                const headCubeGeom = new THREE.BoxGeometry(0.85, 0.85, 1.8);
+
+                const batchGap = 16;
+                const rowGap = 1.3;
+                const colGap = 1.2;
+
+                for (let b = 0; b < 2; b++) {
+                    const bX = (b - 0.5) * batchGap;
+
+                    if (this.stageIndex === 3 || this.stageIndex === 4) {
+                        // THE FLIP (Transpose): (Batch, Heads, Seq, HeadDim)
+                        // Shows 8 Rows (Heads) and 4 Columns (Tokens per Head)
+                        for (let headRow = 0; headRow < 8; headRow++) {
+                            const posY = (headRow - 3.5) * -rowGap;
+                            for (let tokenCol = 0; tokenCol < 4; tokenCol++) {
+                                const posX = (tokenCol - 1.5) * colGap;
+                                const m = new THREE.Mesh(headCubeGeom, new THREE.MeshPhongMaterial({ color: colors[headRow], shininess: 80 }));
+                                m.position.set(bX + posX, posY, 0);
+                                this.group.add(m);
+                            }
+                        }
+                    } else if (this.stageIndex === 0 || this.stageIndex === 1 || this.stageIndex === 7 || this.stageIndex === 8) {
+                        // Dense Representation (Batch, Seq, Dim)
+                        for (let tokenRow = 0; tokenRow < 4; tokenRow++) {
+                            const posY = (tokenRow - 1.5) * -2.2;
+                            const geom = new THREE.BoxGeometry(7, 1.2, 1.8);
+                            const mat = new THREE.MeshPhongMaterial({ color: b === 0 ? "#6366f1" : "#f59e0b", shininess: 100 });
+                            const mesh = new THREE.Mesh(geom, mat);
+                            mesh.position.set(bX, posY, 0);
+                            this.group.add(mesh);
+                        }
+                    } else {
+                        // Standard View (Batch, Seq, Heads, HeadDim)
+                        // Show 4 Rows (Tokens) and 8 Columns (Heads within Token)
+                        for (let tokenRow = 0; tokenRow < 4; tokenRow++) {
+                            const posY = (tokenRow - 1.5) * -rowGap * 1.5;
+                            for (let headCol = 0; headCol < 8; headCol++) {
+                                const posX = (headCol - 3.5) * colGap;
+                                const m = new THREE.Mesh(headCubeGeom, new THREE.MeshPhongMaterial({ color: colors[headCol], shininess: 80 }));
+                                m.position.set(bX + posX, posY, 0);
+                                this.group.add(m);
+                            }
+                        }
+                    }
+                }
+
+                // Centering the group
+                const box = new THREE.Box3().setFromObject(this.group);
+                const center = new THREE.Vector3();
+                box.getCenter(center);
+
+                let verticalOffset = -12;
+                if ([1, 4, 6, 7].includes(this.stageIndex)) {
+                    verticalOffset = -16;
+                } else if (this.stageIndex === 8) {
+                    verticalOffset = -10;
+                }
+
+                this.group.position.set(-center.x, -center.y + verticalOffset, 0);
+            }
+
+            renderMemory(s) {
+                const grid = document.getElementById('memory-grid');
+                grid.innerHTML = '';
+                const total = 256;
+                const headColors = ["#6366f1", "#10b981", "#8b5cf6", "#f43f5e", "#f59e0b", "#06b6d4", "#ec4899", "#2dd4bf"];
+
+                for (let i = 0; i < total; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'memory-slot shadow-sm';
+                    const batchIdx = Math.floor(i / (total / 2));
+
+                    if (!s.contig) {
+                        const headIdx = i % 8;
+                        slot.style.backgroundColor = headColors[headIdx];
+                        slot.style.opacity = (i % 2 === 0) ? "0.4" : "1.0";
+                    } else {
+                        slot.style.backgroundColor = batchIdx === 0 ? "#6366f1" : "#f59e0b";
+                        slot.style.opacity = 0.3 + ((i % 32) / 32) * 0.7;
+                    }
+                    grid.appendChild(slot);
+                }
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        window.onload = () => { window.viz = new TensorViz(); };
+    </script>
+</body>
+
+</html>

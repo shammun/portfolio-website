@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Visualization: Dropout in Attention Weights</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            min-height: 100vh;
+            padding: 30px 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #7c3aed;
+            margin-bottom: 12px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #64748b;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.08);
+        }
+
+        .control-panel {
+            height: fit-content;
+        }
+
+        .control-section {
+            margin-bottom: 28px;
+        }
+
+        .control-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 10px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .slider-container {
+            margin-bottom: 8px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #e2e8f0, #7c3aed);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #7c3aed;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.4);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #7c3aed;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.4);
+        }
+
+        .value-display {
+            font-size: 1rem;
+            color: #1e293b;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 8px;
+            padding: 4px;
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 200ms;
+            background: transparent;
+            color: #64748b;
+        }
+
+        .mode-btn.active.training {
+            background: #f97316;
+            color: white;
+            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+        }
+
+        .mode-btn.active.inference {
+            background: #14b8a6;
+            color: white;
+            box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
+        }
+
+        .randomize-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 200ms;
+        }
+
+        .randomize-btn:hover:not(:disabled) {
+            background: #6d28d9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .randomize-btn:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .stats-panel {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.875rem;
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: #64748b;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .visualization-area {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .matrix-section {
+            position: relative;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            background: #e0e7ff;
+            color: #6366f1;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: help;
+            position: relative;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 150ms;
+            margin-bottom: 8px;
+            z-index: 100;
+            max-width: 300px;
+            white-space: normal;
+        }
+
+        .info-icon:hover .tooltip {
+            opacity: 1;
+        }
+
+        .matrix-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .axis-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .y-axis {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            height: 100%;
+            padding: 20px 0;
+        }
+
+        .matrix-container {
+            flex: 1;
+        }
+
+        .x-axis {
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .matrix {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 3px;
+            margin: 0 auto;
+            width: fit-content;
+        }
+
+        .cell {
+            width: 54px;
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: all 300ms;
+            cursor: help;
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        .cell:hover {
+            border-color: #7c3aed;
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .cell.dropped {
+            background: #f5f5f5 !important;
+            color: #cbd5e1;
+            position: relative;
+        }
+
+        .cell.dropped::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(45deg,
+                    transparent,
+                    transparent 3px,
+                    #e2e8f0 3px,
+                    #e2e8f0 4px);
+            border-radius: 6px;
+            opacity: 0.5;
+        }
+
+        .cell-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 150ms;
+            z-index: 1000;
+            min-width: 180px;
+        }
+
+        .cell:hover .cell-tooltip {
+            opacity: 1;
+        }
+
+        .arrow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        .arrow {
+            font-size: 2rem;
+            color: #7c3aed;
+        }
+
+        .arrow-label {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0;
+            font-size: 0.875rem;
+            color: #64748b;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .formula {
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            color: #475569;
+            border-left: 3px solid #7c3aed;
+        }
+
+        .code-section {
+            margin-top: 30px;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .code-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .toggle-code {
+            padding: 8px 16px;
+            background: #f1f5f9;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            transition: all 200ms;
+        }
+
+        .toggle-code:hover {
+            background: #e2e8f0;
+        }
+
+        .code-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 300ms;
+        }
+
+        .code-content.expanded {
+            max-height: 2000px;
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin-bottom: 16px;
+        }
+
+        .code-block pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .code-comment {
+            color: #94a3b8;
+        }
+
+        .code-keyword {
+            color: #c084fc;
+        }
+
+        .code-string {
+            color: #86efac;
+        }
+
+        .code-function {
+            color: #60a5fa;
+        }
+
+        .code-number {
+            color: #fbbf24;
+        }
+
+        .code-highlight {
+            background: rgba(124, 58, 237, 0.2);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .callout {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 0.9rem;
+            color: #78350f;
+        }
+
+        .why-section {
+            margin-top: 30px;
+        }
+
+        .expandable-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 200ms;
+        }
+
+        .expandable-header:hover {
+            background: #f1f5f9;
+        }
+
+        .expandable-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .expand-icon {
+            font-size: 1.2rem;
+            color: #7c3aed;
+            transition: transform 200ms;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .expandable-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 300ms;
+        }
+
+        .expandable-content.expanded {
+            max-height: 1000px;
+        }
+
+        .expandable-inner {
+            padding: 20px;
+        }
+
+        .why-item {
+            margin-bottom: 20px;
+        }
+
+        .why-item h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .why-item p {
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .misconception {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .misconception-title {
+            font-weight: 600;
+            color: #991b1b;
+            margin-bottom: 4px;
+        }
+
+        .misconception-reality {
+            color: #064e3b;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .misconception-text {
+            color: #475569;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .control-panel {
+                max-width: 600px;
+                margin: 0 auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .cell {
+                width: 44px;
+                height: 44px;
+                font-size: 0.7rem;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Dropout in Attention Weights</h1>
+            <p>Understanding regularization in the attention mechanism</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Control Panel -->
+            <div class="card control-panel">
+                <div class="control-section">
+                    <label class="control-label">Dropout Probability</label>
+                    <div class="slider-container">
+                        <input type="range" min="0" max="0.5" step="0.05" value="0.1" class="slider" id="dropoutSlider">
+                    </div>
+                    <div class="value-display" id="dropoutValue">Dropout Rate: 0.10 (10%)</div>
+                </div>
+
+                <div class="control-section">
+                    <label class="control-label">Mode</label>
+                    <div class="mode-toggle">
+                        <button class="mode-btn active training" id="trainingBtn">Training Mode</button>
+                        <button class="mode-btn inference" id="inferenceBtn">Inference Mode</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <button class="randomize-btn" id="randomizeBtn">Generate New Dropout Mask</button>
+                </div>
+
+                <div class="control-section">
+                    <label class="control-label">Statistics</label>
+                    <div class="stats-panel">
+                        <div class="stat-row">
+                            <span class="stat-label">Dropped weights:</span>
+                            <span class="stat-value" id="droppedCount">0/21 (0%)</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Active weights:</span>
+                            <span class="stat-value" id="activeCount">21/21 (100%)</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Scaling factor:</span>
+                            <span class="stat-value" id="scalingFactor">1/(1-0.10) = 1.11</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization Area -->
+            <div class="card visualization-area">
+                <!-- Original Matrix -->
+                <div class="matrix-section">
+                    <h3 class="section-title">
+                        Step 1: Normalized Attention Weights (After Softmax)
+                        <span class="info-icon">i
+                            <span class="tooltip">These weights sum to 1.0 in each row due to the softmax operation.
+                                Upper triangle is zero due to causal masking.</span>
+                        </span>
+                    </h3>
+                    <div class="matrix-wrapper">
+                        <div class="y-axis">
+                            <div class="axis-label">Query Tokens →</div>
+                        </div>
+                        <div class="matrix-container">
+                            <div class="matrix" id="originalMatrix"></div>
+                            <div class="x-axis">
+                                <div class="axis-label">← Key Tokens</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Arrow -->
+                <div class="arrow-container">
+                    <div class="arrow">↓</div>
+                    <div class="arrow-label">
+                        <strong id="arrowText">Apply Dropout (Training Mode)</strong>
+                        <div class="formula">dropout(w) = { 0 with prob p, w/(1-p) with prob (1-p) }</div>
+                    </div>
+                </div>
+
+                <!-- After Dropout Matrix -->
+                <div class="matrix-section">
+                    <h3 class="section-title">
+                        Step 2: Attention Weights After Dropout
+                        <span class="info-icon">i
+                            <span class="tooltip">During training, random weights are dropped (set to 0). Remaining
+                                weights are scaled by 1/(1-p) to maintain expected sum.</span>
+                        </span>
+                    </h3>
+                    <div class="matrix-wrapper">
+                        <div class="y-axis">
+                            <div class="axis-label">Query Tokens →</div>
+                        </div>
+                        <div class="matrix-container">
+                            <div class="matrix" id="afterDropoutMatrix"></div>
+                            <div class="x-axis">
+                                <div class="axis-label">← Key Tokens</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="callout" id="modeCallout">
+                        <strong>Training Mode:</strong> Dropout forces the model to not over-rely on specific
+                        connections, improving generalization.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Code Section -->
+        <div class="card code-section">
+            <div class="code-header">
+                <h3 class="code-title">PyTorch Implementation</h3>
+                <button class="toggle-code" id="toggleCode">Show Code</button>
+            </div>
+            <div class="code-content" id="codeContent">
+                <div class="code-block">
+                    <pre><span class="code-keyword">class</span> <span class="code-function">CausalAttention</span>(nn.Module):
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self, d_in, d_out, context_length, dropout, qkv_bias=<span class="code-keyword">False</span>):
+        <span class="code-function">super</span>().__init__()
+        self.d_out = d_out
+        self.W_query = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_key = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_value = nn.Linear(d_in, d_out, bias=qkv_bias)
+        <span class="code-highlight">self.dropout = nn.Dropout(dropout)</span>  <span class="code-comment"># ← Dropout layer initialized</span>
+        self.register_buffer(<span class="code-string">'mask'</span>, 
+                            torch.triu(torch.ones(context_length, context_length), 
+                                      diagonal=<span class="code-number">1</span>))
+    
+    <span class="code-keyword">def</span> <span class="code-function">forward</span>(self, x):
+        b, num_tokens, d_in = x.shape
+        keys = self.W_key(x)
+        queries = self.W_query(x)
+        values = self.W_value(x)
+        
+        attn_scores = queries @ keys.transpose(<span class="code-number">1</span>, <span class="code-number">2</span>)
+        attn_scores.masked_fill_(
+            self.mask.bool()[:num_tokens, :num_tokens], 
+            -torch.inf
+        )
+        attn_weights = torch.softmax(
+            attn_scores / keys.shape[-<span class="code-number">1</span>]**<span class="code-number">0.5</span>, 
+            dim=-<span class="code-number">1</span>
+        )
+        <span class="code-highlight">attn_weights = self.dropout(attn_weights)</span>  <span class="code-comment"># ← Dropout applied here</span>
+        
+        context_vec = attn_weights @ values
+        <span class="code-keyword">return</span> context_vec</pre>
+                </div>
+
+                <h4 class="code-title" style="margin: 24px 0 12px 0;">How Dropout Transforms Values</h4>
+                <div class="code-block">
+                    <pre>torch.manual_seed(<span class="code-number">123</span>)
+dropout = torch.nn.Dropout(<span class="code-number">0.5</span>)
+example = torch.ones(<span class="code-number">6</span>, <span class="code-number">6</span>)
+<span class="code-function">print</span>(dropout(example))
+
+<span class="code-comment"># Output:</span>
+<span class="code-comment"># tensor([[2., 2., 2., 2., 2., 2.],</span>
+<span class="code-comment">#         [0., 2., 0., 0., 0., 0.],</span>
+<span class="code-comment">#         [0., 0., 2., 0., 2., 0.],</span>
+<span class="code-comment">#         [2., 2., 0., 0., 0., 2.],</span>
+<span class="code-comment">#         [2., 0., 0., 0., 0., 2.],</span>
+<span class="code-comment">#         [0., 2., 0., 0., 0., 0.]])</span>
+
+<span class="code-comment"># Note: ~50% are zeroed, remaining scaled by 1/0.5 = 2.0</span></pre>
+                </div>
+
+                <h4 class="code-title" style="margin: 24px 0 12px 0;">Training vs Inference Mode</h4>
+                <div class="code-block">
+                    <pre>model = CausalAttention(d_in=<span class="code-number">512</span>, d_out=<span class="code-number">512</span>, context_length=<span class="code-number">1024</span>, dropout=<span class="code-number">0.1</span>)
+
+<span class="code-comment"># During training:</span>
+model.train()  <span class="code-comment"># Enables dropout</span>
+output = model(input_batch)  <span class="code-comment"># Dropout is active</span>
+
+<span class="code-comment"># During inference:</span>
+model.eval()   <span class="code-comment"># Disables dropout</span>
+output = model(input_batch)  <span class="code-comment"># All connections active</span></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Why Dropout Section -->
+        <div class="card why-section">
+            <div class="expandable-header" id="whyHeader">
+                <h3 class="expandable-title">Why Apply Dropout to Attention Weights?</h3>
+                <span class="expand-icon">▼</span>
+            </div>
+            <div class="expandable-content" id="whyContent">
+                <div class="expandable-inner">
+                    <div class="why-item">
+                        <h4>1. Prevents Attention Overfitting</h4>
+                        <p>Without dropout, the model might always attend to the same tokens for specific patterns,
+                            memorizing training data instead of learning generalizable relationships.</p>
+                    </div>
+                    <div class="why-item">
+                        <h4>2. Forces Redundant Representations</h4>
+                        <p>By randomly dropping connections, the model must learn to extract information through
+                            multiple pathways, creating more robust representations.</p>
+                    </div>
+                    <div class="why-item">
+                        <h4>3. Improves Generalization</h4>
+                        <p>Models with attention dropout typically perform better on unseen data because they don't
+                            over-specialize on training patterns.</p>
+                    </div>
+                    <div class="why-item">
+                        <h4>4. Empirically Validated</h4>
+                        <p>Used in GPT-2, GPT-3, BERT, and virtually all modern transformers (typically p=0.1).</p>
+                    </div>
+
+                    <h4 style="margin-top: 30px; margin-bottom: 16px; color: #1e293b;">Common Misconceptions</h4>
+
+                    <div class="misconception">
+                        <div class="misconception-title">Misconception: "Dropout reduces model capacity"</div>
+                        <div class="misconception-reality">Reality:</div>
+                        <div class="misconception-text">Dropout is only active during training. During inference, all
+                            connections are used, maintaining full capacity.</div>
+                    </div>
+
+                    <div class="misconception">
+                        <div class="misconception-title">Misconception: "Higher dropout is always better"</div>
+                        <div class="misconception-reality">Reality:</div>
+                        <div class="misconception-text">Too much dropout (>0.5) can prevent the model from learning
+                            effectively. Sweet spot is typically 0.1-0.2 for transformers.</div>
+                    </div>
+
+                    <div class="misconception">
+                        <div class="misconception-title">Misconception: "Dropout is applied to the values"</div>
+                        <div class="misconception-reality">Reality:</div>
+                        <div class="misconception-text">In this implementation, dropout is applied to the attention
+                            weights (after softmax), not the value vectors directly.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Original attention weights from the book
+        const originalWeights = [
+            [1.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+            [0.4884, 0.5116, 0.0000, 0.0000, 0.0000, 0.0000],
+            [0.3361, 0.3280, 0.3359, 0.0000, 0.0000, 0.0000],
+            [0.2452, 0.2543, 0.2456, 0.2548, 0.0000, 0.0000],
+            [0.1994, 0.2018, 0.1990, 0.2009, 0.1989, 0.0000],
+            [0.1659, 0.1690, 0.1658, 0.1672, 0.1662, 0.1660]
+        ];
+
+        // State
+        let dropoutProb = 0.1;
+        let isTraining = true;
+        let dropoutMask = generateDropoutMask(dropoutProb);
+
+        // Elements
+        const dropoutSlider = document.getElementById('dropoutSlider');
+        const dropoutValue = document.getElementById('dropoutValue');
+        const trainingBtn = document.getElementById('trainingBtn');
+        const inferenceBtn = document.getElementById('inferenceBtn');
+        const randomizeBtn = document.getElementById('randomizeBtn');
+        const toggleCodeBtn = document.getElementById('toggleCode');
+        const codeContent = document.getElementById('codeContent');
+        const whyHeader = document.getElementById('whyHeader');
+        const whyContent = document.getElementById('whyContent');
+
+        // Generate dropout mask
+        function generateDropoutMask(prob) {
+            const mask = [];
+            for (let i = 0; i < 6; i++) {
+                mask[i] = [];
+                for (let j = 0; j < 6; j++) {
+                    if (originalWeights[i][j] !== 0.0000) {
+                        mask[i][j] = Math.random() > prob ? 1 : 0;
+                    } else {
+                        mask[i][j] = 0;
+                    }
+                }
+            }
+            return mask;
+        }
+
+        // Apply dropout
+        function applyDropout(weights, mask, prob) {
+            const scale = 1.0 / (1.0 - prob);
+            const result = [];
+            for (let i = 0; i < weights.length; i++) {
+                result[i] = [];
+                for (let j = 0; j < weights[i].length; j++) {
+                    if (weights[i][j] === 0.0000) {
+                        result[i][j] = 0.0000;
+                    } else {
+                        result[i][j] = mask[i][j] === 1 ? weights[i][j] * scale : 0.0000;
+                    }
+                }
+            }
+            return result;
+        }
+
+        // Get color for heatmap
+        function getHeatmapColor(value, maxValue = 1.2) {
+            if (value === 0) return '#f5f5f5';
+
+            const ratio = Math.min(value / maxValue, 1);
+
+            if (ratio < 0.33) {
+                // Cream to yellow
+                const t = ratio / 0.33;
+                const r = Math.round(254 + (252 - 254) * t);
+                const g = Math.round(243 + (211 - 243) * t);
+                const b = Math.round(199 + (77 - 199) * t);
+                return `rgb(${r}, ${g}, ${b})`;
+            } else if (ratio < 0.66) {
+                // Yellow to orange
+                const t = (ratio - 0.33) / 0.33;
+                const r = Math.round(252 + (249 - 252) * t);
+                const g = Math.round(211 + (115 - 211) * t);
+                const b = Math.round(77 + (22 - 77) * t);
+                return `rgb(${r}, ${g}, ${b})`;
+            } else {
+                // Orange to red-orange
+                const t = (ratio - 0.66) / 0.34;
+                const r = Math.round(249 + (220 - 249) * t);
+                const g = Math.round(115 + (38 - 115) * t);
+                const b = Math.round(22 + (38 - 22) * t);
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+        }
+
+        // Create matrix display
+        function createMatrix(containerId, weights, mask = null, showDropout = false) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            const scale = dropoutProb < 1.0 ? 1.0 / (1.0 - dropoutProb) : 1.0;
+
+            for (let i = 0; i < 6; i++) {
+                for (let j = 0; j < 6; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+
+                    const originalValue = weights[i][j];
+                    let displayValue = originalValue;
+                    let isDropped = false;
+
+                    if (showDropout && isTraining && mask && originalValue !== 0.0000) {
+                        if (mask[i][j] === 0) {
+                            displayValue = 0.0000;
+                            isDropped = true;
+                            cell.classList.add('dropped');
+                        } else {
+                            displayValue = originalValue * scale;
+                        }
+                    }
+
+                    cell.textContent = displayValue.toFixed(4);
+                    cell.style.backgroundColor = getHeatmapColor(displayValue);
+                    cell.style.color = displayValue > 0.5 ? 'white' : '#1e293b';
+
+                    // Tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'cell-tooltip';
+
+                    if (showDropout && isTraining) {
+                        if (isDropped) {
+                            tooltip.innerHTML = `
+                                <div><strong>Position:</strong> Query ${i} → Key ${j}</div>
+                                <div><strong>Original:</strong> ${originalValue.toFixed(4)}</div>
+                                <div><strong>Status:</strong> <span style="color: #ef4444;">Dropped</span></div>
+                            `;
+                        } else if (originalValue !== 0.0000) {
+                            tooltip.innerHTML = `
+                                <div><strong>Position:</strong> Query ${i} → Key ${j}</div>
+                                <div><strong>Original:</strong> ${originalValue.toFixed(4)}</div>
+                                <div><strong>Scaled:</strong> ${displayValue.toFixed(4)}</div>
+                                <div><strong>Factor:</strong> ${scale.toFixed(2)}x</div>
+                            `;
+                        } else {
+                            tooltip.innerHTML = `
+                                <div><strong>Position:</strong> Query ${i} → Key ${j}</div>
+                                <div><strong>Status:</strong> Causal mask</div>
+                            `;
+                        }
+                    } else {
+                        tooltip.innerHTML = `
+                            <div><strong>Position:</strong> Query ${i} → Key ${j}</div>
+                            <div><strong>Value:</strong> ${displayValue.toFixed(4)}</div>
+                            ${originalValue === 0.0000 ? '<div><strong>Status:</strong> Causal mask</div>' : ''}
+                        `;
+                    }
+
+                    cell.appendChild(tooltip);
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            let totalWeights = 0;
+            let droppedWeights = 0;
+
+            for (let i = 0; i < 6; i++) {
+                for (let j = 0; j < 6; j++) {
+                    if (originalWeights[i][j] !== 0.0000) {
+                        totalWeights++;
+                        if (isTraining && dropoutMask[i][j] === 0) {
+                            droppedWeights++;
+                        }
+                    }
+                }
+            }
+
+            const activeWeights = isTraining ? totalWeights - droppedWeights : totalWeights;
+            const droppedPercent = isTraining ? ((droppedWeights / totalWeights) * 100).toFixed(1) : 0;
+            const activePercent = isTraining ? ((activeWeights / totalWeights) * 100).toFixed(1) : 100;
+
+            document.getElementById('droppedCount').textContent =
+                `${droppedWeights}/${totalWeights} (${droppedPercent}%)`;
+            document.getElementById('activeCount').textContent =
+                `${activeWeights}/${totalWeights} (${activePercent}%)`;
+
+            const scale = dropoutProb < 1.0 ? (1.0 / (1.0 - dropoutProb)) : 1.0;
+            document.getElementById('scalingFactor').textContent =
+                `1/(1-${dropoutProb.toFixed(2)}) = ${scale.toFixed(2)}`;
+        }
+
+        // Update visualization
+        function updateVisualization() {
+            createMatrix('originalMatrix', originalWeights);
+            createMatrix('afterDropoutMatrix', originalWeights, dropoutMask, true);
+            updateStats();
+
+            // Update mode callout
+            const callout = document.getElementById('modeCallout');
+            if (isTraining) {
+                callout.innerHTML = '<strong>Training Mode:</strong> Dropout forces the model to not over-rely on specific connections, improving generalization.';
+            } else {
+                callout.innerHTML = '<strong>Inference Mode:</strong> All connections active for optimal performance. No dropout applied.';
+            }
+
+            // Update arrow text
+            const arrowText = document.getElementById('arrowText');
+            arrowText.textContent = isTraining ? 'Apply Dropout (Training Mode)' : 'No Change (Inference Mode)';
+        }
+
+        // Event listeners
+        dropoutSlider.addEventListener('input', (e) => {
+            dropoutProb = parseFloat(e.target.value);
+            const percent = (dropoutProb * 100).toFixed(0);
+            dropoutValue.textContent = `Dropout Rate: ${dropoutProb.toFixed(2)} (${percent}%)`;
+
+            if (isTraining) {
+                dropoutMask = generateDropoutMask(dropoutProb);
+                updateVisualization();
+            } else {
+                updateStats();
+            }
+        });
+
+        trainingBtn.addEventListener('click', () => {
+            if (!isTraining) {
+                isTraining = true;
+                trainingBtn.classList.add('active');
+                inferenceBtn.classList.remove('active');
+                randomizeBtn.disabled = false;
+                dropoutMask = generateDropoutMask(dropoutProb);
+                updateVisualization();
+            }
+        });
+
+        inferenceBtn.addEventListener('click', () => {
+            if (isTraining) {
+                isTraining = false;
+                inferenceBtn.classList.add('active');
+                trainingBtn.classList.remove('active');
+                randomizeBtn.disabled = true;
+                updateVisualization();
+            }
+        });
+
+        randomizeBtn.addEventListener('click', () => {
+            if (isTraining) {
+                dropoutMask = generateDropoutMask(dropoutProb);
+                updateVisualization();
+            }
+        });
+
+        toggleCodeBtn.addEventListener('click', () => {
+            codeContent.classList.toggle('expanded');
+            toggleCodeBtn.textContent = codeContent.classList.contains('expanded') ? 'Hide Code' : 'Show Code';
+        });
+
+        whyHeader.addEventListener('click', () => {
+            whyContent.classList.toggle('expanded');
+            whyHeader.querySelector('.expand-icon').classList.toggle('expanded');
+        });
+
+        // Initialize
+        updateVisualization();
+    </script>
+</body>
+
+</html>

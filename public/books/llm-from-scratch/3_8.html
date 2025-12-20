@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Head Attention - Step by Step Explanation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            color: #1f2937;
+            padding: 20px;
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(139, 92, 246, 0.15);
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #1f2937;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #6b7280;
+            margin-bottom: 40px;
+        }
+
+        .step-section {
+            background: white;
+            border: 3px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 40px 0;
+            transition: all 0.3s ease;
+        }
+
+        .step-section:hover {
+            border-color: #8b5cf6;
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .why-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 5px solid #f59e0b;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .why-box h4 {
+            color: #92400e;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .why-box h4::before {
+            content: '🤔';
+            font-size: 1.3rem;
+        }
+
+        .what-box {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-left: 5px solid #3b82f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .what-box h4 {
+            color: #1e3a8a;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .what-box h4::before {
+            content: '📌';
+            font-size: 1.3rem;
+        }
+
+        .how-box {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-left: 5px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .how-box h4 {
+            color: #065f46;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .how-box h4::before {
+            content: '⚙️';
+            font-size: 1.3rem;
+        }
+
+        .important-box {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            border-left: 5px solid #ec4899;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .important-box h4 {
+            color: #831843;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .important-box h4::before {
+            content: '⚠️';
+            font-size: 1.3rem;
+        }
+
+        .tensor-visual {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+
+        .tensor-label {
+            font-weight: 700;
+            color: #4b5563;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+        }
+
+        .matrix-3d {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .batch-item {
+            background: white;
+            border: 2px solid #8b5cf6;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .batch-label {
+            font-weight: 700;
+            color: #7c3aed;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .matrix-2d {
+            display: grid;
+            gap: 6px;
+        }
+
+        .matrix-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .matrix-cell {
+            background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+            border: 1px solid #f59e0b;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            min-width: 60px;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .shape-badge {
+            display: inline-block;
+            background: #8b5cf6;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin: 0 4px;
+        }
+
+        .math-formula {
+            background: white;
+            border: 2px dashed #8b5cf6;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: Georgia, serif;
+            font-size: 1.1rem;
+            text-align: center;
+            color: #4b5563;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .keyword {
+            color: #c084fc;
+        }
+
+        .string {
+            color: #6ee7b7;
+        }
+
+        .comment {
+            color: #9ca3af;
+        }
+
+        .number {
+            color: #fbbf24;
+        }
+
+        .heads-explanation {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 24px 0;
+        }
+
+        .head-card {
+            background: white;
+            border: 3px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .head-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .head-card h5 {
+            color: #1f2937;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+        }
+
+        .head-card p {
+            color: #6b7280;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 24px 0;
+        }
+
+        .comparison-item {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .comparison-item h5 {
+            color: #1f2937;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        .arrow-down {
+            text-align: center;
+            font-size: 2rem;
+            color: #8b5cf6;
+            margin: 20px 0;
+        }
+
+        ul,
+        ol {
+            margin-left: 24px;
+            margin-top: 12px;
+        }
+
+        li {
+            margin: 8px 0;
+            color: #4b5563;
+        }
+
+        strong {
+            color: #1f2937;
+        }
+
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .matrix-3d {
+                flex-direction: column;
+            }
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        td {
+            color: #4b5563;
+        }
+
+        .projection-visual {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .projection-box {
+            background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
+            border: 3px solid #8b5cf6;
+            border-radius: 8px;
+            padding: 20px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .projection-arrow {
+            font-size: 2rem;
+            color: #8b5cf6;
+            font-weight: 700;
+        }
+
+        .dimension-flow {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            justify-content: center;
+            margin: 24px 0;
+            flex-wrap: wrap;
+        }
+
+        .dim-box {
+            background: white;
+            border: 3px solid #8b5cf6;
+            border-radius: 8px;
+            padding: 16px 24px;
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #7c3aed;
+        }
+
+        .dim-arrow {
+            font-size: 2rem;
+            color: #8b5cf6;
+        }
+
+        .show-code-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .show-code-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+        }
+
+        .full-code-section {
+            display: none;
+            background: white;
+            border: 4px solid #8b5cf6;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 40px 0;
+        }
+
+        .full-code-section.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .code-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #5b21b6;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .close-code-btn {
+            background: #e5e7eb;
+            color: #1f2937;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .close-code-btn:hover {
+            background: #d1d5db;
+        }
+    </style>
+</head>
+
+<body>
+    <button class="show-code-btn" onclick="toggleFullCode()">📄 Show Complete Code</button>
+
+    <div class="container">
+        <h1>Multi-Head Attention: Complete Step-by-Step Explanation</h1>
+        <p class="subtitle">Understanding EVERY detail of how multi-head attention works in transformers</p>
+
+        <div class="important-box">
+            <h4>Before We Start: The Big Picture</h4>
+            <p><strong>Multi-head attention is like having 8 different experts looking at the same sentence.</strong>
+            </p>
+            <ul>
+                <li>Expert 1 might focus on grammar (subject-verb agreement)</li>
+                <li>Expert 2 might focus on word order</li>
+                <li>Expert 3 might focus on meaning</li>
+                <li>Each expert learns what to focus on <strong>during training</strong> - we don't tell them what to
+                    specialize in!</li>
+                <li>At the end, we combine all their insights into one unified understanding</li>
+            </ul>
+        </div>
+
+        <!-- STEP 0: Setup -->
+        <div class="step-section">
+            <div class="step-header">
+                <div class="step-number">0</div>
+                <div class="step-title">Understanding Our Example Data</div>
+            </div>
+
+            <div class="what-box">
+                <h4>What are we working with?</h4>
+                <p>Let's say we have the sentence: <strong>"Your journey starts here"</strong></p>
+                <ul>
+                    <li><strong>4 words</strong> in our sentence</li>
+                    <li>Plus <strong>2 special tokens</strong> (like [START] and [END])</li>
+                    <li>Total: <strong>6 tokens</strong></li>
+                    <li>We're processing <strong>2 sentences at once</strong> (batch size = 2)</li>
+                    <li>Each word is represented by a <strong>3-dimensional vector</strong> (d_in = 3)</li>
+                </ul>
+            </div>
+
+            <div class="why-box">
+                <h4>Why batch_size = 2?</h4>
+                <p>In practice, we process multiple sentences simultaneously for efficiency. Think of it like grading 2
+                    essays at the same time instead of one by one. Our example uses 2, but in real transformers this
+                    might be 32, 64, or even 128 sentences at once!</p>
+            </div>
+
+            <div class="why-box">
+                <h4>Why d_in = 3?</h4>
+                <p>This is just for our simple example! In real transformers like GPT, d_in = 768, 1024, or even 4096.
+                    We use 3 to make it easy to visualize. Each dimension captures some aspect of the word's meaning.
+                </p>
+            </div>
+
+            <div class="tensor-visual">
+                <div class="tensor-label">Input Shape Breakdown:</div>
+                <div style="font-family: 'Courier New', monospace; font-size: 1.1rem; margin: 16px 0;">
+                    <div style="margin: 8px 0;"><span class="shape-badge">(batch_size, num_tokens, d_in)</span></div>
+                    <div style="margin: 8px 0;"><span class="shape-badge">(2, 6, 3)</span></div>
+                </div>
+
+                <p style="margin-top: 16px;"><strong>This means:</strong></p>
+                <ul>
+                    <li><strong>2</strong> sentences being processed together</li>
+                    <li><strong>6</strong> tokens (words) in each sentence</li>
+                    <li><strong>3</strong> numbers to represent each token</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- STEP 1: Input -->
+        <div class="step-section">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-title">Input Embeddings - The Starting Point</div>
+            </div>
+
+            <div class="what-box">
+                <h4>What is this?</h4>
+                <p>These are the word embeddings that come from the previous layer. Each word in our sentence is
+                    represented as a vector of 3 numbers.</p>
+            </div>
+
+            <div class="tensor-visual">
+                <div class="tensor-label">Complete Input Tensor: <span class="shape-badge">(2, 6, 3)</span></div>
+
+                <div class="matrix-3d">
+                    <div class="batch-item">
+                        <div class="batch-label">Batch Item 1 (Sentence 1)</div>
+                        <div class="matrix-2d">
+                            <div class="matrix-row">
+                                <div class="matrix-cell">0.43</div>
+                                <div class="matrix-cell">-0.18</div>
+                                <div class="matrix-cell">0.92</div>
+                            </div>
+                            <div class="matrix-row">
+                                <div class="matrix-cell">-0.27</div>
+                                <div class="matrix-cell">0.55</div>
+                                <div class="matrix-cell">0.08</div>
+                            </div>
+                            <div class="matrix-row">
+                                <div class="matrix-cell">0.71</div>
+                                <div class="matrix-cell">-0.33</div>
+                                <div class="matrix-cell">0.14</div>
+                            </div>
+                            <div class="matrix-row">
+                                <div class="matrix-cell">-0.52</div>
+                                <div class="matrix-cell">0.67</div>
+                                <div class="matrix-cell">-0.21</div>
+                            </div>
+                            <div class="matrix-row">
+                                <div class="matrix-cell">0.88</div>
+                                <div class="matrix-cell">0.12</div>
+                                <div class="matrix-cell">-0.44</div>
+                            </div>
+                            <div class="matrix-row">
+                                <div class="matrix-cell">0.35</div>
+                                <div class="matrix-cell">-0.76</div>
+                                <div class="matrix-cell">0.59</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; font-size: 0.85rem; color: #6b7280;">
+                            6 tokens × 3 dimensions each
+                        </div>
+                    </div>
+
+                    <div class="batch-item">
+                        <div class="batch-label">Batch Item 2 (Sentence 2)</div>
+                        <div class="matrix-2d">
+                            <div class="matrix-row">
+                                <div class="matrix-cell">-0.15</div>
+                                <div class="matrix-cell">0.82</div>
+                                <div class="matrix-cell">0.37</div>
+                            </div>
+                            <div class="matrix-row">
+                                <div class="matrix-cell">0.64</div>
+                                <div class="matrix-cell">-0.29</div>
+                                <div class="matrix-cell">0.91</div>
+                            </div>
+                            <div class="matrix-row">
+                                <div class="matrix-cell">-0.48</div>
+                                <div class="matrix-cell">0.53</div>
+                                <div class="matrix-cell">-0.16</div>
+                            </div>
+                            <div class="matrix-row">
+                                <div class="matrix-cell">0.77</div>
+                                <div class="matrix-cell">-0.41</div>
+                                <div class="matrix-cell">0.28</div>
+                            </div>
+                            <div class="matrix-row">
+                                <div class="matrix-cell">0.19</div>
+                                <div class="matrix-cell">0.95</div>
+                                <div class="matrix-cell">-0.63</div>
+                            </div>
+                            <div class="matrix-row">
+                                <div class="matrix-cell">-0.86</div>
+                                <div class="matrix-cell">0.24</div>
+                                <div class="matrix-cell">0.71</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; font-size: 0.85rem; color: #6b7280;">
+                            6 tokens × 3 dimensions each
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 24px; padding: 16px; background: #eff6ff; border-radius: 8px;">
+                    <p><strong>Now you can see ALL the data!</strong></p>
+                    <p style="margin-top: 8px;">The first matrix shows the 6 tokens from the first sentence. The second
+                        matrix shows the 6 tokens from the second sentence. Each row is one token, represented by 3
+                        numbers.</p>
+                </div>
+            </div>
+
+            <div class="important-box">
+                <h4>Common Question: Why do we need to see all these numbers?</h4>
+                <p>Sometimes tutorials show only a simplified view (one row or one token). But the complete input tensor
+                    has:</p>
+                <ul>
+                    <li>2 batches (sentences)</li>
+                    <li>6 tokens per batch</li>
+                    <li>3 values per token</li>
+                    <li><strong>Total: 2 × 6 × 3 = 36 numbers!</strong></li>
+                </ul>
+                <p>Understanding the full shape helps you debug real implementations and avoid shape mismatch errors.
+                </p>
+            </div>
+        </div>
+
+        <!-- STEP 2: Projections -->
+        <div class="step-section">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-title">Linear Projections (Q, K, V)</div>
+            </div>
+
+            <div class="what-box">
+                <h4>What happens here?</h4>
+                <p>We transform our 3-dimensional input into 256-dimensional Query (Q), Key (K), and Value (V) vectors
+                    using learned weight matrices.</p>
+            </div>
+
+            <div class="why-box">
+                <h4>Why do we need Q, K, and V?</h4>
+                <p>Think of attention like a search engine:</p>
+                <ul>
+                    <li><strong>Query (Q)</strong>: "What am I looking for?" - Each word asks a question</li>
+                    <li><strong>Key (K)</strong>: "What do I contain?" - Each word advertises its content</li>
+                    <li><strong>Value (V)</strong>: "What should I return?" - The actual information to pass forward
+                    </li>
+                </ul>
+                <p style="margin-top: 12px;">We compute similarity between Queries and Keys to decide which Values to
+                    pay attention to!</p>
+            </div>
+
+            <div class="why-box">
+                <h4>Why 256 dimensions instead of 3?</h4>
+                <p><strong>More dimensions = more capacity to learn!</strong></p>
+                <ul>
+                    <li>3 dimensions can't capture enough information</li>
+                    <li>256 dimensions gives the model room to learn complex patterns</li>
+                    <li>In our case: 256 = 8 heads × 32 dimensions per head</li>
+                </ul>
+            </div>
+
+            <div class="projection-visual">
+                <div class="projection-box">
+                    <h5 style="text-align: center; margin-bottom: 12px;">W_query</h5>
+                    <div style="text-align: center; font-family: 'Courier New', monospace;">
+                        <div>Weight matrix size:</div>
+                        <div class="shape-badge" style="margin-top: 8px;">(3, 256)</div>
+                    </div>
+                </div>
+
+                <div class="projection-arrow">→</div>
+
+                <div class="projection-box">
+                    <h5 style="text-align: center; margin-bottom: 12px;">W_key</h5>
+                    <div style="text-align: center; font-family: 'Courier New', monospace;">
+                        <div>Weight matrix size:</div>
+                        <div class="shape-badge" style="margin-top: 8px;">(3, 256)</div>
+                    </div>
+                </div>
+
+                <div class="projection-arrow">→</div>
+
+                <div class="projection-box">
+                    <h5 style="text-align: center; margin-bottom: 12px;">W_value</h5>
+                    <div style="text-align: center; font-family: 'Courier New', monospace;">
+                        <div>Weight matrix size:</div>
+                        <div class="shape-badge" style="margin-top: 8px;">(3, 256)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="how-box">
+                <h4>How does the projection work?</h4>
+                <div class="math-formula">
+                    Q = Input × W_query
+                </div>
+                <div class="math-formula">
+                    K = Input × W_key
+                </div>
+                <div class="math-formula">
+                    V = Input × W_value
+                </div>
+
+                <p style="margin-top: 16px;"><strong>Matrix multiplication:</strong></p>
+                <div class="dimension-flow">
+                    <div class="dim-box">(2, 6, 3)</div>
+                    <div class="dim-arrow">×</div>
+                    <div class="dim-box">(3, 256)</div>
+                    <div class="dim-arrow">=</div>
+                    <div class="dim-box">(2, 6, 256)</div>
+                </div>
+            </div>
+
+            <div class="important-box">
+                <h4>Common Question: How many outputs and what are their sizes?</h4>
+                <p>The linear projection step produces:</p>
+                <ul>
+                    <li><strong>3 separate outputs:</strong> Q, K, and V (Queries, Keys, Values)</li>
+                    <li><strong>Each has shape:</strong> <span class="shape-badge">(2, 6, 256)</span></li>
+                    <li>Still 2 batches, still 6 tokens</li>
+                    <li>But now 256 dimensions instead of 3!</li>
+                </ul>
+                <p>This expansion from 3 to 256 dimensions gives the model much more capacity to represent complex
+                    patterns.</p>
+            </div>
+
+            <div class="code-block">
+                <pre><code><span class="comment"># PyTorch code for this step</span>
+<span class="keyword">class</span> MultiHeadAttention(nn.Module):
+    <span class="keyword">def</span> <span class="keyword">__init__</span>(self):
+        <span class="keyword">super</span>().<span class="keyword">__init__</span>()
+        self.W_query = nn.Linear(<span class="number">3</span>, <span class="number">256</span>)  <span class="comment"># 3 input dims → 256 output dims</span>
+        self.W_key = nn.Linear(<span class="number">3</span>, <span class="number">256</span>)
+        self.W_value = nn.Linear(<span class="number">3</span>, <span class="number">256</span>)
+    
+    <span class="keyword">def</span> forward(self, x):
+        <span class="comment"># x shape: (2, 6, 3)</span>
+        Q = self.W_query(x)   <span class="comment"># Output: (2, 6, 256)</span>
+        K = self.W_key(x)     <span class="comment"># Output: (2, 6, 256)</span>
+        V = self.W_value(x)   <span class="comment"># Output: (2, 6, 256)</span></code></pre>
+            </div>
+        </div>
+
+        <!-- STEP 3: Splitting into Heads -->
+        <div class="step-section" style="border: 4px solid #ec4899;">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-title">Reshape & Split into Multiple Heads</div>
+            </div>
+
+            <div class="important-box">
+                <h4>THIS IS THE KEY STEP - Let me explain it very carefully!</h4>
+            </div>
+
+            <div class="what-box">
+                <h4>What are we doing?</h4>
+                <p>We're <strong>reorganizing</strong> our 256 dimensions into 8 separate groups of 32 dimensions each.
+                    We call each group a "head".</p>
+            </div>
+
+            <div class="why-box">
+                <h4>Why split into 8 heads?</h4>
+                <p><strong>Each head can learn to focus on different things!</strong></p>
+                <ul>
+                    <li>Instead of one attention mechanism with 256 dims</li>
+                    <li>We have 8 smaller attention mechanisms with 32 dims each</li>
+                    <li>Each can specialize in different patterns</li>
+                    <li>8 heads × 32 dims = 256 dims total (no information lost!)</li>
+                </ul>
+            </div>
+
+            <div class="how-box">
+                <h4>How do we get 8 heads?</h4>
+                <p><strong>Step-by-step reshape operation:</strong></p>
+
+                <div style="margin: 20px 0;">
+                    <div
+                        style="background: white; padding: 16px; border-radius: 8px; border: 2px solid #10b981; margin: 12px 0;">
+                        <strong>Starting shape:</strong>
+                        <div class="dimension-flow">
+                            <div class="dim-box">(2, 6, 256)</div>
+                        </div>
+                        <p style="margin-top: 8px; color: #6b7280;">2 batches, 6 tokens, 256 dimensions</p>
+                    </div>
+
+                    <div class="arrow-down">↓ RESHAPE</div>
+
+                    <div
+                        style="background: white; padding: 16px; border-radius: 8px; border: 2px solid #10b981; margin: 12px 0;">
+                        <strong>After reshape:</strong>
+                        <div class="dimension-flow">
+                            <div class="dim-box">(2, 6, 8, 32)</div>
+                        </div>
+                        <p style="margin-top: 8px; color: #6b7280;">2 batches, 6 tokens, <span class="highlight">8
+                                heads</span>, <span class="highlight">32 dims per head</span></p>
+                    </div>
+
+                    <div class="arrow-down">↓ TRANSPOSE</div>
+
+                    <div
+                        style="background: white; padding: 16px; border-radius: 8px; border: 2px solid #10b981; margin: 12px 0;">
+                        <strong>Final shape:</strong>
+                        <div class="dimension-flow">
+                            <div class="dim-box">(2, 8, 6, 32)</div>
+                        </div>
+                        <p style="margin-top: 8px; color: #6b7280;">2 batches, <span class="highlight">8 heads</span>, 6
+                            tokens, 32 dims per head</p>
+                    </div>
+                </div>
+
+                <p><strong>Think of it like this:</strong></p>
+                <ul>
+                    <li>Imagine 256 dimensions as a deck of 256 cards</li>
+                    <li>We deal them into 8 piles of 32 cards each</li>
+                    <li>Each pile is one "head"</li>
+                    <li>Same cards, just organized differently!</li>
+                </ul>
+            </div>
+
+            <div class="important-box">
+                <h4>Common Question: How do we actually create 8 heads from one tensor?</h4>
+                <p>This is a key conceptual point that often causes confusion:</p>
+                <ul>
+                    <li>We're NOT creating 8 separate things from scratch</li>
+                    <li>We're just <strong>rearranging</strong> the 256 numbers we already have</li>
+                    <li>256 dimensions ÷ 8 heads = 32 dimensions per head</li>
+                    <li>It's like cutting a pizza into 8 slices - same pizza, just divided up!</li>
+                </ul>
+                <p>This reshape operation is computationally free - it just changes how we view the data in memory.</p>
+            </div>
+
+            <div class="code-block">
+                <pre><code><span class="comment"># PyTorch code showing the reshape</span>
+batch_size = <span class="number">2</span>
+num_tokens = <span class="number">6</span>
+d_out = <span class="number">256</span>
+num_heads = <span class="number">8</span>
+head_dim = d_out // num_heads  <span class="comment"># 256 // 8 = 32</span>
+
+<span class="comment"># Q currently has shape (2, 6, 256)</span>
+Q = Q.view(batch_size, num_tokens, num_heads, head_dim)
+<span class="comment"># Now Q has shape (2, 6, 8, 32)</span>
+
+<span class="comment"># Transpose to group by heads</span>
+Q = Q.transpose(<span class="number">1</span>, <span class="number">2</span>)
+<span class="comment"># Now Q has shape (2, 8, 6, 32)</span>
+<span class="comment"># This means: batch 2, heads 8, tokens 6, dims 32</span></code></pre>
+            </div>
+        </div>
+
+        <!-- STEP 4: Head Specialization -->
+        <div class="step-section">
+            <div class="step-header">
+                <div class="step-number">4</div>
+                <div class="step-title">How Heads Learn to Specialize</div>
+            </div>
+
+            <div class="important-box">
+                <h4>CRITICAL UNDERSTANDING</h4>
+                <p><strong>The head specializations (syntactic, semantic, etc.) are NOT programmed by us!</strong></p>
+            </div>
+
+            <div class="why-box">
+                <h4>So how do heads become specialized?</h4>
+                <ol>
+                    <li><strong>At the beginning:</strong> All 8 heads start random - they don't specialize in anything
+                    </li>
+                    <li><strong>During training:</strong> The model processes millions of sentences</li>
+                    <li><strong>Gradients flow back:</strong> Each head's weights get updated based on what helps reduce
+                        loss</li>
+                    <li><strong>Specialization emerges:</strong> Over time, different heads naturally learn different
+                        patterns</li>
+                    <li><strong>We discover it later:</strong> By analyzing trained models, researchers see what each
+                        head learned</li>
+                </ol>
+            </div>
+
+            <div class="what-box">
+                <h4>What researchers have found</h4>
+                <p>When scientists analyze trained transformer models, they observe these patterns:</p>
+            </div>
+
+            <div class="heads-explanation">
+                <div class="head-card" style="border-color: #3b82f6;">
+                    <h5 style="color: #3b82f6;">Head 0: Syntactic Dependencies</h5>
+                    <p><strong>What it learns:</strong> Subject-verb agreement, grammatical structure</p>
+                    <p style="margin-top: 8px;"><strong>Example:</strong> In "The cat runs", this head connects "cat"
+                        (subject) to "runs" (verb)</p>
+                    <p style="margin-top: 8px; font-style: italic;">Emerged during training, not programmed!</p>
+                </div>
+
+                <div class="head-card" style="border-color: #10b981;">
+                    <h5 style="color: #10b981;">Head 1: Positional Information</h5>
+                    <p><strong>What it learns:</strong> Token order and sequence position</p>
+                    <p style="margin-top: 8px;"><strong>Example:</strong> Knows that "first" word is different from
+                        "last" word</p>
+                    <p style="margin-top: 8px; font-style: italic;">Emerged during training, not programmed!</p>
+                </div>
+
+                <div class="head-card" style="border-color: #8b5cf6;">
+                    <h5 style="color: #8b5cf6;">Head 2: Semantic Similarity</h5>
+                    <p><strong>What it learns:</strong> Word meanings and related concepts</p>
+                    <p style="margin-top: 8px;"><strong>Example:</strong> Connects "king" with "queen", "doctor" with
+                        "hospital"</p>
+                    <p style="margin-top: 8px; font-style: italic;">Emerged during training, not programmed!</p>
+                </div>
+
+                <div class="head-card" style="border-color: #ec4899;">
+                    <h5 style="color: #ec4899;">Head 3: Long-range Dependencies</h5>
+                    <p><strong>What it learns:</strong> Connections between distant words</p>
+                    <p style="margin-top: 8px;"><strong>Example:</strong> In "The book that I bought yesterday is good",
+                        connects "book" to "is"</p>
+                    <p style="margin-top: 8px; font-style: italic;">Emerged during training, not programmed!</p>
+                </div>
+
+                <div class="head-card" style="border-color: #f59e0b;">
+                    <h5 style="color: #f59e0b;">Head 4: Local Context</h5>
+                    <p><strong>What it learns:</strong> Relationships between adjacent words</p>
+                    <p style="margin-top: 8px;"><strong>Example:</strong> Learns that "New" and "York" go together</p>
+                    <p style="margin-top: 8px; font-style: italic;">Emerged during training, not programmed!</p>
+                </div>
+
+                <div class="head-card" style="border-color: #06b6d4;">
+                    <h5 style="color: #06b6d4;">Head 5: Entity Resolution</h5>
+                    <p><strong>What it learns:</strong> Tracking what pronouns refer to</p>
+                    <p style="margin-top: 8px;"><strong>Example:</strong> In "Alice went home. She was tired", connects
+                        "She" to "Alice"</p>
+                    <p style="margin-top: 8px; font-style: italic;">Emerged during training, not programmed!</p>
+                </div>
+
+                <div class="head-card" style="border-color: #7c3aed;">
+                    <h5 style="color: #7c3aed;">Head 6: Discourse Structure</h5>
+                    <p><strong>What it learns:</strong> Overall document organization</p>
+                    <p style="margin-top: 8px;"><strong>Example:</strong> Recognizes introductions, body paragraphs,
+                        conclusions</p>
+                    <p style="margin-top: 8px; font-style: italic;">Emerged during training, not programmed!</p>
+                </div>
+
+                <div class="head-card" style="border-color: #f43f5e;">
+                    <h5 style="color: #f43f5e;">Head 7: Rare Pattern Detection</h5>
+                    <p><strong>What it learns:</strong> Unusual or infrequent patterns</p>
+                    <p style="margin-top: 8px;"><strong>Example:</strong> Idioms, special phrases, edge cases</p>
+                    <p style="margin-top: 8px; font-style: italic;">Emerged during training, not programmed!</p>
+                </div>
+            </div>
+
+            <div class="important-box">
+                <h4>Common Question: Are head specializations programmed or learned?</h4>
+                <p>This is one of the most important concepts to understand:</p>
+                <ul>
+                    <li><strong>NOT random, NOT programmed by humans</strong></li>
+                    <li>These patterns <strong>emerge naturally</strong> through training on large datasets</li>
+                    <li>The neural network discovers these specializations on its own through gradient descent</li>
+                    <li>Different training runs might result in slightly different specializations</li>
+                    <li>We only discover what each head learned <strong>after training</strong> by analyzing the model
+                    </li>
+                    <li>The labels (syntactic, semantic, etc.) are <strong>our interpretation</strong> of what we
+                        observe</li>
+                </ul>
+                <p>This emergent behavior is one of the fascinating aspects of deep learning - the model self-organizes
+                    to solve the task efficiently!</p>
+            </div>
+        </div>
+
+        <!-- STEP 5: Attention Computation -->
+        <div class="step-section">
+            <div class="step-header">
+                <div class="step-number">5</div>
+                <div class="step-title">Attention Computation (Per Head)</div>
+            </div>
+
+            <div class="what-box">
+                <h4>What happens now?</h4>
+                <p>Each of the 8 heads computes attention <strong>independently</strong>. They all do the same
+                    mathematical operations, but on their own subset of dimensions.</p>
+            </div>
+
+            <div class="how-box">
+                <h4>The Attention Formula (for each head)</h4>
+                <div class="math-formula" style="font-size: 1.3rem;">
+                    Attention(Q, K, V) = softmax(Q × K<sup>T</sup> / √d<sub>k</sub>) × V
+                </div>
+
+                <p style="margin-top: 20px;"><strong>Breaking it down:</strong></p>
+                <ol>
+                    <li><strong>Q × K<sup>T</sup></strong>: Compute similarity scores between all token pairs</li>
+                    <li><strong>÷ √d<sub>k</sub></strong>: Scale by √32 ≈ 5.66 to keep values stable</li>
+                    <li><strong>softmax(...)</strong>: Convert scores to probabilities (0 to 1)</li>
+                    <li><strong>× V</strong>: Use probabilities to weight the values</li>
+                </ol>
+            </div>
+
+            <div class="tensor-visual">
+                <div class="tensor-label">Shapes through attention (for ONE head):</div>
+
+                <div class="dimension-flow" style="display: block;">
+                    <div style="margin: 16px 0;">
+                        <strong>1. Attention Scores:</strong>
+                        <div class="dimension-flow">
+                            <div class="dim-box">(2, 6, 32)</div>
+                            <div class="dim-arrow">×</div>
+                            <div class="dim-box">(2, 32, 6)</div>
+                            <div class="dim-arrow">=</div>
+                            <div class="dim-box">(2, 6, 6)</div>
+                        </div>
+                        <p style="color: #6b7280; margin-top: 8px;">Q × K<sup>T</sup> gives a 6×6 matrix of similarities
+                        </p>
+                    </div>
+
+                    <div style="margin: 16px 0;">
+                        <strong>2. After Softmax:</strong>
+                        <div class="dimension-flow">
+                            <div class="dim-box">(2, 6, 6)</div>
+                        </div>
+                        <p style="color: #6b7280; margin-top: 8px;">Still 6×6, but now values sum to 1 (probabilities)
+                        </p>
+                    </div>
+
+                    <div style="margin: 16px 0;">
+                        <strong>3. Final Context:</strong>
+                        <div class="dimension-flow">
+                            <div class="dim-box">(2, 6, 6)</div>
+                            <div class="dim-arrow">×</div>
+                            <div class="dim-box">(2, 6, 32)</div>
+                            <div class="dim-arrow">=</div>
+                            <div class="dim-box">(2, 6, 32)</div>
+                        </div>
+                        <p style="color: #6b7280; margin-top: 8px;">Weights × V gives context vectors</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="important-box">
+                <h4>Key Point</h4>
+                <p>This happens <strong>8 times in parallel</strong> - once for each head! Each head produces a <span
+                        class="shape-badge">(2, 6, 32)</span> output.</p>
+            </div>
+
+            <div class="code-block">
+                <pre><code><span class="comment"># PyTorch code for attention computation (per head)</span>
+<span class="comment"># Assume we have Q, K, V with shape (2, 8, 6, 32)</span>
+<span class="comment"># This is for all 8 heads simultaneously</span>
+
+<span class="comment"># Step 1: Compute attention scores</span>
+attn_scores = queries @ keys.transpose(<span class="number">2</span>, <span class="number">3</span>)
+<span class="comment"># Shape: (2, 8, 6, 6) - one 6x6 matrix per head</span>
+
+<span class="comment"># Step 2: Scale by square root of head dimension</span>
+head_dim = <span class="number">32</span>
+attn_scores = attn_scores / (head_dim ** <span class="number">0.5</span>)
+<span class="comment"># Dividing by √32 ≈ 5.66</span>
+
+<span class="comment"># Step 3: Apply causal mask (prevent looking at future tokens)</span>
+mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
+attn_scores.masked_fill_(mask_bool, -torch.inf)
+<span class="comment"># Upper triangle becomes -inf (will be 0 after softmax)</span>
+
+<span class="comment"># Step 4: Apply softmax to get attention weights</span>
+attn_weights = torch.softmax(attn_scores, dim=-<span class="number">1</span>)
+<span class="comment"># Each row now sums to 1.0 (probabilities)</span>
+
+<span class="comment"># Step 5: Apply attention weights to values</span>
+context_vec = attn_weights @ values
+<span class="comment"># Shape: (2, 8, 6, 32) - context vectors for all heads</span></code></pre>
+            </div>
+        </div>
+
+        <!-- STEP 6: Concatenation -->
+        <div class="step-section">
+            <div class="step-header">
+                <div class="step-number">6</div>
+                <div class="step-title">Concatenate All Heads</div>
+            </div>
+
+            <div class="what-box">
+                <h4>What are we doing?</h4>
+                <p>We combine the outputs from all 8 heads back into a single tensor.</p>
+            </div>
+
+            <div class="how-box">
+                <h4>The concatenation process</h4>
+
+                <div
+                    style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #10b981; margin: 20px 0;">
+                    <p><strong>Before concatenation:</strong></p>
+                    <ul style="margin-left: 20px; margin-top: 12px;">
+                        <li>Head 0 output: <span class="shape-badge">(2, 6, 32)</span></li>
+                        <li>Head 1 output: <span class="shape-badge">(2, 6, 32)</span></li>
+                        <li>Head 2 output: <span class="shape-badge">(2, 6, 32)</span></li>
+                        <li>... (5 more heads)</li>
+                        <li>Head 7 output: <span class="shape-badge">(2, 6, 32)</span></li>
+                    </ul>
+
+                    <div class="arrow-down">↓ CONCATENATE</div>
+
+                    <p><strong>After concatenation:</strong></p>
+                    <div class="dimension-flow">
+                        <div class="dim-box">(2, 6, 256)</div>
+                    </div>
+                    <p style="margin-top: 12px; color: #6b7280;">8 heads × 32 dims = 256 total dimensions</p>
+                </div>
+            </div>
+
+            <div class="why-box">
+                <h4>Why concatenate?</h4>
+                <p>We want to combine the different "perspectives" from all 8 heads into one unified representation that
+                    captures all the different patterns they learned!</p>
+            </div>
+
+            <div class="code-block">
+                <pre><code><span class="comment"># PyTorch code for concatenation</span>
+<span class="comment"># At this point, context_vec has shape (2, 8, 6, 32)</span>
+<span class="comment"># We need to combine all heads back into (2, 6, 256)</span>
+
+<span class="comment"># Step 1: Transpose to move heads dimension</span>
+context_vec = context_vec.transpose(<span class="number">1</span>, <span class="number">2</span>)
+<span class="comment"># Shape: (2, 6, 8, 32)</span>
+<span class="comment"># Now it's: (batch, tokens, heads, head_dim)</span>
+
+<span class="comment"># Step 2: Reshape to concatenate all heads</span>
+batch_size = <span class="number">2</span>
+num_tokens = <span class="number">6</span>
+d_out = <span class="number">256</span>
+
+context_vec = context_vec.contiguous().view(batch_size, num_tokens, d_out)
+<span class="comment"># Shape: (2, 6, 256)</span>
+<span class="comment"># The 8 heads × 32 dims are now concatenated into 256 dims</span>
+
+<span class="comment"># What happened:</span>
+<span class="comment"># [head0: 32 dims][head1: 32 dims]...[head7: 32 dims] = 256 dims total</span></code></pre>
+            </div>
+        </div>
+
+        <!-- STEP 7: Output Projection -->
+        <div class="step-section">
+            <div class="step-header">
+                <div class="step-number">7</div>
+                <div class="step-title">Final Output Projection</div>
+            </div>
+
+            <div class="what-box">
+                <h4>The last step</h4>
+                <p>We apply one more linear transformation to the concatenated output.</p>
+            </div>
+
+            <div class="why-box">
+                <h4>Why another projection?</h4>
+                <ul>
+                    <li>Lets the model learn how to <strong>best combine</strong> information from all heads</li>
+                    <li>Adds additional learnable parameters for more expressiveness</li>
+                    <li>Maps to the expected output dimension for the next layer</li>
+                </ul>
+            </div>
+
+            <div class="dimension-flow">
+                <div class="dim-box">(2, 6, 256)</div>
+                <div class="dim-arrow">× W_out</div>
+                <div class="dim-arrow">=</div>
+                <div class="dim-box">(2, 6, 256)</div>
+            </div>
+
+            <div class="code-block">
+                <pre><code><span class="comment"># PyTorch code for output projection</span>
+<span class="comment"># context_vec currently has shape (2, 6, 256)</span>
+
+<span class="comment"># Apply final linear transformation</span>
+output = self.out_proj(context_vec)
+<span class="comment"># Shape: (2, 6, 256)</span>
+
+<span class="comment"># This W_out matrix allows the model to learn</span>
+<span class="comment"># how to optimally combine information from all heads</span>
+
+<span class="keyword">return</span> output  <span class="comment"># Ready for the next transformer layer!</span></code></pre>
+            </div>
+
+            <div
+                style="text-align: center; margin-top: 30px; padding: 30px; background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-radius: 12px; border: 3px solid #10b981;">
+                <h3 style="color: #065f46; margin-bottom: 16px;">🎉 Final Output Ready!</h3>
+                <div class="dimension-flow">
+                    <div class="dim-box" style="background: #10b981;">(2, 6, 256)</div>
+                </div>
+                <p style="margin-top: 16px; color: #065f46; font-size: 1.1rem;">
+                    This output goes to the next layer of the transformer!
+                </p>
+            </div>
+        </div>
+
+        <!-- SUMMARY -->
+        <div class="full-code-section" id="fullCodeSection">
+            <div class="code-header">
+                <span>📄 Complete PyTorch Implementation</span>
+                <button class="close-code-btn" onclick="toggleFullCode()">Close</button>
+            </div>
+
+            <div class="code-block">
+                <pre><code><span class="keyword">import</span> torch
+<span class="keyword">import</span> torch.nn <span class="keyword">as</span> nn
+
+<span class="keyword">class</span> MultiHeadAttention(nn.Module):
+    <span class="string">"""
+    Multi-Head Attention mechanism for Transformer architectures.
+    
+    Args:
+        d_in: Input dimension (e.g., 3 in our example)
+        d_out: Output dimension (e.g., 256 in our example)
+        context_length: Maximum sequence length (e.g., 6 in our example)
+        dropout: Dropout probability
+        num_heads: Number of attention heads (e.g., 8)
+        qkv_bias: Whether to use bias in Q, K, V projections
+    """</span>
+    <span class="keyword">def</span> <span class="keyword">__init__</span>(self, d_in, d_out, context_length, dropout, num_heads, qkv_bias=<span class="keyword">False</span>):
+        <span class="keyword">super</span>().<span class="keyword">__init__</span>()
+        
+        <span class="comment"># Ensure d_out is divisible by num_heads</span>
+        <span class="keyword">assert</span> (d_out % num_heads == <span class="number">0</span>), <span class="string">"d_out must be divisible by num_heads"</span>
+        
+        self.d_out = d_out
+        self.num_heads = num_heads
+        self.head_dim = d_out // num_heads  <span class="comment"># e.g., 256 // 8 = 32</span>
+        
+        <span class="comment"># Linear projections for Query, Key, Value</span>
+        self.W_query = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_key = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_value = nn.Linear(d_in, d_out, bias=qkv_bias)
+        
+        <span class="comment"># Output projection</span>
+        self.out_proj = nn.Linear(d_out, d_out)
+        
+        <span class="comment"># Dropout for regularization</span>
+        self.dropout = nn.Dropout(dropout)
+        
+        <span class="comment"># Causal mask (upper triangular matrix)</span>
+        <span class="comment"># Prevents tokens from attending to future positions</span>
+        self.register_buffer(
+            <span class="string">"mask"</span>,
+            torch.triu(torch.ones(context_length, context_length), diagonal=<span class="number">1</span>)
+        )
+    
+    <span class="keyword">def</span> forward(self, x):
+        <span class="string">"""
+        Forward pass of multi-head attention.
+        
+        Args:
+            x: Input tensor of shape (batch_size, num_tokens, d_in)
+            
+        Returns:
+            Output tensor of shape (batch_size, num_tokens, d_out)
+        """</span>
+        batch_size, num_tokens, d_in = x.shape
+        
+        <span class="comment"># ========== STEP 1: Project to Q, K, V ==========</span>
+        keys = self.W_key(x)        <span class="comment"># Shape: (batch_size, num_tokens, d_out)</span>
+        queries = self.W_query(x)   <span class="comment"># Shape: (batch_size, num_tokens, d_out)</span>
+        values = self.W_value(x)    <span class="comment"># Shape: (batch_size, num_tokens, d_out)</span>
+        
+        <span class="comment"># ========== STEP 2: Reshape to split into heads ==========</span>
+        <span class="comment"># Transform from (batch, tokens, d_out) to (batch, tokens, num_heads, head_dim)</span>
+        keys = keys.view(batch_size, num_tokens, self.num_heads, self.head_dim)
+        queries = queries.view(batch_size, num_tokens, self.num_heads, self.head_dim)
+        values = values.view(batch_size, num_tokens, self.num_heads, self.head_dim)
+        
+        <span class="comment"># Transpose to (batch, num_heads, tokens, head_dim)</span>
+        <span class="comment"># This groups all data for each head together</span>
+        keys = keys.transpose(<span class="number">1</span>, <span class="number">2</span>)
+        queries = queries.transpose(<span class="number">1</span>, <span class="number">2</span>)
+        values = values.transpose(<span class="number">1</span>, <span class="number">2</span>)
+        
+        <span class="comment"># ========== STEP 3: Compute attention scores ==========</span>
+        <span class="comment"># Matrix multiplication: Q @ K^T</span>
+        attn_scores = queries @ keys.transpose(<span class="number">2</span>, <span class="number">3</span>)
+        <span class="comment"># Shape: (batch_size, num_heads, num_tokens, num_tokens)</span>
+        
+        <span class="comment"># ========== STEP 4: Apply causal mask ==========</span>
+        <span class="comment"># Prevent attention to future positions</span>
+        mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
+        attn_scores.masked_fill_(mask_bool, -torch.inf)
+        
+        <span class="comment"># ========== STEP 5: Scale and apply softmax ==========</span>
+        <span class="comment"># Scale by square root of head dimension</span>
+        attn_scores = attn_scores / (self.head_dim ** <span class="number">0.5</span>)
+        
+        <span class="comment"># Apply softmax to convert to probabilities</span>
+        attn_weights = torch.softmax(attn_scores, dim=-<span class="number">1</span>)
+        attn_weights = self.dropout(attn_weights)
+        
+        <span class="comment"># ========== STEP 6: Compute context vectors ==========</span>
+        <span class="comment"># Weighted sum of values</span>
+        context_vec = attn_weights @ values
+        <span class="comment"># Shape: (batch_size, num_heads, num_tokens, head_dim)</span>
+        
+        <span class="comment"># ========== STEP 7: Concatenate heads ==========</span>
+        <span class="comment"># Transpose back to (batch, tokens, num_heads, head_dim)</span>
+        context_vec = context_vec.transpose(<span class="number">1</span>, <span class="number">2</span>)
+        
+        <span class="comment"># Reshape to concatenate all heads</span>
+        <span class="comment"># From (batch, tokens, num_heads, head_dim) to (batch, tokens, d_out)</span>
+        context_vec = context_vec.contiguous().view(batch_size, num_tokens, self.d_out)
+        
+        <span class="comment"># ========== STEP 8: Output projection ==========</span>
+        context_vec = self.out_proj(context_vec)
+        
+        <span class="keyword">return</span> context_vec
+
+
+<span class="comment"># ========== USAGE EXAMPLE ==========</span>
+<span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:
+    <span class="comment"># Initialize the module</span>
+    mha = MultiHeadAttention(
+        d_in=<span class="number">3</span>,              <span class="comment"># Input embedding dimension</span>
+        d_out=<span class="number">256</span>,            <span class="comment"># Output dimension</span>
+        context_length=<span class="number">6</span>,    <span class="comment"># Maximum sequence length</span>
+        dropout=<span class="number">0.1</span>,          <span class="comment"># Dropout probability</span>
+        num_heads=<span class="number">8</span>,          <span class="comment"># Number of attention heads</span>
+        qkv_bias=<span class="keyword">False</span>       <span class="comment"># No bias in Q, K, V projections</span>
+    )
+    
+    <span class="comment"># Create sample input</span>
+    batch_size = <span class="number">2</span>
+    num_tokens = <span class="number">6</span>
+    d_in = <span class="number">3</span>
+    
+    x = torch.randn(batch_size, num_tokens, d_in)
+    <span class="comment"># Shape: (2, 6, 3)</span>
+    
+    <span class="comment"># Forward pass</span>
+    output = mha(x)
+    <span class="comment"># Shape: (2, 6, 256)</span>
+    
+    <span class="keyword">print</span>(<span class="string">f"Input shape: {x.shape}"</span>)
+    <span class="keyword">print</span>(<span class="string">f"Output shape: {output.shape}"</span>)
+    
+    <span class="comment"># Check that it works!</span>
+    <span class="keyword">assert</span> output.shape == (batch_size, num_tokens, <span class="number">256</span>)
+    <span class="keyword">print</span>(<span class="string">"✓ Multi-head attention working correctly!"</span>)</code></pre>
+            </div>
+        </div>
+
+        <!-- SUMMARY -->
+        <div class="step-section"
+            style="background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); border: 4px solid #8b5cf6;">
+            <h2 style="color: #5b21b6; margin-bottom: 24px; text-align: center;">📝 Complete Summary</h2>
+
+            <div class="dimension-flow" style="display: block; text-align: center;">
+                <h3 style="margin-bottom: 20px;">The Complete Journey:</h3>
+
+                <div style="margin: 16px 0;">
+                    <div class="dim-box">(2, 6, 3)</div>
+                    <div style="margin: 8px 0; color: #6b7280;">Input embeddings</div>
+                </div>
+
+                <div class="arrow-down">↓ Linear Projections</div>
+
+                <div style="margin: 16px 0;">
+                    <div class="dim-box">(2, 6, 256)</div>
+                    <div style="margin: 8px 0; color: #6b7280;">Q, K, V (three separate tensors)</div>
+                </div>
+
+                <div class="arrow-down">↓ Reshape into heads</div>
+
+                <div style="margin: 16px 0;">
+                    <div class="dim-box">(2, 8, 6, 32)</div>
+                    <div style="margin: 8px 0; color: #6b7280;">8 heads with 32 dims each</div>
+                </div>
+
+                <div class="arrow-down">↓ Compute attention (per head)</div>
+
+                <div style="margin: 16px 0;">
+                    <div class="dim-box">(2, 8, 6, 32)</div>
+                    <div style="margin: 8px 0; color: #6b7280;">Context vectors from all heads</div>
+                </div>
+
+                <div class="arrow-down">↓ Concatenate</div>
+
+                <div style="margin: 16px 0;">
+                    <div class="dim-box">(2, 6, 256)</div>
+                    <div style="margin: 8px 0; color: #6b7280;">Combined output</div>
+                </div>
+
+                <div class="arrow-down">↓ Output projection</div>
+
+                <div style="margin: 16px 0;">
+                    <div class="dim-box" style="background: #10b981;">(2, 6, 256)</div>
+                    <div style="margin: 8px 0; color: #6b7280;">Final output ✨</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px; background: white; padding: 24px; border-radius: 8px;">
+                <h3 style="color: #1f2937; margin-bottom: 16px;">Key Takeaways:</h3>
+                <ul style="margin-left: 24px;">
+                    <li><strong>Multi-head = 8 parallel attention mechanisms</strong> operating on different subspaces
+                    </li>
+                    <li><strong>No information is lost</strong> - we just reorganize 256 dims into 8×32</li>
+                    <li><strong>Specializations emerge naturally</strong> during training, not programmed</li>
+                    <li><strong>Each head learns different patterns</strong> (syntax, semantics, position, etc.)</li>
+                    <li><strong>Concatenation combines perspectives</strong> from all heads into unified understanding
+                    </li>
+                    <li><strong>Same total parameters</strong> as single-head, but more expressive!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleFullCode() {
+            const codeSection = document.getElementById('fullCodeSection');
+            const btn = document.querySelector('.show-code-btn');
+
+            if (codeSection.classList.contains('active')) {
+                codeSection.classList.remove('active');
+                btn.textContent = '📄 Show Complete Code';
+            } else {
+                codeSection.classList.add('active');
+                btn.textContent = '📄 Hide Complete Code';
+                // Scroll to code section
+                codeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    </script>
+</body>
+
+</html>

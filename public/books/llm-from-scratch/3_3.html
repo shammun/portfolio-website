@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attention Matrix: How Tokens Attend to Each Other</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --purple-500: #8b5cf6;
+            --purple-400: #a78bfa;
+            --purple-100: #ede9fe;
+            --orange-50: #fff7ed;
+            --orange-500: #f97316;
+            --teal-50: #f0fdfa;
+            --teal-500: #14b8a6;
+            --cyan-600: #0891b2;
+            --shadow-purple: rgba(139, 92, 246, 0.15);
+            --shadow-soft: rgba(100, 116, 139, 0.08);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 50%, #faf5ff 100%);
+            min-height: 100vh;
+            padding: 32px;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .main-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow:
+                0 4px 24px var(--shadow-purple),
+                0 1px 3px var(--shadow-soft);
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--purple-500), var(--teal-500), var(--orange-500));
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .toggle-container {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .toggle-btn {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 24px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border: 2px solid var(--purple-500);
+        }
+
+        .toggle-btn.active {
+            background: var(--purple-500);
+            color: white;
+            box-shadow: 0 4px 12px var(--shadow-purple);
+        }
+
+        .toggle-btn:not(.active) {
+            background: white;
+            color: var(--purple-500);
+        }
+
+        .toggle-btn:not(.active):hover {
+            background: var(--purple-100);
+        }
+
+        .heatmap-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .heatmap-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .query-label-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding-top: 36px;
+        }
+
+        .axis-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            margin-right: 4px;
+        }
+
+        .axis-label.horizontal {
+            writing-mode: horizontal-tb;
+            transform: none;
+            margin-right: 0;
+            margin-bottom: 8px;
+        }
+
+        .grid-with-labels {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .key-labels-container {
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .column-headers {
+            display: flex;
+            margin-left: 80px;
+            gap: 3px;
+        }
+
+        .column-header {
+            width: 62px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 6px 0;
+            transition: all 0.2s ease;
+            cursor: default;
+            border-radius: 6px;
+        }
+
+        .column-header.highlight {
+            color: var(--teal-500);
+            font-weight: 700;
+            background: var(--teal-50);
+        }
+
+        .grid-container {
+            display: flex;
+        }
+
+        .row-headers {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-right: 8px;
+        }
+
+        .row-header {
+            height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            cursor: default;
+            border-radius: 6px;
+            min-width: 64px;
+        }
+
+        .row-header.highlight {
+            color: var(--orange-500);
+            font-weight: 700;
+            background: var(--orange-50);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, 62px);
+            grid-template-rows: repeat(6, 62px);
+            gap: 3px;
+        }
+
+        .cell {
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cell .value {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 2;
+        }
+
+        .cell:hover .value,
+        .cell.selected .value,
+        .cell.row-highlight .value,
+        .cell.col-highlight .value {
+            opacity: 1;
+        }
+
+        .cell::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            transition: border-color 0.2s ease;
+        }
+
+        .cell:hover::after {
+            border-color: var(--purple-400);
+        }
+
+        .cell.selected::after {
+            border-color: var(--purple-500);
+            border-width: 3px;
+        }
+
+        .cell.row-highlight {
+            box-shadow: inset 0 0 0 100px rgba(255, 247, 237, 0.5);
+        }
+
+        .cell.col-highlight {
+            box-shadow: inset 0 0 0 100px rgba(240, 253, 250, 0.5);
+        }
+
+        .cell:hover {
+            transform: scale(1.06);
+            z-index: 10;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .legend-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .legend-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .legend-bar {
+            width: 200px;
+            height: 14px;
+            border-radius: 7px;
+            position: relative;
+        }
+
+        .legend-bar.warm {
+            background: linear-gradient(90deg, #fef3c7, #fcd34d, #f97316, #dc2626);
+        }
+
+        .legend-bar.cool {
+            background: linear-gradient(90deg, #ecfdf5, #6ee7b7, #14b8a6, #0891b2);
+        }
+
+        .legend-values {
+            display: flex;
+            justify-content: space-between;
+            width: 200px;
+            margin-top: 4px;
+        }
+
+        .legend-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .detail-panel {
+            background: linear-gradient(135deg, #fafbff 0%, #f8f5ff 100%);
+            border: 1px solid var(--purple-100);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-top: 8px;
+            min-height: 140px;
+            transition: all 0.3s ease;
+        }
+
+        .detail-panel.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-panel.empty p {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .detail-tokens {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-token {
+            font-size: 15px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 20px;
+        }
+
+        .detail-token.query {
+            background: var(--orange-50);
+            color: var(--orange-500);
+            border: 1px solid #fed7aa;
+        }
+
+        .detail-token.key {
+            background: var(--teal-50);
+            color: var(--teal-500);
+            border: 1px solid #99f6e4;
+        }
+
+        .detail-arrow {
+            font-size: 18px;
+            color: var(--text-muted);
+        }
+
+        .detail-position {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+
+        .detail-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .detail-stat {
+            background: white;
+            border-radius: 10px;
+            padding: 12px 16px;
+            box-shadow: 0 2px 8px var(--shadow-soft);
+        }
+
+        .detail-stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-stat-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .detail-stat-extra {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .detail-interpretation {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            padding: 12px 14px;
+            background: white;
+            border-radius: 10px;
+            border-left: 3px solid var(--purple-400);
+        }
+
+        .insights-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .insights-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+        }
+
+        .insight-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .insight-card:hover {
+            background: white;
+            border-color: var(--purple-400);
+            box-shadow: 0 4px 12px var(--shadow-purple);
+            transform: translateY(-2px);
+        }
+
+        .insight-icon {
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .insight-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .insight-text strong {
+            color: var(--text-primary);
+        }
+
+        .annotation {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .annotation strong {
+            color: var(--text-primary);
+        }
+
+        /* Animation for toggle transition */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .cell.animating {
+            animation: fadeIn 0.3s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="main-card">
+            <div class="header">
+                <h1>Attention Matrix: How Tokens Attend to Each Other</h1>
+                <p>Hover over cells to explore attention relationships</p>
+            </div>
+
+            <div class="annotation">
+                Each cell shows how much the <strong>row token</strong> (query) attends to the <strong>column
+                    token</strong> (key).<br>
+                Read across a row to see one token's complete attention pattern.
+            </div>
+
+            <div class="toggle-container">
+                <button class="toggle-btn" id="btn-scores" onclick="setMode('scores')">Raw Scores (ω)</button>
+                <button class="toggle-btn active" id="btn-weights" onclick="setMode('weights')">Attention Weights
+                    (α)</button>
+            </div>
+
+            <div class="heatmap-wrapper">
+                <div class="heatmap-container">
+                    <div class="query-label-container">
+                        <span class="axis-label">QUERY TOKENS</span>
+                    </div>
+                    <div class="grid-with-labels">
+                        <div class="key-labels-container">
+                            <span class="axis-label horizontal">KEY TOKENS</span>
+                            <div class="column-headers" id="column-headers"></div>
+                        </div>
+                        <div class="grid-container">
+                            <div class="row-headers" id="row-headers"></div>
+                            <div class="grid" id="grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend-container">
+                <span class="legend-label">Low</span>
+                <div>
+                    <div class="legend-bar" id="legend-bar"></div>
+                    <div class="legend-values">
+                        <span class="legend-value" id="legend-min">0.10</span>
+                        <span class="legend-value" id="legend-max">0.24</span>
+                    </div>
+                </div>
+                <span class="legend-label">High</span>
+            </div>
+
+            <div class="detail-panel empty" id="detail-panel">
+                <p>Hover over a cell to see detailed information</p>
+            </div>
+
+            <div class="insights-section">
+                <div class="insights-title">
+                    <span>💡</span> Key Patterns in the Attention Matrix
+                </div>
+                <div class="insights-grid">
+                    <div class="insight-card" onclick="highlightCell(1, 1)">
+                        <div class="insight-icon">📍</div>
+                        <div class="insight-text">
+                            <strong>Diagonal pattern:</strong> Tokens tend to attend strongly to themselves. "journey"
+                            has the highest self-attention (1.495).
+                        </div>
+                    </div>
+                    <div class="insight-card" onclick="highlightCell(1, 2)">
+                        <div class="insight-icon">🔗</div>
+                        <div class="insight-text">
+                            <strong>Semantic similarity:</strong> "journey" and "starts" have high mutual
+                            attention—their embeddings point in similar directions.
+                        </div>
+                    </div>
+                    <div class="insight-card" onclick="highlightCell(4, 5)">
+                        <div class="insight-icon">📉</div>
+                        <div class="insight-text">
+                            <strong>Lowest attention:</strong> "one" → "step" has the weakest relationship (0.29)—very
+                            different embeddings.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Token information
+        const tokens = ['Your', 'journey', 'starts', 'with', 'one', 'step'];
+
+        // Raw attention scores (dot products) - VERIFIED from chapter line 9229-9234
+        const attentionScores = [
+            [0.9995, 0.9544, 0.9422, 0.4753, 0.4576, 0.6310],
+            [0.9544, 1.4950, 1.4754, 0.8434, 0.7070, 1.0865],
+            [0.9422, 1.4754, 1.4570, 0.8296, 0.7154, 1.0605],
+            [0.4753, 0.8434, 0.8296, 0.4937, 0.3474, 0.6565],
+            [0.4576, 0.7070, 0.7154, 0.3474, 0.6654, 0.2935],
+            [0.6310, 1.0865, 1.0605, 0.6565, 0.2935, 0.9450]
+        ];
+
+        // Attention weights (after softmax) - VERIFIED from chapter line 9296-9301
+        const attentionWeights = [
+            [0.2098, 0.2006, 0.1981, 0.1242, 0.1220, 0.1452],
+            [0.1385, 0.2379, 0.2333, 0.1240, 0.1082, 0.1581],
+            [0.1390, 0.2369, 0.2326, 0.1242, 0.1108, 0.1565],
+            [0.1435, 0.2074, 0.2046, 0.1462, 0.1263, 0.1720],
+            [0.1526, 0.1958, 0.1975, 0.1367, 0.1879, 0.1295],
+            [0.1385, 0.2184, 0.2128, 0.1420, 0.0988, 0.1896]
+        ];
+
+        // Statistics
+        const scoreStats = { min: 0.2935, max: 1.4950 };
+        const weightStats = { min: 0.0988, max: 0.2379 };
+
+        // Pre-computed interpretations
+        const interpretations = {
+            '0,0': "\"Your\" attends to itself — self-attention preserves token identity. As the first word, it relies on its own embedding.",
+            '1,1': "Highest self-attention: \"journey\" has the largest self-similarity score (1.495), indicating a distinctive embedding.",
+            '1,2': "\"journey\" strongly attends to \"starts\" — both words relate to beginnings and progression, showing semantic similarity.",
+            '2,1': "\"starts\" attends to \"journey\" with high attention — the relationship is symmetric in raw scores due to dot product commutativity.",
+            '2,2': "\"starts\" attends to itself (1.457) — another high self-attention pattern typical of content words.",
+            '4,5': "Lowest attention in the matrix: \"one\" and \"step\" have very different embeddings, showing minimal semantic overlap.",
+            '3,4': "\"with\" attends weakly to \"one\" — a function word and a number have little semantic connection.",
+            '4,4': "\"one\" has moderate self-attention (0.665) — lower than other tokens, suggesting a more distributed embedding.",
+            '5,1': "\"step\" attends strongly to \"journey\" (0.218) — both relate to movement and progress, showing thematic connection.",
+            '0,1': "\"Your\" attends to \"journey\" — the possessive connects to what it modifies, showing syntactic relationship."
+        };
+
+        let currentMode = 'weights';
+        let selectedCell = null;
+
+        // Color interpolation
+        function interpolateColor(color1, color2, factor) {
+            const hex = (c) => parseInt(c, 16);
+            const r1 = hex(color1.slice(1, 3)), g1 = hex(color1.slice(3, 5)), b1 = hex(color1.slice(5, 7));
+            const r2 = hex(color2.slice(1, 3)), g2 = hex(color2.slice(3, 5)), b2 = hex(color2.slice(5, 7));
+            const r = Math.round(r1 + (r2 - r1) * factor);
+            const g = Math.round(g1 + (g2 - g1) * factor);
+            const b = Math.round(b1 + (b2 - b1) * factor);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function getScoreColor(score) {
+            const { min, max } = scoreStats;
+            const normalized = (score - min) / (max - min);
+            if (normalized < 0.33) return interpolateColor('#fef3c7', '#fcd34d', normalized * 3);
+            if (normalized < 0.66) return interpolateColor('#fcd34d', '#f97316', (normalized - 0.33) * 3);
+            return interpolateColor('#f97316', '#dc2626', (normalized - 0.66) * 3);
+        }
+
+        function getWeightColor(weight) {
+            const { min, max } = weightStats;
+            const normalized = (weight - min) / (max - min);
+            if (normalized < 0.33) return interpolateColor('#ecfdf5', '#6ee7b7', normalized * 3);
+            if (normalized < 0.66) return interpolateColor('#6ee7b7', '#14b8a6', (normalized - 0.33) * 3);
+            return interpolateColor('#14b8a6', '#0891b2', (normalized - 0.66) * 3);
+        }
+
+        function getTextColor(bgColor) {
+            // Parse RGB
+            const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (!match) return '#1e293b';
+            const [, r, g, b] = match.map(Number);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.6 ? '#1e293b' : '#ffffff';
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-scores').classList.toggle('active', mode === 'scores');
+            document.getElementById('btn-weights').classList.toggle('active', mode === 'weights');
+
+            const legendBar = document.getElementById('legend-bar');
+            const legendMin = document.getElementById('legend-min');
+            const legendMax = document.getElementById('legend-max');
+
+            if (mode === 'scores') {
+                legendBar.className = 'legend-bar warm';
+                legendMin.textContent = '0.29';
+                legendMax.textContent = '1.50';
+            } else {
+                legendBar.className = 'legend-bar cool';
+                legendMin.textContent = '0.10';
+                legendMax.textContent = '0.24';
+            }
+
+            updateGrid();
+            if (selectedCell) {
+                updateDetailPanel(selectedCell.row, selectedCell.col);
+            }
+        }
+
+        function updateGrid() {
+            const cells = document.querySelectorAll('.cell');
+            const data = currentMode === 'scores' ? attentionScores : attentionWeights;
+            const colorFn = currentMode === 'scores' ? getScoreColor : getWeightColor;
+
+            cells.forEach(cell => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                const value = data[row][col];
+                const bgColor = colorFn(value);
+
+                cell.style.backgroundColor = bgColor;
+                cell.classList.add('animating');
+
+                const valueEl = cell.querySelector('.value');
+                if (currentMode === 'scores') {
+                    valueEl.textContent = value.toFixed(2);
+                } else {
+                    valueEl.textContent = (value * 100).toFixed(0) + '%';
+                }
+                valueEl.style.color = getTextColor(bgColor);
+
+                setTimeout(() => cell.classList.remove('animating'), 300);
+            });
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.row-highlight').forEach(el => el.classList.remove('row-highlight'));
+            document.querySelectorAll('.col-highlight').forEach(el => el.classList.remove('col-highlight'));
+            document.querySelectorAll('.row-header.highlight').forEach(el => el.classList.remove('highlight'));
+            document.querySelectorAll('.column-header.highlight').forEach(el => el.classList.remove('highlight'));
+        }
+
+        function highlightRowCol(row, col) {
+            clearHighlights();
+
+            // Highlight row
+            document.querySelectorAll(`.cell[data-row="${row}"]`).forEach(cell => {
+                cell.classList.add('row-highlight');
+            });
+
+            // Highlight column
+            document.querySelectorAll(`.cell[data-col="${col}"]`).forEach(cell => {
+                cell.classList.add('col-highlight');
+            });
+
+            // Highlight headers
+            document.querySelectorAll('.row-header')[row].classList.add('highlight');
+            document.querySelectorAll('.column-header')[col].classList.add('highlight');
+        }
+
+        function updateDetailPanel(row, col) {
+            const panel = document.getElementById('detail-panel');
+            const score = attentionScores[row][col];
+            const weight = attentionWeights[row][col];
+            const queryToken = tokens[row];
+            const keyToken = tokens[col];
+
+            const key = `${row},${col}`;
+            let interpretation = interpretations[key];
+            if (!interpretation) {
+                if (row === col) {
+                    interpretation = `"${queryToken}" attends to itself — self-attention helps preserve the token's own information in the output.`;
+                } else {
+                    interpretation = `"${queryToken}" attends to "${keyToken}" with ${weight > 0.15 ? 'moderate to high' : 'relatively low'} attention, indicating ${weight > 0.15 ? 'some semantic or positional relationship' : 'limited direct semantic connection'}.`;
+                }
+            }
+
+            panel.classList.remove('empty');
+            panel.innerHTML = `
+        <div class="detail-header">
+          <div class="detail-tokens">
+            <span class="detail-token query">${queryToken}</span>
+            <span class="detail-arrow">→</span>
+            <span class="detail-token key">${keyToken}</span>
+          </div>
+          <span class="detail-position">Row ${row + 1} → Column ${col + 1}</span>
+        </div>
+        <div class="detail-stats">
+          <div class="detail-stat">
+            <div class="detail-stat-label">Raw Score (ω)</div>
+            <div class="detail-stat-value">${score.toFixed(4)}</div>
+            <div class="detail-stat-extra">dot product of embeddings</div>
+          </div>
+          <div class="detail-stat">
+            <div class="detail-stat-label">Attention Weight (α)</div>
+            <div class="detail-stat-value">${(weight * 100).toFixed(2)}%</div>
+            <div class="detail-stat-extra">of ${queryToken}'s total attention</div>
+          </div>
+        </div>
+        <div class="detail-interpretation">${interpretation}</div>
+      `;
+        }
+
+        function highlightCell(row, col) {
+            selectedCell = { row, col };
+            document.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
+            document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`).classList.add('selected');
+            highlightRowCol(row, col);
+            updateDetailPanel(row, col);
+        }
+
+        function initGrid() {
+            const grid = document.getElementById('grid');
+            const rowHeaders = document.getElementById('row-headers');
+            const columnHeaders = document.getElementById('column-headers');
+
+            // Create column headers
+            tokens.forEach((token, i) => {
+                const header = document.createElement('div');
+                header.className = 'column-header';
+                header.textContent = token;
+                header.addEventListener('mouseenter', () => {
+                    document.querySelectorAll(`.cell[data-col="${i}"]`).forEach(cell => {
+                        cell.classList.add('col-highlight');
+                    });
+                    header.classList.add('highlight');
+                });
+                header.addEventListener('mouseleave', () => {
+                    if (!selectedCell || selectedCell.col !== i) {
+                        document.querySelectorAll(`.cell[data-col="${i}"]`).forEach(cell => {
+                            cell.classList.remove('col-highlight');
+                        });
+                        header.classList.remove('highlight');
+                    }
+                });
+                columnHeaders.appendChild(header);
+            });
+
+            // Create row headers
+            tokens.forEach((token, i) => {
+                const header = document.createElement('div');
+                header.className = 'row-header';
+                header.textContent = token;
+                header.addEventListener('mouseenter', () => {
+                    document.querySelectorAll(`.cell[data-row="${i}"]`).forEach(cell => {
+                        cell.classList.add('row-highlight');
+                    });
+                    header.classList.add('highlight');
+                });
+                header.addEventListener('mouseleave', () => {
+                    if (!selectedCell || selectedCell.row !== i) {
+                        document.querySelectorAll(`.cell[data-row="${i}"]`).forEach(cell => {
+                            cell.classList.remove('row-highlight');
+                        });
+                        header.classList.remove('highlight');
+                    }
+                });
+                rowHeaders.appendChild(header);
+            });
+
+            // Create grid cells
+            for (let row = 0; row < 6; row++) {
+                for (let col = 0; col < 6; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+
+                    const value = document.createElement('span');
+                    value.className = 'value';
+                    cell.appendChild(value);
+
+                    cell.addEventListener('mouseenter', () => {
+                        if (!selectedCell) {
+                            highlightRowCol(row, col);
+                            updateDetailPanel(row, col);
+                        }
+                    });
+
+                    cell.addEventListener('mouseleave', () => {
+                        if (!selectedCell) {
+                            clearHighlights();
+                        }
+                    });
+
+                    cell.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (selectedCell && selectedCell.row === row && selectedCell.col === col) {
+                            // Deselect
+                            selectedCell = null;
+                            document.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
+                            clearHighlights();
+                            document.getElementById('detail-panel').classList.add('empty');
+                            document.getElementById('detail-panel').innerHTML = '<p>Hover over a cell to see detailed information</p>';
+                        } else {
+                            highlightCell(row, col);
+                        }
+                    });
+
+                    grid.appendChild(cell);
+                }
+            }
+
+            // Click outside to deselect
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.cell') && !e.target.closest('.insight-card')) {
+                    if (selectedCell) {
+                        selectedCell = null;
+                        document.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
+                        clearHighlights();
+                        document.getElementById('detail-panel').classList.add('empty');
+                        document.getElementById('detail-panel').innerHTML = '<p>Hover over a cell to see detailed information</p>';
+                    }
+                }
+            });
+
+            updateGrid();
+        }
+
+        // Initialize
+        initGrid();
+    </script>
+</body>
+
+</html>

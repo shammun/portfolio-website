@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self-Attention Step-by-Step Calculator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&family=Crimson+Pro:ital,wght@0,400;1,400&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f0f4ff;
+            --card-bg: #ffffff;
+            --shadow-purple: rgba(99, 102, 241, 0.12);
+            --shadow-purple-hover: rgba(99, 102, 241, 0.2);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --orange-light: #fff7ed;
+            --orange-border: #f97316;
+            --orange-text: #c2410c;
+            --teal-start: #6ee7b7;
+            --teal-end: #14b8a6;
+            --purple-light: #c4b5fd;
+            --purple-main: #8b5cf6;
+            --rose: #f43f5e;
+            --yellow: #eab308;
+            --blue: #3b82f6;
+            --border-light: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 4px 24px var(--shadow-purple), 0 0 0 1px rgba(99, 102, 241, 0.05);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border-light);
+            background: linear-gradient(180deg, #ffffff 0%, #fafbff 100%);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px solid var(--border-light);
+            background: white;
+            color: var(--text-muted);
+        }
+
+        .step-circle.active {
+            background: linear-gradient(135deg, var(--purple-light) 0%, var(--purple-main) 100%);
+            border-color: var(--purple-main);
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .step-circle.completed {
+            background: var(--teal-end);
+            border-color: var(--teal-end);
+            color: white;
+        }
+
+        .step-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: color 0.3s ease;
+        }
+
+        .step-label.active {
+            color: var(--purple-main);
+        }
+
+        .step-connector {
+            width: 40px;
+            height: 2px;
+            background: var(--border-light);
+            transition: background 0.3s ease;
+        }
+
+        .step-connector.completed {
+            background: var(--teal-end);
+        }
+
+        .content {
+            padding: 28px 32px;
+            min-height: 420px;
+        }
+
+        .step-header {
+            margin-bottom: 24px;
+        }
+
+        .step-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .step-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-style: italic;
+            font-family: 'Crimson Pro', Georgia, serif;
+        }
+
+        .tokens-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .token-card {
+            background: white;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            min-width: 100px;
+        }
+
+        .token-card:hover {
+            border-color: var(--purple-light);
+            box-shadow: 0 4px 12px var(--shadow-purple);
+            transform: translateY(-2px);
+        }
+
+        .token-card.selected {
+            background: var(--orange-light);
+            border-color: var(--orange-border);
+            box-shadow: 0 4px 16px rgba(249, 115, 22, 0.2);
+        }
+
+        .token-card.highlighted {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-color: var(--blue);
+        }
+
+        .token-name {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .token-card.selected .token-name {
+            color: var(--orange-text);
+        }
+
+        .token-vector {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .token-position {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .calculation-box {
+            background: linear-gradient(135deg, #fafbff 0%, #f5f3ff 100%);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+        }
+
+        .calc-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .calc-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            min-width: 60px;
+        }
+
+        .calc-vector {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 14px;
+            color: var(--text-primary);
+            background: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+        }
+
+        .calc-operator {
+            font-size: 18px;
+            color: var(--purple-main);
+            font-weight: 600;
+        }
+
+        .calc-breakdown {
+            background: white;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-top: 16px;
+            border: 1px solid var(--border-light);
+        }
+
+        .calc-steps {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 13px;
+            line-height: 2;
+            color: var(--text-primary);
+        }
+
+        .calc-result {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--purple-main);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .scores-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .score-item {
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.25s ease;
+        }
+
+        .score-item.active {
+            border-color: var(--purple-main);
+            box-shadow: 0 4px 12px var(--shadow-purple);
+        }
+
+        .score-item.computed {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: var(--teal-end);
+        }
+
+        .score-token {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .score-value {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 14px;
+            color: var(--purple-main);
+            font-weight: 500;
+        }
+
+        .softmax-container {
+            display: grid;
+            grid-template-columns: 1fr 60px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .weights-column {
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .weights-column h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .weight-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .weight-row:last-child {
+            border-bottom: none;
+        }
+
+        .weight-token {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .weight-value {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .arrow-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-top: 40px;
+        }
+
+        .arrow-column svg {
+            color: var(--purple-main);
+        }
+
+        .arrow-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .bar-chart {
+            margin-top: 24px;
+        }
+
+        .bar-chart h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 12px;
+        }
+
+        .bar-label {
+            width: 70px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .bar-container {
+            flex: 1;
+            height: 24px;
+            background: #f1f5f9;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+        }
+
+        .bar-percent {
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .weighted-sum-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .weighted-sum-table th {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .weighted-sum-table td {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 12px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: middle;
+        }
+
+        .weighted-sum-table tr:hover {
+            background: #fafbff;
+        }
+
+        .contribution-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .context-result {
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border: 2px solid var(--purple-main);
+            border-radius: 12px;
+            padding: 20px 24px;
+            text-align: center;
+        }
+
+        .context-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .context-vector {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--purple-main);
+        }
+
+        .stacked-bars {
+            margin-top: 24px;
+        }
+
+        .stacked-bar-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+
+        .dim-label {
+            width: 50px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .stacked-container {
+            flex: 1;
+            height: 28px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .stacked-segment {
+            height: 100%;
+            transition: width 0.5s ease-out;
+        }
+
+        .dim-value {
+            width: 60px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: right;
+        }
+
+        .teaching-callout {
+            background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+            border: 1px solid #fde047;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-top: 20px;
+        }
+
+        .callout-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #854d0e;
+            margin-bottom: 6px;
+        }
+
+        .callout-text {
+            font-size: 13px;
+            color: #713f12;
+            line-height: 1.5;
+        }
+
+        .summary-comparison {
+            display: grid;
+            grid-template-columns: 1fr 60px 1fr;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .vector-box {
+            background: white;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .vector-box.original {
+            border-color: var(--orange-border);
+            background: var(--orange-light);
+        }
+
+        .vector-box.context {
+            border-color: var(--purple-main);
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+        }
+
+        .vector-box-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .vector-box-value {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .vector-box.original .vector-box-value {
+            color: var(--orange-text);
+        }
+
+        .vector-box.context .vector-box-value {
+            color: var(--purple-main);
+        }
+
+        .embeddings-footer {
+            padding: 20px 32px;
+            background: linear-gradient(180deg, #fafbff 0%, #f5f7ff 100%);
+            border-top: 1px solid var(--border-light);
+        }
+
+        .footer-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .mini-tokens {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .mini-token {
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .mini-token.selected {
+            background: var(--orange-light);
+            border-color: var(--orange-border);
+            color: var(--orange-text);
+        }
+
+        .mini-token .vector {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 2px;
+        }
+
+        .navigation {
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border-light);
+            background: white;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: 2px solid var(--border-light);
+            border-radius: 10px;
+            background: white;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            border-color: var(--purple-main);
+            color: var(--purple-main);
+            box-shadow: 0 4px 12px var(--shadow-purple);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .nav-btn.primary {
+            background: linear-gradient(135deg, var(--purple-light) 0%, var(--purple-main) 100%);
+            border-color: var(--purple-main);
+            color: white;
+        }
+
+        .nav-btn.primary:hover:not(:disabled) {
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .query-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .query-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .query-dropdown {
+            padding: 8px 16px;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .query-dropdown:hover {
+            border-color: var(--orange-border);
+        }
+
+        .query-dropdown:focus {
+            outline: none;
+            border-color: var(--orange-border);
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+        }
+
+        /* Code Block Styling */
+        .code-block {
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-light);
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-bottom: 1px solid #475569;
+        }
+
+        .code-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .code-lang {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fbbf24;
+        }
+
+        .code-lang svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .code-title {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .copy-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 4px;
+            color: #cbd5e1;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .copy-btn.copied {
+            background: rgba(34, 197, 94, 0.3);
+            color: #4ade80;
+        }
+
+        .code-content {
+            background: #1e293b;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        .code-content pre {
+            margin: 0;
+            font-family: 'Source Code Pro', 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #e2e8f0;
+            white-space: pre;
+        }
+
+        .code-content .cm {
+            color: #64748b;
+        }
+
+        .code-content .kw {
+            color: #c084fc;
+        }
+
+        .code-content .fn {
+            color: #60a5fa;
+        }
+
+        .code-content .st {
+            color: #4ade80;
+        }
+
+        .code-content .nu {
+            color: #fbbf24;
+        }
+
+        .code-content .va {
+            color: #f472b6;
+        }
+
+        .code-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 16px;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid #475569;
+            border-radius: 8px;
+            color: #fbbf24;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .code-toggle:hover {
+            border-color: #fbbf24;
+            box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
+        }
+
+        .code-toggle svg {
+            transition: transform 0.2s ease;
+        }
+
+        .code-toggle.expanded svg:first-child {
+            transform: rotate(90deg);
+        }
+
+        .code-section {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .code-section.visible {
+            display: block;
+        }
+
+        .learn-more {
+            margin-top: 16px;
+        }
+
+        .learn-more-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--purple-main);
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .learn-more-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .learn-more-content {
+            display: none;
+            margin-top: 12px;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-family: 'Crimson Pro', Georgia, serif;
+        }
+
+        .learn-more-content.visible {
+            display: block;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-in {
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .pulse {
+            animation: pulse 0.6s ease;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 12px;
+            }
+
+            .header,
+            .content,
+            .navigation,
+            .embeddings-footer {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .scores-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .softmax-container {
+                grid-template-columns: 1fr;
+            }
+
+            .arrow-column {
+                transform: rotate(90deg);
+                padding: 16px 0;
+            }
+
+            .summary-comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .formula {
+            font-family: 'Crimson Pro', Georgia, serif;
+            font-style: italic;
+        }
+
+        .subscript {
+            font-size: 0.7em;
+            vertical-align: sub;
+        }
+
+        .superscript {
+            font-size: 0.7em;
+            vertical-align: super;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-top">
+                <div>
+                    <h1 class="title">Computing a Context Vector</h1>
+                    <p class="subtitle">Interactive Self-Attention Calculator</p>
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-step">
+                    <div class="step-circle" data-step="0">0</div>
+                    <span class="step-label">Overview</span>
+                </div>
+                <div class="step-connector"></div>
+                <div class="progress-step">
+                    <div class="step-circle" data-step="1">1</div>
+                    <span class="step-label">Dot Products</span>
+                </div>
+                <div class="step-connector"></div>
+                <div class="progress-step">
+                    <div class="step-circle" data-step="2">2</div>
+                    <span class="step-label">Softmax</span>
+                </div>
+                <div class="step-connector"></div>
+                <div class="progress-step">
+                    <div class="step-circle" data-step="3">3</div>
+                    <span class="step-label">Weighted Sum</span>
+                </div>
+                <div class="step-connector"></div>
+                <div class="progress-step">
+                    <div class="step-circle" data-step="4">4</div>
+                    <span class="step-label">Result</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content" id="content"></div>
+
+        <div class="embeddings-footer">
+            <div class="footer-label">Input Embeddings — "Your journey starts with one step"</div>
+            <div class="mini-tokens" id="mini-tokens"></div>
+        </div>
+
+        <div class="navigation">
+            <button class="nav-btn" id="prev-btn" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Previous
+            </button>
+            <div class="query-selector">
+                <span class="query-label">Query Token:</span>
+                <select class="query-dropdown" id="query-selector">
+                    <option value="Your">Your</option>
+                    <option value="journey" selected>journey</option>
+                    <option value="starts">starts</option>
+                    <option value="with">with</option>
+                    <option value="one">one</option>
+                    <option value="step">step</option>
+                </select>
+            </div>
+            <button class="nav-btn primary" id="next-btn">
+                Next
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const tokens = ['Your', 'journey', 'starts', 'with', 'one', 'step'];
+
+        const embeddings = {
+            'Your': { vector: [0.43, 0.15, 0.89], position: 1 },
+            'journey': { vector: [0.55, 0.87, 0.66], position: 2 },
+            'starts': { vector: [0.57, 0.85, 0.64], position: 3 },
+            'with': { vector: [0.22, 0.58, 0.33], position: 4 },
+            'one': { vector: [0.77, 0.25, 0.10], position: 5 },
+            'step': { vector: [0.05, 0.80, 0.55], position: 6 }
+        };
+
+        const tokenColors = {
+            'Your': '#f97316',
+            'journey': '#8b5cf6',
+            'starts': '#14b8a6',
+            'with': '#f43f5e',
+            'one': '#eab308',
+            'step': '#3b82f6'
+        };
+
+        // PyTorch code snippets (stored separately to avoid template literal issues)
+        const pytorchCode = {
+            setup: `<span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+
+<span class="cm"># Define the sentence and embeddings (3D vectors for simplicity)</span>
+tokens = [<span class="st">'Your'</span>, <span class="st">'journey'</span>, <span class="st">'starts'</span>, <span class="st">'with'</span>, <span class="st">'one'</span>, <span class="st">'step'</span>]
+
+<span class="cm"># Create embedding matrix: shape (6, 3) = (seq_len, embed_dim)</span>
+X = torch.<span class="fn">tensor</span>([
+    [<span class="nu">0.43</span>, <span class="nu">0.15</span>, <span class="nu">0.89</span>],  <span class="cm"># Your</span>
+    [<span class="nu">0.55</span>, <span class="nu">0.87</span>, <span class="nu">0.66</span>],  <span class="cm"># journey</span>
+    [<span class="nu">0.57</span>, <span class="nu">0.85</span>, <span class="nu">0.64</span>],  <span class="cm"># starts</span>
+    [<span class="nu">0.22</span>, <span class="nu">0.58</span>, <span class="nu">0.33</span>],  <span class="cm"># with</span>
+    [<span class="nu">0.77</span>, <span class="nu">0.25</span>, <span class="nu">0.10</span>],  <span class="cm"># one</span>
+    [<span class="nu">0.05</span>, <span class="nu">0.80</span>, <span class="nu">0.55</span>],  <span class="cm"># step</span>
+])
+
+<span class="cm"># Select query token (index 1 = "journey")</span>
+<span class="va">query_idx</span> = <span class="nu">1</span>
+<span class="va">query</span> = X[<span class="va">query_idx</span>]  <span class="cm"># Shape: (3,)</span>
+
+<span class="fn">print</span>(<span class="st">f"Query token: {tokens[query_idx]}"</span>)
+<span class="fn">print</span>(<span class="st">f"Query vector: {query}"</span>)`,
+
+            dotProduct: `<span class="cm"># Step 1: Compute attention scores (dot products)</span>
+<span class="cm"># For a single query, compute dot product with all keys</span>
+
+<span class="cm"># Method 1: Using torch.matmul (vectorized)</span>
+<span class="va">attention_scores</span> = torch.<span class="fn">matmul</span>(X, <span class="va">query</span>)  <span class="cm"># Shape: (6,)</span>
+
+<span class="cm"># Method 2: Manual loop (for understanding)</span>
+<span class="va">scores_manual</span> = []
+<span class="kw">for</span> i, key <span class="kw">in</span> <span class="fn">enumerate</span>(X):
+    <span class="cm"># Dot product: sum of element-wise multiplication</span>
+    score = torch.<span class="fn">dot</span>(<span class="va">query</span>, key)
+    <span class="va">scores_manual</span>.<span class="fn">append</span>(score)
+    <span class="fn">print</span>(<span class="st">f"ω({tokens[query_idx]}, {tokens[i]}) = {score:.4f}"</span>)
+
+<span class="cm"># Method 3: For ALL queries at once (full self-attention)</span>
+<span class="cm"># attention_scores_all = torch.matmul(X, X.T)  # Shape: (6, 6)</span>
+
+<span class="fn">print</span>(<span class="st">f"\\nAttention scores: {attention_scores}"</span>)`,
+
+            softmax: `<span class="cm"># Step 2: Apply softmax to convert scores to probabilities</span>
+
+<span class="cm"># Method 1: Using PyTorch's built-in softmax (recommended)</span>
+<span class="va">attention_weights</span> = F.<span class="fn">softmax</span>(<span class="va">attention_scores</span>, dim=<span class="nu">0</span>)
+
+<span class="cm"># Method 2: Manual implementation (for understanding)</span>
+<span class="kw">def</span> <span class="fn">softmax_manual</span>(scores):
+    <span class="cm"># Subtract max for numerical stability</span>
+    scores_stable = scores - scores.<span class="fn">max</span>()
+    exp_scores = torch.<span class="fn">exp</span>(scores_stable)
+    <span class="kw">return</span> exp_scores / exp_scores.<span class="fn">sum</span>()
+
+<span class="va">weights_manual</span> = <span class="fn">softmax_manual</span>(<span class="va">attention_scores</span>)
+
+<span class="cm"># Print results</span>
+<span class="fn">print</span>(<span class="st">"Attention weights (probabilities):"</span>)
+<span class="kw">for</span> i, (token, weight) <span class="kw">in</span> <span class="fn">enumerate</span>(<span class="fn">zip</span>(tokens, <span class="va">attention_weights</span>)):
+    <span class="fn">print</span>(<span class="st">f"  α({token}): {weight:.4f} ({weight*100:.1f}%)"</span>)
+
+<span class="cm"># Verify weights sum to 1</span>
+<span class="fn">print</span>(<span class="st">f"\\nSum of weights: {attention_weights.sum():.4f}"</span>)`,
+
+            weightedSum: `<span class="cm"># Step 3: Compute weighted sum of all embeddings</span>
+
+<span class="cm"># Method 1: Matrix multiplication (vectorized, recommended)</span>
+<span class="cm"># weights shape: (6,), X shape: (6, 3) → result shape: (3,)</span>
+<span class="va">context_vector</span> = torch.<span class="fn">matmul</span>(<span class="va">attention_weights</span>, X)
+
+<span class="cm"># Method 2: Manual loop (for understanding)</span>
+<span class="va">context_manual</span> = torch.<span class="fn">zeros</span>(<span class="nu">3</span>)
+<span class="fn">print</span>(<span class="st">"Per-token contributions:"</span>)
+<span class="kw">for</span> i, (token, weight, embedding) <span class="kw">in</span> <span class="fn">enumerate</span>(<span class="fn">zip</span>(tokens, <span class="va">attention_weights</span>, X)):
+    contribution = weight * embedding
+    <span class="va">context_manual</span> += contribution
+    <span class="fn">print</span>(<span class="st">f"  {weight:.4f} × {embedding.tolist()} = {contribution.tolist()}"</span>)
+
+<span class="cm"># Method 3: Using einsum (elegant)</span>
+<span class="cm"># context_einsum = torch.einsum('i,ij->j', attention_weights, X)</span>
+
+<span class="fn">print</span>(<span class="st">f"\\nContext vector z: {context_vector.tolist()}"</span>)
+<span class="fn">print</span>(<span class="st">f"Original embedding: {X[query_idx].tolist()}"</span>)`,
+
+            complete: `<span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+
+<span class="kw">def</span> <span class="fn">simplified_self_attention</span>(X):
+    <span class="st">"""
+    Simplified self-attention (no learnable weights).
+    
+    Args:
+        X: Embedding matrix of shape (seq_len, embed_dim)
+    
+    Returns:
+        Context vectors of shape (seq_len, embed_dim)
+    """</span>
+    <span class="cm"># Step 1: Compute attention scores for ALL positions at once</span>
+    <span class="cm"># X @ X.T gives us (seq_len, seq_len) score matrix</span>
+    <span class="va">attention_scores</span> = torch.<span class="fn">matmul</span>(X, X.<span class="fn">T</span>)
+    
+    <span class="cm"># Step 2: Apply softmax row-wise (each query gets its own distribution)</span>
+    <span class="va">attention_weights</span> = F.<span class="fn">softmax</span>(<span class="va">attention_scores</span>, dim=<span class="nu">-1</span>)
+    
+    <span class="cm"># Step 3: Weighted sum - each position gets its context vector</span>
+    <span class="va">context_vectors</span> = torch.<span class="fn">matmul</span>(<span class="va">attention_weights</span>, X)
+    
+    <span class="kw">return</span> <span class="va">context_vectors</span>, <span class="va">attention_weights</span>
+
+<span class="cm"># Run on our embeddings</span>
+X = torch.<span class="fn">tensor</span>([
+    [<span class="nu">0.43</span>, <span class="nu">0.15</span>, <span class="nu">0.89</span>], [<span class="nu">0.55</span>, <span class="nu">0.87</span>, <span class="nu">0.66</span>], [<span class="nu">0.57</span>, <span class="nu">0.85</span>, <span class="nu">0.64</span>],
+    [<span class="nu">0.22</span>, <span class="nu">0.58</span>, <span class="nu">0.33</span>], [<span class="nu">0.77</span>, <span class="nu">0.25</span>, <span class="nu">0.10</span>], [<span class="nu">0.05</span>, <span class="nu">0.80</span>, <span class="nu">0.55</span>]
+])
+
+<span class="va">context</span>, <span class="va">weights</span> = <span class="fn">simplified_self_attention</span>(X)
+
+<span class="fn">print</span>(<span class="st">"Context vector for 'journey' (index 1):"</span>)
+<span class="fn">print</span>(<span class="st">f"  Original: {X[1].tolist()}"</span>)
+<span class="fn">print</span>(<span class="st">f"  Context:  {context[1].tolist()}"</span>)
+<span class="fn">print</span>(<span class="st">f"\\nAttention weights for 'journey':"</span>)
+<span class="fn">print</span>(<span class="st">f"  {weights[1].tolist()}"</span>)`
+        };
+
+        let currentStep = 0;
+        let selectedQuery = 'journey';
+        let computedData = {};
+
+        function dotProduct(v1, v2) {
+            return v1.reduce((sum, val, i) => sum + val * v2[i], 0);
+        }
+
+        function softmax(scores) {
+            const maxScore = Math.max(...scores);
+            const expScores = scores.map(s => Math.exp(s - maxScore));
+            const sumExp = expScores.reduce((a, b) => a + b, 0);
+            return expScores.map(e => e / sumExp);
+        }
+
+        function computeAttention(queryToken) {
+            const queryVec = embeddings[queryToken].vector;
+            const scores = tokens.map(t => dotProduct(queryVec, embeddings[t].vector));
+            const weights = softmax(scores);
+
+            const contextVector = [0, 0, 0];
+            tokens.forEach((t, i) => {
+                embeddings[t].vector.forEach((v, j) => {
+                    contextVector[j] += weights[i] * v;
+                });
+            });
+
+            const contributions = tokens.map((t, i) =>
+                embeddings[t].vector.map(v => weights[i] * v)
+            );
+
+            return { scores, weights, contextVector, contributions };
+        }
+
+        function formatVector(vec, decimals = 2) {
+            return '[' + vec.map(v => v.toFixed(decimals)).join(', ') + ']';
+        }
+
+        function updateComputedData() {
+            computedData = computeAttention(selectedQuery);
+        }
+
+        function renderMiniTokens() {
+            const container = document.getElementById('mini-tokens');
+            container.innerHTML = tokens.map(t =>
+                '<div class="mini-token ' + (t === selectedQuery ? 'selected' : '') + '">' +
+                t +
+                '<span class="vector">' + formatVector(embeddings[t].vector) + '</span>' +
+                '</div>'
+            ).join('');
+        }
+
+        function updateProgress() {
+            document.querySelectorAll('.step-circle').forEach((circle, i) => {
+                circle.classList.remove('active', 'completed');
+                if (i < currentStep) circle.classList.add('completed');
+                else if (i === currentStep) circle.classList.add('active');
+            });
+
+            document.querySelectorAll('.step-label').forEach((label, i) => {
+                label.classList.toggle('active', i === currentStep);
+            });
+
+            document.querySelectorAll('.step-connector').forEach((conn, i) => {
+                conn.classList.toggle('completed', i < currentStep);
+            });
+        }
+
+        function createCodeBlock(title, codeKey) {
+            return '<button class="code-toggle" onclick="toggleCode(this)">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>' +
+                'PyTorch Code: ' + title +
+                '</button>' +
+                '<div class="code-section">' +
+                '<div class="code-block">' +
+                '<div class="code-header">' +
+                '<div class="code-header-left">' +
+                '<span class="code-lang">' +
+                '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M19.14 7.5A2.86 2.86 0 0 1 22 10.36v3.78A2.86 2.86 0 0 1 19.14 17H12l-4 4v-4H4.86A2.86 2.86 0 0 1 2 14.14v-3.78A2.86 2.86 0 0 1 4.86 7.5h14.28M12 10a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m-4.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/></svg>' +
+                'PyTorch' +
+                '</span>' +
+                '<span class="code-title">' + title + '</span>' +
+                '</div>' +
+                '<button class="copy-btn" onclick="copyCode(this)">' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+                'Copy' +
+                '</button>' +
+                '</div>' +
+                '<div class="code-content">' +
+                '<pre>' + pytorchCode[codeKey] + '</pre>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
+        }
+
+        function renderStep() {
+            const content = document.getElementById('content');
+            content.innerHTML = '';
+            updateProgress();
+            renderMiniTokens();
+
+            switch (currentStep) {
+                case 0: renderOverview(); break;
+                case 1: renderDotProducts(); break;
+                case 2: renderSoftmax(); break;
+                case 3: renderWeightedSum(); break;
+                case 4: renderSummary(); break;
+            }
+
+            document.getElementById('prev-btn').disabled = currentStep === 0;
+            const nextBtn = document.getElementById('next-btn');
+            if (currentStep === 4) {
+                nextBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Restart';
+            } else {
+                nextBtn.innerHTML = 'Next <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+            }
+        }
+
+        function renderOverview() {
+            const content = document.getElementById('content');
+            const qIdx = tokens.indexOf(selectedQuery);
+
+            let html = '<div class="step-header fade-in">' +
+                '<h2 class="step-title">Step 0: Overview</h2>' +
+                '<p class="step-description">"Select a query token and step through the computation"</p>' +
+                '</div>' +
+
+                '<div class="teaching-callout fade-in" style="animation-delay: 0.1s; margin-bottom: 24px;">' +
+                '<div class="callout-title">What We\'re Computing</div>' +
+                '<div class="callout-text">' +
+                'A <strong>context vector</strong> combines information from ALL tokens in a sequence, weighted by relevance. ' +
+                'Let\'s compute <span class="formula">z<sup class="superscript">' + (qIdx + 1) + '</sup></span> — the context vector for ' +
+                '"<strong>' + selectedQuery + '</strong>" — step by step.' +
+                '</div>' +
+                '</div>' +
+
+                '<div class="footer-label">Click a token to select it as the query:</div>' +
+                '<div class="tokens-row fade-in" style="animation-delay: 0.2s;">';
+
+            tokens.forEach((t, i) => {
+                html += '<div class="token-card ' + (t === selectedQuery ? 'selected' : '') + '" data-token="' + t + '">' +
+                    '<div class="token-name">' + t + '</div>' +
+                    '<div class="token-vector">' + formatVector(embeddings[t].vector) + '</div>' +
+                    '<div class="token-position">Position: x<sup>' + (i + 1) + '</sup></div>' +
+                    '</div>';
+            });
+
+            html += '</div>' +
+
+                '<div class="teaching-callout fade-in" style="animation-delay: 0.3s; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #86efac;">' +
+                '<div class="callout-title" style="color: #166534;">The Three Steps</div>' +
+                '<div class="callout-text" style="color: #15803d;">' +
+                '<strong>1. Dot Products:</strong> Measure similarity between query and all tokens<br>' +
+                '<strong>2. Softmax:</strong> Convert scores to probabilities (sum to 1)<br>' +
+                '<strong>3. Weighted Sum:</strong> Blend all embeddings by their weights' +
+                '</div>' +
+                '</div>' +
+
+                createCodeBlock('Setup', 'setup');
+
+            content.innerHTML = html;
+
+            content.querySelectorAll('.token-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    selectedQuery = card.dataset.token;
+                    document.getElementById('query-selector').value = selectedQuery;
+                    updateComputedData();
+                    renderStep();
+                });
+            });
+        }
+
+        function renderDotProducts() {
+            const content = document.getElementById('content');
+            const qIdx = tokens.indexOf(selectedQuery);
+            const queryVec = embeddings[selectedQuery].vector;
+
+            let html = '<div class="step-header fade-in">' +
+                '<h2 class="step-title">Step 1: Compute Attention Scores</h2>' +
+                '<p class="step-description">"How similar is the query to each token?"</p>' +
+                '</div>' +
+
+                '<div class="calculation-box fade-in" style="animation-delay: 0.1s;">' +
+                '<div class="calc-row">' +
+                '<span class="calc-label">Query:</span>' +
+                '<span style="font-weight: 600; color: ' + tokenColors[selectedQuery] + ';">' + selectedQuery + '</span>' +
+                '<span class="calc-vector">' + formatVector(queryVec, 2) + '</span>' +
+                '</div>' +
+                '<div id="current-calc"></div>' +
+                '</div>' +
+
+                '<div class="footer-label" style="margin-top: 20px;">Attention Scores (ω):</div>' +
+                '<div class="scores-grid fade-in" style="animation-delay: 0.2s;" id="scores-grid">';
+
+            tokens.forEach((t, i) => {
+                html += '<div class="score-item" data-index="' + i + '">' +
+                    '<span class="score-token" style="color: ' + tokenColors[t] + ';">' + t + '</span>' +
+                    '<span class="score-value" id="score-' + i + '">—</span>' +
+                    '</div>';
+            });
+
+            html += '</div>' +
+
+                '<div class="teaching-callout fade-in" style="animation-delay: 0.3s;">' +
+                '<div class="callout-title">Why Dot Product?</div>' +
+                '<div class="callout-text">' +
+                'The dot product measures how "aligned" two vectors are. When the query embedding points in a ' +
+                'similar direction as a key embedding, their dot product is higher — indicating they\'re semantically related.' +
+                '</div>' +
+                '</div>' +
+
+                '<div class="learn-more">' +
+                '<button class="learn-more-toggle" onclick="toggleLearnMore(this)">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+                'Learn More' +
+                '</button>' +
+                '<div class="learn-more-content">' +
+                'Mathematically, the dot product <strong>x·y = Σ(xᵢ × yᵢ)</strong> equals <strong>|x||y|cos(θ)</strong>, ' +
+                'where θ is the angle between vectors. Vectors pointing the same direction have cos(θ)=1 (maximum), ' +
+                'perpendicular vectors have cos(θ)=0, and opposite vectors have cos(θ)=-1.' +
+                '</div>' +
+                '</div>' +
+
+                createCodeBlock('Dot Products', 'dotProduct');
+
+            content.innerHTML = html;
+            animateDotProducts();
+        }
+
+        function animateDotProducts() {
+            const queryVec = embeddings[selectedQuery].vector;
+            let currentIndex = 0;
+            const qIdx = tokens.indexOf(selectedQuery);
+
+            function showCalculation(index) {
+                const token = tokens[index];
+                const keyVec = embeddings[token].vector;
+                const products = queryVec.map((v, i) => v * keyVec[i]);
+                const score = products.reduce((a, b) => a + b, 0);
+
+                const calcDiv = document.getElementById('current-calc');
+                calcDiv.innerHTML = '<div class="calc-row" style="margin-top: 16px;">' +
+                    '<span class="calc-label">Key:</span>' +
+                    '<span style="font-weight: 600; color: ' + tokenColors[token] + ';">' + token + '</span>' +
+                    '<span class="calc-vector">' + formatVector(keyVec, 2) + '</span>' +
+                    '</div>' +
+                    '<div class="calc-breakdown slide-in">' +
+                    '<div class="calc-steps">' +
+                    'ω<sub>' + (qIdx + 1) + (index + 1) + '</sub> = x<sup>' + (qIdx + 1) + '</sup> · x<sup>' + (index + 1) + '</sup><br>' +
+                    '= (' + queryVec[0].toFixed(2) + ' × ' + keyVec[0].toFixed(2) + ') + (' + queryVec[1].toFixed(2) + ' × ' + keyVec[1].toFixed(2) + ') + (' + queryVec[2].toFixed(2) + ' × ' + keyVec[2].toFixed(2) + ')<br>' +
+                    '= ' + products[0].toFixed(4) + ' + ' + products[1].toFixed(4) + ' + ' + products[2].toFixed(4) +
+                    '</div>' +
+                    '<div class="calc-result">= ' + score.toFixed(4) + '</div>' +
+                    '</div>';
+
+                document.querySelectorAll('.score-item').forEach((item, i) => {
+                    item.classList.toggle('active', i === index);
+                    if (i < index) item.classList.add('computed');
+                });
+
+                document.getElementById('score-' + index).textContent = score.toFixed(4);
+                document.querySelector('.score-item[data-index="' + index + '"]').classList.add('computed');
+            }
+
+            function animateNext() {
+                if (currentIndex < tokens.length) {
+                    showCalculation(currentIndex);
+                    currentIndex++;
+                    setTimeout(animateNext, 800);
+                }
+            }
+
+            animateNext();
+        }
+
+        function renderSoftmax() {
+            const content = document.getElementById('content');
+            const { scores, weights } = computedData;
+            const maxWeight = Math.max(...weights);
+
+            let html = '<div class="step-header fade-in">' +
+                '<h2 class="step-title">Step 2: Normalize with Softmax</h2>' +
+                '<p class="step-description">"Convert scores to probabilities that sum to 1"</p>' +
+                '</div>' +
+
+                '<div class="softmax-container fade-in" style="animation-delay: 0.1s;">' +
+                '<div class="weights-column">' +
+                '<h4>Raw Scores (ω)</h4>';
+
+            tokens.forEach((t, i) => {
+                html += '<div class="weight-row">' +
+                    '<span class="weight-token" style="color: ' + tokenColors[t] + ';">' + t + '</span>' +
+                    '<span class="weight-value">' + scores[i].toFixed(4) + '</span>' +
+                    '</div>';
+            });
+
+            html += '</div>' +
+
+                '<div class="arrow-column">' +
+                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                '<path d="M5 12h14M12 5l7 7-7 7"/>' +
+                '</svg>' +
+                '<div class="arrow-label">exp()<br>÷ Σexp</div>' +
+                '</div>' +
+
+                '<div class="weights-column">' +
+                '<h4>Attention Weights (α)</h4>';
+
+            tokens.forEach((t, i) => {
+                html += '<div class="weight-row">' +
+                    '<span class="weight-token" style="color: ' + tokenColors[t] + ';">' + t + '</span>' +
+                    '<span class="weight-value">' + weights[i].toFixed(4) + ' <span style="color: var(--text-muted);">(' + (weights[i] * 100).toFixed(1) + '%)</span></span>' +
+                    '</div>';
+            });
+
+            html += '</div></div>' +
+
+                '<div class="calculation-box fade-in" style="animation-delay: 0.2s; margin-top: 20px;">' +
+                '<div style="font-size: 14px; margin-bottom: 12px;">' +
+                '<strong>Softmax Formula:</strong> ' +
+                '<span class="formula">α<sub>i</sub> = exp(ω<sub>i</sub>) / Σ<sub>j</sub> exp(ω<sub>j</sub>)</span>' +
+                '</div>' +
+                '<div class="calc-breakdown">' +
+                '<div class="calc-steps">' +
+                'Example: α(' + tokens[0] + ') = exp(' + scores[0].toFixed(4) + ') / [exp(' + scores[0].toFixed(2) + ') + exp(' + scores[1].toFixed(2) + ') + ... + exp(' + scores[5].toFixed(2) + ')]<br>' +
+                '= ' + Math.exp(scores[0]).toFixed(4) + ' / ' + scores.map(s => Math.exp(s)).reduce((a, b) => a + b, 0).toFixed(4) + ' = <strong>' + weights[0].toFixed(4) + '</strong>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+
+                '<div class="bar-chart fade-in" style="animation-delay: 0.3s;">' +
+                '<h4>Attention Distribution</h4>';
+
+            tokens.forEach((t, i) => {
+                html += '<div class="bar-row">' +
+                    '<span class="bar-label" style="color: ' + tokenColors[t] + ';">' + t + '</span>' +
+                    '<div class="bar-container">' +
+                    '<div class="bar-fill" style="width: ' + (weights[i] / maxWeight * 100) + '%; background: linear-gradient(90deg, ' + tokenColors[t] + '88 0%, ' + tokenColors[t] + ' 100%);">' +
+                    '<span class="bar-percent">' + (weights[i] * 100).toFixed(1) + '%</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>';
+            });
+
+            html += '</div>' +
+
+                '<div style="text-align: center; margin-top: 16px; color: var(--teal-end); font-weight: 600;">' +
+                '✓ Sum of weights: ' + weights.reduce((a, b) => a + b, 0).toFixed(4) +
+                '</div>' +
+
+                '<div class="teaching-callout fade-in" style="animation-delay: 0.4s;">' +
+                '<div class="callout-title">Why Softmax?</div>' +
+                '<div class="callout-text">' +
+                'Softmax has two important properties: (1) All values become positive, (2) They sum to exactly 1. ' +
+                'This lets us interpret weights as "what percentage of attention" each token receives. ' +
+                'Higher scores get exponentially more weight!' +
+                '</div>' +
+                '</div>' +
+
+                '<div class="learn-more">' +
+                '<button class="learn-more-toggle" onclick="toggleLearnMore(this)">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+                'Learn More' +
+                '</button>' +
+                '<div class="learn-more-content">' +
+                'Softmax(xᵢ) = exp(xᵢ)/Σexp(xⱼ) has a \'sharpening\' effect: it amplifies differences between scores. ' +
+                'A score of 1.5 vs 0.5 becomes ~73% vs ~27% — the gap widens! ' +
+                'This helps the model focus on the most relevant tokens.' +
+                '</div>' +
+                '</div>' +
+
+                createCodeBlock('Softmax', 'softmax');
+
+            content.innerHTML = html;
+        }
+
+        function renderWeightedSum() {
+            const content = document.getElementById('content');
+            const { weights, contextVector, contributions } = computedData;
+
+            let html = '<div class="step-header fade-in">' +
+                '<h2 class="step-title">Step 3: Compute Weighted Sum</h2>' +
+                '<p class="step-description">"Blend all embeddings according to attention weights"</p>' +
+                '</div>' +
+
+                '<table class="weighted-sum-table fade-in" style="animation-delay: 0.1s;">' +
+                '<thead>' +
+                '<tr>' +
+                '<th>Token</th>' +
+                '<th>Weight</th>' +
+                '<th>× Embedding</th>' +
+                '<th>= Contribution</th>' +
+                '</tr>' +
+                '</thead>' +
+                '<tbody>';
+
+            tokens.forEach((t, i) => {
+                html += '<tr>' +
+                    '<td>' +
+                    '<span class="contribution-dot" style="background: ' + tokenColors[t] + ';"></span>' +
+                    t +
+                    '</td>' +
+                    '<td>' + weights[i].toFixed(4) + '</td>' +
+                    '<td>× ' + formatVector(embeddings[t].vector) + '</td>' +
+                    '<td style="color: ' + tokenColors[t] + ';">' + formatVector(contributions[i], 4) + '</td>' +
+                    '</tr>';
+            });
+
+            html += '</tbody></table>' +
+
+                '<div class="context-result fade-in pulse" style="animation-delay: 0.3s;">' +
+                '<div class="context-label">Context Vector z<sup>' + (tokens.indexOf(selectedQuery) + 1) + '</sup></div>' +
+                '<div class="context-vector">' + formatVector(contextVector, 4) + '</div>' +
+                '</div>' +
+
+                '<div class="stacked-bars fade-in" style="animation-delay: 0.4s;">' +
+                '<h4 style="font-size: 14px; font-weight: 600; margin-bottom: 16px;">Contribution by Dimension</h4>';
+
+            [0, 1, 2].forEach(dim => {
+                html += '<div class="stacked-bar-row">' +
+                    '<span class="dim-label">Dim ' + (dim + 1) + '</span>' +
+                    '<div class="stacked-container">';
+
+                tokens.forEach((t, i) => {
+                    const contrib = contributions[i][dim];
+                    const width = (contrib / contextVector[dim]) * 100;
+                    html += '<div class="stacked-segment" style="width: ' + width + '%; background: ' + tokenColors[t] + ';" title="' + t + ': ' + contrib.toFixed(4) + '"></div>';
+                });
+
+                html += '</div>' +
+                    '<span class="dim-value">' + contextVector[dim].toFixed(4) + '</span>' +
+                    '</div>';
+            });
+
+            const maxWeightIdx = weights.indexOf(Math.max(...weights));
+            const minWeightIdx = weights.indexOf(Math.min(...weights));
+
+            html += '</div>' +
+
+                '<div class="teaching-callout fade-in" style="animation-delay: 0.5s;">' +
+                '<div class="callout-title">What Just Happened?</div>' +
+                '<div class="callout-text">' +
+                'We created an "enriched" representation of \'' + selectedQuery + '\' that incorporates context from all 6 tokens. ' +
+                'Notice how \'' + tokens[maxWeightIdx] + '\' contributed most (highest weight), ' +
+                'while \'' + tokens[minWeightIdx] + '\' contributed least. ' +
+                'The context vector is now \'aware\' of its neighbors!' +
+                '</div>' +
+                '</div>' +
+
+                '<div class="learn-more">' +
+                '<button class="learn-more-toggle" onclick="toggleLearnMore(this)">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+                'Learn More' +
+                '</button>' +
+                '<div class="learn-more-content">' +
+                'This weighted sum is the core insight of attention: instead of treating all context equally, ' +
+                'we let the model learn which tokens matter most for each position. In full self-attention, ' +
+                'learnable Query/Key/Value matrices refine this process further.' +
+                '</div>' +
+                '</div>' +
+
+                createCodeBlock('Weighted Sum', 'weightedSum');
+
+            content.innerHTML = html;
+        }
+
+        function renderSummary() {
+            const content = document.getElementById('content');
+            const { contextVector, weights } = computedData;
+            const originalVec = embeddings[selectedQuery].vector;
+            const qIdx = tokens.indexOf(selectedQuery);
+
+            let html = '<div class="step-header fade-in">' +
+                '<h2 class="step-title">Result: Context Vector Computed!</h2>' +
+                '<p class="step-description">"Compare the original embedding with the enriched context vector"</p>' +
+                '</div>' +
+
+                '<div class="summary-comparison fade-in" style="animation-delay: 0.1s;">' +
+                '<div class="vector-box original">' +
+                '<div class="vector-box-label">Original Embedding x<sup>' + (qIdx + 1) + '</sup></div>' +
+                '<div class="vector-box-value">' + formatVector(originalVec, 2) + '</div>' +
+                '</div>' +
+                '<div class="arrow-column" style="padding-top: 0;">' +
+                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--purple-main)" stroke-width="2">' +
+                '<path d="M5 12h14M12 5l7 7-7 7"/>' +
+                '</svg>' +
+                '</div>' +
+                '<div class="vector-box context">' +
+                '<div class="vector-box-label">Context Vector z<sup>' + (qIdx + 1) + '</sup></div>' +
+                '<div class="vector-box-value">' + formatVector(contextVector, 2) + '</div>' +
+                '</div>' +
+                '</div>' +
+
+                '<div class="bar-chart fade-in" style="animation-delay: 0.2s;">' +
+                '<h4>Vector Comparison (per dimension)</h4>';
+
+            [0, 1, 2].forEach(dim => {
+                html += '<div style="margin-bottom: 16px;">' +
+                    '<div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Dimension ' + (dim + 1) + '</div>' +
+                    '<div class="bar-row" style="margin-bottom: 4px;">' +
+                    '<span class="bar-label" style="color: var(--orange-text);">Original</span>' +
+                    '<div class="bar-container">' +
+                    '<div class="bar-fill" style="width: ' + (originalVec[dim] * 100) + '%; background: linear-gradient(90deg, #fed7aa 0%, var(--orange-border) 100%);">' +
+                    '<span class="bar-percent">' + originalVec[dim].toFixed(2) + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="bar-row">' +
+                    '<span class="bar-label" style="color: var(--purple-main);">Context</span>' +
+                    '<div class="bar-container">' +
+                    '<div class="bar-fill" style="width: ' + (contextVector[dim] * 100) + '%; background: linear-gradient(90deg, var(--purple-light) 0%, var(--purple-main) 100%);">' +
+                    '<span class="bar-percent">' + contextVector[dim].toFixed(2) + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>';
+            });
+
+            html += '</div>' +
+
+                '<div class="teaching-callout fade-in" style="animation-delay: 0.3s; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #86efac;">' +
+                '<div class="callout-title" style="color: #166534;">Key Insight</div>' +
+                '<div class="callout-text" style="color: #15803d;">' +
+                'The context vector has been "smoothed" by incorporating information from all other tokens. ' +
+                'It\'s no longer just about \'' + selectedQuery + '\' — it now contains context from the whole sentence. ' +
+                'This is how attention enables transformers to understand relationships between words!' +
+                '</div>' +
+                '</div>' +
+
+                createCodeBlock('Complete Self-Attention', 'complete') +
+
+                '<div style="margin-top: 24px; text-align: center;" class="fade-in" style="animation-delay: 0.4s;">' +
+                '<div class="footer-label" style="margin-bottom: 12px;">Try Another Query Token:</div>' +
+                '<div class="tokens-row" style="justify-content: center;">';
+
+            tokens.forEach(t => {
+                html += '<div class="token-card ' + (t === selectedQuery ? 'selected' : '') + '" data-token="' + t + '" style="min-width: 80px;">' +
+                    '<div class="token-name">' + t + '</div>' +
+                    '</div>';
+            });
+
+            html += '</div></div>';
+
+            content.innerHTML = html;
+
+            content.querySelectorAll('.token-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    selectedQuery = card.dataset.token;
+                    document.getElementById('query-selector').value = selectedQuery;
+                    updateComputedData();
+                    currentStep = 0;
+                    renderStep();
+                });
+            });
+        }
+
+        function toggleLearnMore(btn) {
+            const content = btn.nextElementSibling;
+            content.classList.toggle('visible');
+            btn.innerHTML = content.classList.contains('visible')
+                ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> Hide Details'
+                : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> Learn More';
+        }
+
+        function toggleCode(btn) {
+            btn.classList.toggle('expanded');
+            const codeSection = btn.nextElementSibling;
+            codeSection.classList.toggle('visible');
+        }
+
+        function copyCode(btn) {
+            const codeBlock = btn.closest('.code-block');
+            const codeContent = codeBlock.querySelector('pre').innerText;
+
+            navigator.clipboard.writeText(codeContent).then(() => {
+                btn.classList.add('copied');
+                btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
+                }, 2000);
+            });
+        }
+
+        document.getElementById('prev-btn').addEventListener('click', () => {
+            if (currentStep > 0) {
+                currentStep--;
+                renderStep();
+            }
+        });
+
+        document.getElementById('next-btn').addEventListener('click', () => {
+            if (currentStep < 4) {
+                currentStep++;
+                renderStep();
+            } else {
+                currentStep = 0;
+                renderStep();
+            }
+        });
+
+        document.getElementById('query-selector').addEventListener('change', (e) => {
+            selectedQuery = e.target.value;
+            updateComputedData();
+            renderStep();
+        });
+
+        updateComputedData();
+        renderStep();
+    </script>
+</body>
+
+</html>

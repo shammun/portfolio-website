@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Causal Masking Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .clip-path-lower-tri {
+            clip-path: polygon(0 0, 0 100%, 100% 100%);
+        }
+
+        .matrix-cell {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .code-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .code-container::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="text-slate-800 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    Interactive Causal Mask <span class="text-purple-600">Visualizer</span>
+                </h1>
+                <p class="text-slate-500 mt-1 max-w-2xl text-sm md:text-base">
+                    Educational guide to understanding why and how Transformer models mask future tokens during sequence
+                    generation.
+                </p>
+            </div>
+            <div class="flex items-center gap-2 bg-white p-1 rounded-lg shadow-sm border border-slate-200">
+                <button id="stageScores"
+                    class="px-4 py-2 rounded-md text-sm font-medium transition-all bg-purple-600 text-white">
+                    Scores
+                </button>
+                <button id="stageWeights"
+                    class="px-4 py-2 rounded-md text-sm font-medium transition-all text-slate-600 hover:bg-slate-50">
+                    Weights
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Control Bar -->
+        <div
+            class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-3">
+                <button id="toggleMask"
+                    class="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-purple-100 text-purple-700 border border-purple-200">
+                    <span id="maskIcon">🔒</span>
+                    <span id="maskText">Masking: ON</span>
+                </button>
+                <div class="h-6 w-[px] bg-slate-200"></div>
+                <button id="playBtn"
+                    class="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm shadow-md transition-all">
+                    <span id="playIcon">▶</span>
+                    <span id="playText">Animate Generation</span>
+                </button>
+                <button id="resetBtn" class="p-2 text-slate-400 hover:text-purple-600 hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                    </svg>
+                </button>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+                <div class="flex items-center gap-1">
+                    <div class="w-3 h-3 bg-gray-100 border border-orange-200 rounded-sm"></div> Masked
+                </div>
+                <div class="flex items-center gap-1">
+                    <div class="w-3 h-3 bg-teal-400 rounded-sm"></div> High Attention
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <!-- Matrix Display Area -->
+            <div class="xl:col-span-8 space-y-8">
+                <div class="flex flex-col md:flex-row gap-8">
+                    <!-- Unmasked Matrix -->
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-600">
+                            👁️ Full Attention (Unmasked)
+                        </h3>
+                        <div id="unmaskedMatrixContainer"
+                            class="bg-white p-6 rounded-xl shadow-lg border border-slate-100 overflow-hidden">
+                            <!-- JS injected here -->
+                        </div>
+                    </div>
+                    <!-- Masked Matrix -->
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-purple-700">
+                            🛡️ Causal Attention (Masked)
+                        </h3>
+                        <div id="maskedMatrixContainer"
+                            class="bg-white p-6 rounded-xl shadow-lg border border-slate-100 overflow-hidden relative">
+                            <!-- JS injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Theory/Explanations -->
+                <div id="explanationCard" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h4 class="text-lg font-bold flex items-center gap-2 text-slate-800 mb-4">
+                        💡 How it works
+                    </h4>
+                    <div id="explanationText" class="text-slate-600 leading-relaxed text-sm">
+                        Standard self-attention lets tokens look at everything. For generation, we mask future positions
+                        so the model can't "cheat" by seeing words it hasn't generated yet.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="xl:col-span-4 space-y-6">
+                <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden flex flex-col">
+                    <div class="flex border-b bg-slate-50/50">
+                        <button id="tabLogic"
+                            class="flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 border-purple-600 text-purple-600 bg-white">The
+                            Logic</button>
+                        <button id="tabSnippet"
+                            class="flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors text-slate-400 hover:text-slate-600">Code
+                            Snippet</button>
+                    </div>
+                    <div class="p-5 h-[400px] overflow-y-auto">
+                        <div id="logicContent" class="space-y-6">
+                            <section>
+                                <h5 class="font-bold text-slate-900 mb-2 flex items-center gap-2">⚡ The Trick</h5>
+                                <p class="text-xs text-slate-600 leading-relaxed">
+                                    Instead of conditional logic, we use <span class="font-bold">e<sup>-∞</sup> =
+                                        0</span>. By setting future tokens to negative infinity before Softmax, they get
+                                    0.0 attention probability.
+                                </p>
+                            </section>
+                            <section>
+                                <h5 class="font-bold text-slate-900 mb-2 flex items-center gap-2">📑 Autoregression</h5>
+                                <p class="text-xs text-slate-600 leading-relaxed">
+                                    Each token (the <i>Query</i>) calculates its context vector by only looking at
+                                    <i>Keys</i> from the past or the current step.
+                                </p>
+                            </section>
+                            <!-- Tooltip area -->
+                            <div id="cellDetails"
+                                class="hidden bg-purple-900 text-white p-4 rounded-xl shadow-xl animate-in fade-in slide-in-from-bottom-2">
+                                <h5 class="text-[10px] font-bold uppercase tracking-widest text-purple-300 mb-2">Cell
+                                    Details</h5>
+                                <div id="cellDetailsContent" class="grid grid-cols-2 gap-y-1 text-[10px]"></div>
+                            </div>
+                        </div>
+                        <div id="snippetContent" class="hidden">
+                            <pre id="codeSnippet"
+                                class="text-[10px] mono leading-relaxed bg-slate-900 text-slate-300 p-4 rounded-lg overflow-x-auto whitespace-pre"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full PyTorch Code Section -->
+        <section class="mt-12 space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                        stroke="#9333ea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="16 18 22 12 16 6" />
+                        <polyline points="8 6 2 12 8 18" />
+                    </svg>
+                    Full PyTorch Implementation
+                </h2>
+                <span
+                    class="text-xs font-medium text-slate-400 px-3 py-1 bg-slate-100 rounded-full">causal_attention.py</span>
+            </div>
+            <div class="bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-800">
+                <div class="px-6 py-3 border-b border-slate-800 bg-slate-900/50 flex justify-between">
+                    <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                    </div>
+                </div>
+                <div class="p-6 md:p-8 overflow-x-auto">
+                    <pre id="fullCode" class="text-xs md:text-sm mono leading-relaxed text-slate-300"></pre>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // --- Data ---
+        const TOKENS = ["The", "cat", "sat", "on", "the", "mat"];
+        const RAW_SCORES = [
+            [0.31, 0.52, 0.48, 0.29, 0.44, 0.38],
+            [0.17, 0.26, 0.24, 0.15, 0.21, 0.19],
+            [0.17, 0.26, 0.26, 0.16, 0.22, 0.20],
+            [0.05, 0.11, 0.11, 0.06, 0.09, 0.07],
+            [0.14, 0.19, 0.19, 0.10, 0.11, 0.10],
+            [0.05, 0.12, 0.12, 0.07, 0.05, 0.10]
+        ];
+
+        const CODE_SNIPPETS = {
+            scores: `# Apply mask (-inf for future)
+masked_scores = attn_scores.masked_fill(mask.bool(), -torch.inf)`,
+            weights: `# Softmax ensures e^-inf = 0.0
+attn_weights = torch.softmax(masked_scores, dim=-1)`,
+            full: `import torch
+import torch.nn as nn
+
+class CausalAttention(nn.Module):
+    def __init__(self, d_in, d_out, context_length, dropout, qkv_bias=False):
+        super().__init__()
+        self.d_out = d_out
+        self.W_query = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_key = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_value = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.dropout = nn.Dropout(dropout)
+        
+        # Register causal mask as a buffer
+        self.register_buffer(
+            'mask',
+            torch.triu(torch.ones(context_length, context_length), diagonal=1)
+        )
+    
+    def forward(self, x):
+        b, num_tokens, d_in = x.shape
+        keys = self.W_key(x)
+        queries = self.W_query(x)
+        values = self.W_value(x)
+        
+        # Q @ K^T
+        attn_scores = queries @ keys.transpose(1, 2)
+        
+        # Mask future tokens
+        mask_bool = self.mask[:num_tokens, :num_tokens].bool()
+        attn_scores.masked_fill_(mask_bool, -torch.inf)
+        
+        # Scale and Softmax
+        attn_scores = attn_scores / (self.d_out ** 0.5)
+        attn_weights = torch.softmax(attn_scores, dim=-1)
+        
+        return attn_weights @ values`
+        };
+
+        // --- State ---
+        let isMasked = true;
+        let stage = 'scores'; // 'scores' or 'weights'
+        let activeStep = null;
+        let isPlaying = false;
+        let animationInterval = null;
+
+        // --- DOM Elements ---
+        const unmaskedContainer = document.getElementById('unmaskedMatrixContainer');
+        const maskedContainer = document.getElementById('maskedMatrixContainer');
+        const fullCodeEl = document.getElementById('fullCode');
+        const codeSnippetEl = document.getElementById('codeSnippet');
+        const explanationText = document.getElementById('explanationText');
+        const cellDetails = document.getElementById('cellDetails');
+        const cellDetailsContent = document.getElementById('cellDetailsContent');
+
+        // --- Helpers ---
+        function getSoftmaxRow(row) {
+            const maxVal = Math.max(...row);
+            const exps = row.map(v => v === -Infinity ? 0 : Math.exp(v - maxVal));
+            const sumExps = exps.reduce((a, b) => a + b, 0);
+            return exps.map(e => e / sumExps);
+        }
+
+        function getCellColor(value, isWeight, isMaskedCell) {
+            if (isMaskedCell) return 'bg-gray-100 border-orange-200';
+            if (value === -Infinity) return 'bg-gray-100 border-orange-600';
+
+            if (isWeight) {
+                if (value > 0.8) return 'bg-teal-500 text-white';
+                if (value > 0.5) return 'bg-teal-400 text-white';
+                if (value > 0.3) return 'bg-teal-300 text-teal-900';
+                if (value > 0.1) return 'bg-teal-100 text-teal-800';
+                return 'bg-teal-50 text-teal-700';
+            } else {
+                if (value > 0.4) return 'bg-orange-400 text-white';
+                if (value > 0.25) return 'bg-orange-300 text-orange-900';
+                if (value > 0.1) return 'bg-orange-100 text-orange-800';
+                return 'bg-orange-50 text-orange-700';
+            }
+        }
+
+        // --- Rendering ---
+        function renderMatrix(container, type) {
+            const isRightPanel = type === 'masked';
+            const showMask = isMasked && isRightPanel;
+
+            let html = `
+                <div class="flex ml-16 mb-2">
+                    ${TOKENS.map(t => `<div class="w-11 text-center text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${t}</div>`).join('')}
+                </div>
+                <div class="flex">
+                    <div class="flex flex-col mr-4">
+                        ${TOKENS.map(t => `<div class="h-11 flex items-center justify-end text-[9px] font-bold text-slate-400 uppercase">${t}</div>`).join('')}
+                    </div>
+                    <div class="grid grid-cols-6 gap-1 relative">
+            `;
+
+            RAW_SCORES.forEach((row, rIdx) => {
+                let displayRow = [...row];
+                if (showMask) {
+                    displayRow = row.map((val, cIdx) => (cIdx > rIdx ? -Infinity : val));
+                }
+                if (stage === 'weights') {
+                    displayRow = getSoftmaxRow(displayRow);
+                }
+
+                displayRow.forEach((val, cIdx) => {
+                    const effectivelyMasked = showMask && cIdx > rIdx;
+                    const isGenActive = activeStep !== null;
+                    const isHiddenInGen = isGenActive && (rIdx !== activeStep || cIdx > activeStep);
+                    const isCurrentToken = isGenActive && rIdx === activeStep && cIdx === activeStep;
+
+                    const cellColor = getCellColor(val, stage === 'weights', effectivelyMasked);
+                    const displayVal = val === -Infinity ? "-∞" : val.toFixed(stage === 'weights' ? 3 : 2);
+
+                    html += `
+                        <div 
+                            onmouseenter="showDetail(${rIdx}, ${cIdx}, ${val})"
+                            onmouseleave="hideDetail()"
+                            class="matrix-cell w-11 h-11 border rounded-sm flex items-center justify-center text-[10px] mono cursor-help
+                            ${cellColor} ${effectivelyMasked ? 'opacity-40' : 'opacity-100'}
+                            ${isCurrentToken ? 'ring-4 ring-purple-500 scale-110 z-10' : ''}
+                            ${isHiddenInGen ? 'grayscale opacity-10' : ''}"
+                        >
+                            ${displayVal}
+                        </div>
+                    `;
+                });
+            });
+
+            if (showMask) {
+                html += `<div class="absolute inset-0 pointer-events-none border-l-2 border-b-2 border-purple-500/20 bg-purple-500/5 clip-path-lower-tri"></div>`;
+            }
+
+            html += `</div></div>`;
+            container.innerHTML = html;
+        }
+
+        function updateUI() {
+            renderMatrix(unmaskedContainer, 'unmasked');
+            renderMatrix(maskedContainer, 'masked');
+
+            // Update Code
+            fullCodeEl.innerText = CODE_SNIPPETS.full;
+            codeSnippetEl.innerText = CODE_SNIPPETS[stage];
+
+            // Update Explanation
+            if (activeStep === null) {
+                explanationText.innerHTML = `Standard self-attention lets tokens look at everything. For generation, we mask future positions so the model can't "cheat" by seeing words it hasn't generated yet.`;
+            } else {
+                const visible = TOKENS.slice(0, activeStep + 1).map(t => `<span class="px-1 bg-purple-50 rounded text-purple-600 font-bold">"${t}"</span>`).join(', ');
+                explanationText.innerHTML = `Generating <span class="font-bold text-purple-700">"${TOKENS[activeStep]}"</span>: The model can only attend to ${visible}. Future words are hidden by -inf scores.`;
+            }
+        }
+
+        function showDetail(r, c, val) {
+            cellDetails.classList.remove('hidden');
+            const status = c > r ? '<span class="text-orange-400">MASKED (Future)</span>' : '<span class="text-teal-400">VISIBLE</span>';
+            cellDetailsContent.innerHTML = `
+                <span class="text-purple-300">Query:</span><span class="font-bold">"${TOKENS[r]}"</span>
+                <span class="text-purple-300">Key:</span><span class="font-bold">"${TOKENS[c]}"</span>
+                <span class="text-purple-300">Status:</span><span class="font-bold">${status}</span>
+                <span class="text-purple-300">Value:</span><span class="mono">${val === -Infinity ? '-inf' : val.toFixed(4)}</span>
+            `;
+        }
+
+        function hideDetail() {
+            cellDetails.classList.add('hidden');
+        }
+
+        // --- Event Handlers ---
+        document.getElementById('stageScores').onclick = () => {
+            stage = 'scores';
+            document.getElementById('stageScores').className = "px-4 py-2 rounded-md text-sm font-medium transition-all bg-purple-600 text-white";
+            document.getElementById('stageWeights').className = "px-4 py-2 rounded-md text-sm font-medium transition-all text-slate-600 hover:bg-slate-50";
+            updateUI();
+        };
+
+        document.getElementById('stageWeights').onclick = () => {
+            stage = 'weights';
+            document.getElementById('stageWeights').className = "px-4 py-2 rounded-md text-sm font-medium transition-all bg-purple-600 text-white";
+            document.getElementById('stageScores').className = "px-4 py-2 rounded-md text-sm font-medium transition-all text-slate-600 hover:bg-slate-50";
+            updateUI();
+        };
+
+        document.getElementById('toggleMask').onclick = () => {
+            isMasked = !isMasked;
+            document.getElementById('maskText').innerText = isMasked ? "Masking: ON" : "Masking: OFF";
+            document.getElementById('maskIcon').innerText = isMasked ? "🔒" : "🔓";
+            document.getElementById('toggleMask').className = isMasked
+                ? 'flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-purple-100 text-purple-700 border border-purple-200'
+                : 'flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all bg-slate-100 text-slate-700 border border-slate-200';
+            updateUI();
+        };
+
+        document.getElementById('playBtn').onclick = () => {
+            if (isPlaying) {
+                isPlaying = false;
+                clearInterval(animationInterval);
+                document.getElementById('playIcon').innerText = "▶";
+            } else {
+                isPlaying = true;
+                isMasked = true;
+                document.getElementById('playIcon').innerText = "⏸";
+                document.getElementById('resetBtn').classList.remove('hidden');
+                if (activeStep === null) activeStep = 0;
+                animationInterval = setInterval(() => {
+                    activeStep = (activeStep + 1) % 6;
+                    updateUI();
+                    document.getElementById('playText').innerText = `Step ${activeStep + 1}/6`;
+                }, 1500);
+            }
+            updateUI();
+        };
+
+        document.getElementById('resetBtn').onclick = () => {
+            isPlaying = false;
+            clearInterval(animationInterval);
+            activeStep = null;
+            document.getElementById('playIcon').innerText = "▶";
+            document.getElementById('playText').innerText = "Animate Generation";
+            document.getElementById('resetBtn').classList.add('hidden');
+            updateUI();
+        };
+
+        // Tab Switching
+        document.getElementById('tabLogic').onclick = () => {
+            document.getElementById('tabLogic').className = "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 border-purple-600 text-purple-600 bg-white";
+            document.getElementById('tabSnippet').className = "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors text-slate-400 hover:text-slate-600";
+            document.getElementById('logicContent').classList.remove('hidden');
+            document.getElementById('snippetContent').classList.add('hidden');
+        };
+
+        document.getElementById('tabSnippet').onclick = () => {
+            document.getElementById('tabSnippet').className = "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 border-purple-600 text-purple-600 bg-white";
+            document.getElementById('tabLogic').className = "flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors text-slate-400 hover:text-slate-600";
+            document.getElementById('snippetContent').classList.remove('hidden');
+            document.getElementById('logicContent').classList.add('hidden');
+        };
+
+        // Init
+        window.onload = updateUI;
+    </script>
+</body>
+
+</html>
