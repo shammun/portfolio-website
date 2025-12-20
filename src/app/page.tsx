@@ -140,8 +140,97 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Tutorial */}
+      {/* Featured Book Tutorial */}
       <section className="py-16 md:py-24">
+        <div className="container-default">
+          <div className="grid gap-8 lg:grid-cols-2 items-center">
+            <div className="order-2 lg:order-1">
+              {/* Book preview card with purple-tinted shadow */}
+              <div className="relative">
+                <div className="bg-[#1E1E1E] rounded-[16px] p-6 shadow-soft-lg">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    <span className="ml-2 text-sm text-gray-400">
+                      tokenizer.py
+                    </span>
+                  </div>
+                  <pre className="text-sm text-gray-300 overflow-x-auto">
+                    <code>{`class SimpleTokenizer:
+    """A simple text tokenizer for LLMs"""
+
+    def __init__(self, vocab):
+        self.str_to_int = vocab
+        self.int_to_str = {v: k for k, v in vocab.items()}
+
+    def encode(self, text):
+        # Text → Token IDs
+        tokens = re.split(r'([,.?!]|\\s)', text)
+        return [self.str_to_int[t] for t in tokens
+                if t.strip()]
+
+    def decode(self, ids):
+        # Token IDs → Text
+        return " ".join(self.int_to_str[i] for i in ids)`}</code>
+                  </pre>
+                </div>
+                {/* Decorative blur - warm themed */}
+                <div className="absolute -z-10 top-4 left-4 right-4 bottom-4 bg-orange/20 rounded-xl blur-xl" />
+              </div>
+            </div>
+
+            <div className="order-1 lg:order-2">
+              <div className="badge badge-warm mb-4">
+                <BookOpen className="h-4 w-4" />
+                Featured Book Tutorial
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+                Build a Large Language Model from Scratch
+              </h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                My learning journey through Sebastian Raschka&apos;s book with
+                interactive visualizations, detailed explanations, and hands-on
+                code examples. All chapters completed with interactive visualizations
+                up to Chapter 2: Working with Text Data. Working on adding interactive
+                components for all the remaining chapters.
+              </p>
+
+              <ul className="mt-6 space-y-3">
+                {[
+                  "Interactive visualizations explaining core concepts",
+                  "Step-by-step tokenization and embedding tutorials",
+                  "BPE, Word2Vec, and positional encoding explained",
+                  "Clean Educational style with beautiful diagrams",
+                ].map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-3 text-muted-foreground"
+                  >
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-warm-light text-warm-text flex items-center justify-center text-xs font-bold">
+                      &#10003;
+                    </span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-8">
+                <Link
+                  href="/books/llm-from-scratch"
+                  className="btn btn-warm"
+                >
+                  Explore the Book Tutorial
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Tutorial */}
+      <section className="py-16 md:py-24 bg-card">
         <div className="container-default">
           <div className="grid gap-8 lg:grid-cols-2 items-center">
             <div>

@@ -38,7 +38,7 @@ const footerNavigation = {
   ],
   blog: [
     { name: "AI Paper Implementations", href: "/blog/ai-paper-implementations" },
-    { name: "FNO Tutorial", href: "/blog/ai-paper-implementations/fno-paper" },
+    { name: "Book Tutorial", href: "/books/llm-from-scratch" },
   ],
 };
 
@@ -58,9 +58,10 @@ export function Footer() {
               Shammunul Islam
             </Link>
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
-              Graduate student in climate science at George Mason University.
-              Building interactive tutorials on AI books and papers, climate
-              science, statistics, remote sensing, and related topics.
+              Graduate student in Climate Science at George Mason University.
+              Now focused on building AI-driven solutions for complex scientific
+              and real-world problems including climate, and sharing knowledge
+              through interactive tutorials.
             </p>
 
             {/* Social Links */}
