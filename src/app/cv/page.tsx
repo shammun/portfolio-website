@@ -31,8 +31,8 @@ const highlights = [
     title: "Current Roles",
     color: "warm",
     items: [
-      "Local Climate Action Fellow - Virginia Climate Center",
-      "MS Thesis: Urban Heat Island Prediction Using Machine Learning",
+      "Graduate Research Assistant, George Mason University",
+      "MS Thesis: Land Surface Temperature Prediction Using Machine Learning",
     ],
   },
   {
@@ -42,7 +42,6 @@ const highlights = [
     items: [
       "2 Books on GIS & Remote Sensing (Packt Publishing)",
       "3 Peer-reviewed Journal Articles",
-      "AGU25 Conference Presentation",
     ],
   },
   {
@@ -52,7 +51,7 @@ const highlights = [
     items: [
       "Climate Data Science and Remote Sensing",
       "Analytics Application Development",
-      "Neural Operators (FNO, DeepONet)",
+      "GIS/Remote Sensing, Web GIS",
     ],
   },
 ];

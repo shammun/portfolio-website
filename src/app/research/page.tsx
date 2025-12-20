@@ -121,18 +121,6 @@ const thesis = {
   tags: ["FNO", "Machine Learning", "Urban Heat Island", "ECOSTRESS"],
 };
 
-const presentations = [
-  {
-    title:
-      "Characterizing Spatiotemporal Drivers of Urban Surface Temperatures Using Remote Sensing and Machine Learning",
-    authors: ["Islam, S.", "Ortiz, L."],
-    event: "AGU25 (American Geophysical Union Annual Meeting)",
-    location: "New Orleans, LA",
-    date: "December 2025",
-    type: "Poster",
-  },
-];
-
 export default function ResearchPage() {
   return (
     <div className="py-12 md:py-20">
@@ -297,43 +285,6 @@ export default function ResearchPage() {
                     View Book
                   </a>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Presentations - Violet theme */}
-        <section className="mb-16">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="icon-container-primary">
-              <Award className="h-6 w-6" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-              Conference Presentations
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {presentations.map((pres, index) => (
-              <div key={index} className="card">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="badge badge-sm badge-cool">
-                    {pres.type}
-                  </span>
-                  <span className="badge badge-sm badge-muted">
-                    {pres.date}
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  {pres.title}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-1">
-                  <Users className="inline h-3 w-3 mr-1" />
-                  {pres.authors.join(", ")}
-                </p>
-                <p className="text-sm text-primary font-medium">
-                  {pres.event} - {pres.location}
-                </p>
               </div>
             ))}
           </div>
