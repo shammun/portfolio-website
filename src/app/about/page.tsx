@@ -79,8 +79,8 @@ const education = [
 
 const experience = [
   {
-    title: "Local Climate Action Fellow",
-    company: "Virginia Climate Center",
+    title: "Graduate Research Assistant",
+    company: "George Mason University",
     years: "2024 - Present",
     description: "Statistically downscaling CMIP6 projections for Virginia, USA",
   },
