@@ -59,7 +59,7 @@ export function Footer() {
             </Link>
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
               Graduate student in Climate Science at George Mason University.
-              Now focused on building AI-driven solutions for complex scientific
+              Now focused on learning to build AI-driven solutions for complex scientific
               and real-world problems including climate, and sharing knowledge
               through interactive tutorials.
             </p>
