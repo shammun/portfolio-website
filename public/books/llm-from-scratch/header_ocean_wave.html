@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoIntelligence: AI & Climate</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter for that clean tech look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased text-slate-800">
+
+    <!-- Main Container with Gradient Background -->
+    <!-- Kept the light, airy gradient but shifted slightly cooler to hint at atmosphere -->
+    <div class="relative w-full min-h-screen overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#f5f7ff] to-[#fdfeff]">
+        
+        <!-- BACKGROUND ANIMATION LAYER (z-0) -->
+        <div class="absolute inset-0 z-0">
+            <canvas id="climate-ai-canvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- GLASS OVERLAY (z-0) -->
+        <!-- Texture to soften digital harshness -->
+        <div class="absolute inset-0 z-0 bg-white/40 pointer-events-none backdrop-blur-[2px]"></div>
+
+        <!-- MAIN CONTENT LAYER (z-10) -->
+        <div class="relative z-10 flex flex-col min-h-screen pointer-events-none">
+            
+            <!-- Hero Section (Empty) -->
+            <main class="flex-grow flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 -mt-20">
+                <!-- All text removed as requested -->
+            </main>
+        </div>
+    </div>
+
+    <!-- Animation Logic -->
+    <script>
+        (function() {
+            const canvas = document.getElementById('climate-ai-canvas');
+            const ctx = canvas.getContext('2d');
+            let particlesArray = [];
+            
+            // CONFIGURATION
+            const PARTICLE_COUNT = 110; 
+            const CONNECTION_DISTANCE = 140; 
+            const MOUSE_RADIUS = 200;
+            
+            // Colors
+            // Climate (Teal) represents Nature/Air/Water
+            const COLOR_CLIMATE = '20, 184, 166'; 
+            // AI (Indigo/Purple) represents Logic/Compute
+            const COLOR_AI = '99, 102, 241'; 
+
+            const mouse = { x: null, y: null };
+
+            // Resize Handling
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            // Perlin-ish Noise / Flow Field Generator (Simulated with Sine waves for performance)
+            // This creates the "Wind" effect
+            function getFlowAngle(x, y) {
+                const scale = 0.002;
+                // Complex wave pattern to simulate organic air currents
+                return (Math.cos(x * scale) + Math.sin(y * scale)) * Math.PI;
+            }
+
+            // Particle Class
+            class Particle {
+                constructor() {
+                    this.init();
+                }
+
+                init() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2 + 0.5; // Very fine particles
+                    
+                    // Assign Type
+                    this.type = Math.random() > 0.4 ? 'CLIMATE' : 'AI'; // Slightly more climate particles
+
+                    // Movement properties
+                    this.speed = Math.random() * 0.4 + 0.2;
+                    this.vx = 0;
+                    this.vy = 0;
+                    
+                    // Organic breathing (opacity fluctuation)
+                    this.alpha = Math.random() * 0.5 + 0.1;
+                    this.alphaChange = Math.random() * 0.005;
+                }
+
+                update() {
+                    // 1. FLOW FIELD LOGIC (The "Climate" aspect)
+                    // Calculate angle based on position (Flow field)
+                    const angle = getFlowAngle(this.x, this.y);
+                    
+                    // 2. MOVEMENT BEHAVIOR
+                    if (this.type === 'CLIMATE') {
+                        // Climate particles surrender to the flow (Nature)
+                        this.vx += Math.cos(angle) * 0.01;
+                        this.vy += Math.sin(angle) * 0.01;
+                        
+                        // Gentle friction to keep them from speeding up infinitely
+                        this.vx *= 0.98; 
+                        this.vy *= 0.98;
+                    } else {
+                        // AI particles move more linearly but "observe" the flow
+                        // They have a slight resistance to the wind
+                        this.vx += Math.cos(angle) * 0.005; 
+                        this.vy += Math.sin(angle) * 0.005;
+                        
+                        // Stricter friction for "controlled" movement
+                        this.vx *= 0.95;
+                        this.vy *= 0.95;
+                    }
+
+                    // Apply computed velocity + base inherent speed
+                    this.x += this.vx + (Math.cos(angle) * this.speed);
+                    this.y += this.vy + (Math.sin(angle) * this.speed);
+
+                    // 3. MOUSE INTERACTION (Disruption/Turbulence)
+                    if (mouse.x != null) {
+                        let dx = mouse.x - this.x;
+                        let dy = mouse.y - this.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < MOUSE_RADIUS) {
+                            const forceDirectionX = dx / distance;
+                            const forceDirectionY = dy / distance;
+                            const force = (MOUSE_RADIUS - distance) / MOUSE_RADIUS;
+                            
+                            // Push away gently
+                            const pushStrength = this.type === 'CLIMATE' ? 2 : 1; // Climate moves easier
+                            this.x -= forceDirectionX * force * pushStrength;
+                            this.y -= forceDirectionY * force * pushStrength;
+                        }
+                    }
+
+                    // 4. SCREEN WRAPPING
+                    if (this.x > canvas.width) this.x = 0;
+                    if (this.x < 0) this.x = canvas.width;
+                    if (this.y > canvas.height) this.y = 0;
+                    if (this.y < 0) this.y = canvas.height;
+
+                    // 5. BREATHING EFFECT
+                    this.alpha += this.alphaChange;
+                    if (this.alpha > 0.8 || this.alpha < 0.2) this.alphaChange *= -1;
+                }
+
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    
+                    if (this.type === 'CLIMATE') {
+                        ctx.fillStyle = `rgba(${COLOR_CLIMATE}, ${this.alpha})`;
+                    } else {
+                        ctx.fillStyle = `rgba(${COLOR_AI}, ${this.alpha})`;
+                    }
+                    ctx.fill();
+                }
+            }
+
+            // Initialization
+            function init() {
+                particlesArray = [];
+                // Dynamic count based on screen area
+                const count = Math.min(PARTICLE_COUNT, (window.innerWidth * window.innerHeight) / 8000);
+                for (let i = 0; i < count; i++) {
+                    particlesArray.push(new Particle());
+                }
+            }
+
+            // Animation Loop
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                for (let i = 0; i < particlesArray.length; i++) {
+                    particlesArray[i].update();
+                    particlesArray[i].draw();
+
+                    // CONNECTIONS
+                    // We only connect particles if they are close enough
+                    for (let j = i; j < particlesArray.length; j++) {
+                        const dx = particlesArray[i].x - particlesArray[j].x;
+                        const dy = particlesArray[i].y - particlesArray[j].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < CONNECTION_DISTANCE) {
+                            ctx.beginPath();
+                            const opacity = 1 - (distance / CONNECTION_DISTANCE);
+                            
+                            // Dynamic Gradient Line
+                            // If connecting Climate <-> AI, it creates a bridge
+                            const gradient = ctx.createLinearGradient(
+                                particlesArray[i].x, particlesArray[i].y, 
+                                particlesArray[j].x, particlesArray[j].y
+                            );
+
+                            if (particlesArray[i].type === 'CLIMATE') {
+                                gradient.addColorStop(0, `rgba(${COLOR_CLIMATE}, ${opacity * 0.2})`);
+                            } else {
+                                gradient.addColorStop(0, `rgba(${COLOR_AI}, ${opacity * 0.2})`);
+                            }
+
+                            if (particlesArray[j].type === 'CLIMATE') {
+                                gradient.addColorStop(1, `rgba(${COLOR_CLIMATE}, ${opacity * 0.2})`);
+                            } else {
+                                gradient.addColorStop(1, `rgba(${COLOR_AI}, ${opacity * 0.2})`);
+                            }
+
+                            ctx.strokeStyle = gradient;
+                            ctx.lineWidth = 1;
+                            ctx.moveTo(particlesArray[i].x, particlesArray[i].y);
+                            ctx.lineTo(particlesArray[j].x, particlesArray[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(animate);
+            }
+
+            // Listeners
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                init();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                mouse.x = e.x;
+                mouse.y = e.y;
+            });
+            
+            window.addEventListener('mouseout', () => {
+                mouse.x = null;
+                mouse.y = null;
+            });
+
+            // Start
+            resizeCanvas();
+            init();
+            animate();
+
+        })();
+    </script>
+</body>
+</html>

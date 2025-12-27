@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoIntelligence Clean Header</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+    </style>
+</head>
+<body class="font-sans">
+
+    <!-- Main Container with Gradient Background -->
+    <div class="relative w-full min-h-screen overflow-hidden bg-gradient-to-br from-[#fafbff] to-[#f5f7ff]">
+        
+        <!-- BACKGROUND ANIMATION LAYER (z-0) -->
+        <div class="absolute inset-0 z-0">
+            <canvas id="climate-ai-canvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- GLASS OVERLAY (z-0) -->
+        <!-- Adds a slight texture/blur so the background feels cohesive -->
+        <div class="absolute inset-0 z-0 bg-white/30 pointer-events-none backdrop-blur-[1px]"></div>
+
+        <!-- MAIN CONTENT LAYER (z-10) -->
+        <!-- Kept the structure, but empty as requested -->
+        <div class="relative z-10 flex flex-col min-h-screen pointer-events-none">
+            
+            <!-- Navigation Bar Structure -->
+            <nav class="w-full h-20">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+                    <div class="flex items-center justify-between h-full">
+                        <!-- Empty Flex Container -->
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Hero Section Structure -->
+            <main class="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
+                <!-- Content Removed -->
+            </main>
+        </div>
+    </div>
+
+    <!-- Animation Logic -->
+    <script>
+        (function() {
+            const canvas = document.getElementById('climate-ai-canvas');
+            const ctx = canvas.getContext('2d');
+            let particlesArray = [];
+            let animationId;
+
+            // CONFIGURATION
+            const PARTICLE_COUNT = 90; 
+            const CONNECTION_DISTANCE = 160; 
+            
+            // RGB Values for Colors
+            // Climate: Teal #14b8a6 -> 20, 184, 166
+            const COLOR_CLIMATE = '20, 184, 166'; 
+            // AI: Purple #8b5cf6 -> 139, 92, 246
+            const COLOR_AI = '139, 92, 246'; 
+
+            // Mouse State
+            const mouse = {
+                x: null,
+                y: null,
+                radius: 150
+            };
+
+            // Resize Handling
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            // Particle Class
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    // Slightly smaller particles for "Minimalism"
+                    this.size = Math.random() * 2 + 1; 
+                    
+                    // Gentle velocity
+                    this.baseX = (Math.random() - 0.5) * 1.0; 
+                    this.baseY = (Math.random() - 0.5) * 1.0;
+                    this.density = (Math.random() * 30) + 1;
+                    
+                    this.type = Math.random() > 0.5 ? 'CLIMATE' : 'AI';
+                }
+
+                update() {
+                    this.x += this.baseX;
+                    this.y += this.baseY;
+
+                    // Mouse Interaction
+                    if (mouse.x != null) {
+                        let dx = mouse.x - this.x;
+                        let dy = mouse.y - this.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < mouse.radius) {
+                            const forceDirectionX = dx / distance;
+                            const forceDirectionY = dy / distance;
+                            const force = (mouse.radius - distance) / mouse.radius;
+                            const directionX = forceDirectionX * force * this.density;
+                            const directionY = forceDirectionY * force * this.density;
+                            
+                            this.x -= directionX;
+                            this.y -= directionY;
+                        }
+                    }
+
+                    // Screen wrapping
+                    if (this.x > canvas.width + 20) this.x = -20;
+                    if (this.x < -20) this.x = canvas.width + 20;
+                    if (this.y > canvas.height + 20) this.y = -20;
+                    if (this.y < -20) this.y = canvas.height + 20;
+                }
+
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    // Using lower opacity for "Softness" principle
+                    ctx.fillStyle = this.type === 'CLIMATE' 
+                        ? `rgba(${COLOR_CLIMATE}, 0.5)` 
+                        : `rgba(${COLOR_AI}, 0.5)`;
+                    ctx.fill();
+                }
+            }
+
+            // Initialize Particles
+            function init() {
+                particlesArray = [];
+                // Calculate particle count based on screen size for performance
+                const count = Math.min(PARTICLE_COUNT, (canvas.width * canvas.height) / 9000);
+                for (let i = 0; i < count; i++) {
+                    particlesArray.push(new Particle());
+                }
+            }
+
+            // Animation Loop
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                for (let i = 0; i < particlesArray.length; i++) {
+                    particlesArray[i].update();
+                    particlesArray[i].draw();
+
+                    for (let j = i; j < particlesArray.length; j++) {
+                        const dx = particlesArray[i].x - particlesArray[j].x;
+                        const dy = particlesArray[i].y - particlesArray[j].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < CONNECTION_DISTANCE) {
+                            ctx.beginPath();
+                            const opacity = 1 - (distance / CONNECTION_DISTANCE);
+                            // Darker connection lines for visibility on light background
+                            // Using a slate/purple mix for the lines
+                            ctx.strokeStyle = `rgba(99, 102, 241, ${opacity * 0.15})`; 
+                            ctx.lineWidth = 1;
+                            ctx.moveTo(particlesArray[i].x, particlesArray[i].y);
+                            ctx.lineTo(particlesArray[j].x, particlesArray[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                animationId = requestAnimationFrame(animate);
+            }
+
+            // Event Listeners
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                init();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                mouse.x = e.x;
+                mouse.y = e.y;
+            });
+
+            // Start
+            resizeCanvas();
+            init();
+            animate();
+
+        })();
+    </script>
+</body>
+</html>

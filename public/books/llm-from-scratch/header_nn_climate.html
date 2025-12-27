@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoIntelligence: AI & Climate</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter for that clean tech look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased text-slate-800">
+
+    <!-- Main Container with Gradient Background -->
+    <div class="relative w-full min-h-screen overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#f5f7ff] to-[#fdfeff]">
+        
+        <!-- BACKGROUND ANIMATION LAYER (z-0) -->
+        <div class="absolute inset-0 z-0">
+            <canvas id="climate-ai-canvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- GLASS OVERLAY (z-0) -->
+        <div class="absolute inset-0 z-0 bg-white/40 pointer-events-none backdrop-blur-[1px]"></div>
+
+        <!-- MAIN CONTENT LAYER (z-10) -->
+        <div class="relative z-10 flex flex-col min-h-screen pointer-events-none">
+            <!-- Navigation (Visual Anchor) -->
+            <nav class="w-full h-24 flex items-center justify-between px-8 sm:px-12">
+            </nav>
+
+            <!-- Hero Section (Empty) -->
+            <main class="flex-grow flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 -mt-20">
+            </main>
+        </div>
+    </div>
+
+    <!-- Animation Logic -->
+    <script>
+        (function() {
+            const canvas = document.getElementById('climate-ai-canvas');
+            const ctx = canvas.getContext('2d');
+            let particlesArray = [];
+            
+            // CONFIGURATION
+            const PARTICLE_COUNT = 160;   // Reduced slightly for clarity
+            const CONNECTION_DISTANCE = 140; 
+            const MOUSE_RADIUS = 250;
+            const SPEED_SCALE = 0.5;      // Significantly slower speed
+            
+            // Colors
+            const COLOR_CLIMATE = '20, 184, 166'; // Teal
+            const COLOR_AI = '99, 102, 241';      // Indigo
+
+            const mouse = { x: null, y: null };
+            let time = 0; 
+
+            // Resize Handling
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            // --- FLUID DYNAMICS ENGINE (Stream Function) ---
+            
+            function getAtmosphericVelocity(x, y, t) {
+                // Scale inputs to create the "map" coordinates
+                const scale = 0.0012; 
+                const uvX = x * scale;
+                const uvY = y * scale;
+
+                const eps = 0.1;
+                
+                const psi1 = calculateStreamFunction(uvX, uvY - eps, t); 
+                const psi2 = calculateStreamFunction(uvX, uvY + eps, t); 
+                const psi3 = calculateStreamFunction(uvX - eps, uvY, t); 
+                const psi4 = calculateStreamFunction(uvX + eps, uvY, t); 
+
+                // u = -dPsi/dy, v = dPsi/dx
+                const u = -(psi2 - psi1) / (2 * eps);
+                const v = (psi4 - psi3) / (2 * eps);
+
+                return { vx: u, vy: v };
+            }
+
+            // THE PHYSICS LANDSCAPE
+            function calculateStreamFunction(x, y, t) {
+                let psi = 0;
+
+                // 1. ROSSBY WAVES (Planetary Waves) - Slowed down frequency
+                psi += 2.5 * Math.sin(y * 3.0) * Math.cos(x * 2.2 + t * 0.15);
+
+                // 2. OCEAN GYRES - Stronger, more defined circular motion
+                // We use a product of sines to create distinct cells
+                psi += 2.0 * Math.sin(x * 1.2 + t * 0.05) * Math.sin(y * 1.5);
+
+                // 3. EDDIES - Smaller, local swirls for detail
+                psi += 0.6 * Math.sin(x * 4.0 - t * 0.3) * Math.cos(y * 3.5 + t * 0.2);
+
+                // 4. ZONAL FLOW - Reduced background drift to let gyres dominate
+                psi -= 0.4 * y; 
+
+                return psi;
+            }
+
+            // Particle Class
+            class Particle {
+                constructor() {
+                    this.init(true);
+                }
+
+                init(randomScreenPos = false) {
+                    if (randomScreenPos) {
+                        this.x = Math.random() * canvas.width;
+                        this.y = Math.random() * canvas.height;
+                    } else {
+                        // Spawn randomly at edges or anywhere to maintain density
+                        this.x = Math.random() * canvas.width;
+                        this.y = Math.random() * canvas.height;
+                    }
+                    
+                    this.type = Math.random() > 0.5 ? 'CLIMATE' : 'AI';
+                    // Larger nodes to make them "clearly visible"
+                    this.size = this.type === 'CLIMATE' ? (Math.random() * 2.5 + 2.0) : (Math.random() * 2.0 + 1.5); 
+                    
+                    this.life = 0;
+                    this.maxLife = Math.random() * 500 + 300; // Longer life for slower speed
+
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.alpha = 0; 
+                }
+
+                update() {
+                    this.life++;
+                    
+                    // Smooth fade in/out
+                    if (this.life < 80) this.alpha += 0.01;
+                    if (this.life > this.maxLife - 80) this.alpha -= 0.01;
+                    if (this.alpha < 0) this.alpha = 0;
+                    if (this.alpha > 0.9) this.alpha = 0.9;
+
+                    if (this.life > this.maxLife) {
+                        this.init(false);
+                        return;
+                    }
+
+                    // 1. PHYSICS
+                    const velocity = getAtmosphericVelocity(this.x, this.y, time);
+                    
+                    // Higher inertia for smoother, heavier feel
+                    const inertia = this.type === 'CLIMATE' ? 0.03 : 0.02; 
+                    
+                    this.vx = this.vx * (1 - inertia) + velocity.vx * SPEED_SCALE * inertia;
+                    this.vy = this.vy * (1 - inertia) + velocity.vy * SPEED_SCALE * inertia;
+
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    // 2. MOUSE INTERACTION - Subtle Swirl
+                    if (mouse.x != null) {
+                        const dx = this.x - mouse.x;
+                        const dy = this.y - mouse.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < MOUSE_RADIUS) {
+                            const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS;
+                            // Add a gentle curl
+                            this.x += (dy / dist) * force * 1.5; // Tangential force (spin)
+                            this.y -= (dx / dist) * force * 1.5;
+                        }
+                    }
+
+                    // 3. WRAPPING
+                    if (this.x > canvas.width + 20) this.x = -20;
+                    if (this.x < -20) this.x = canvas.width + 20;
+                    if (this.y > canvas.height + 20) this.y = -20;
+                    if (this.y < -20) this.y = canvas.height + 20;
+                }
+
+                draw() {
+                    // Draw "Neural Node" style
+                    // 1. Outer Glow/Halo
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+                    const color = this.type === 'CLIMATE' ? COLOR_CLIMATE : COLOR_AI;
+                    ctx.fillStyle = `rgba(${color}, ${this.alpha * 0.15})`;
+                    ctx.fill();
+
+                    // 2. Solid Core
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${color}, ${this.alpha})`;
+                    ctx.fill();
+
+                    // 3. Tiny white center for "tech" feel
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 0.3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha * 0.8})`;
+                    ctx.fill();
+                }
+            }
+
+            // Initialization
+            function init() {
+                particlesArray = [];
+                const count = Math.min(PARTICLE_COUNT, (window.innerWidth * window.innerHeight) / 9000);
+                for (let i = 0; i < count; i++) {
+                    particlesArray.push(new Particle());
+                }
+            }
+
+            // Animation Loop
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Slower time evolution
+                time += 0.001; 
+
+                for (let i = 0; i < particlesArray.length; i++) {
+                    particlesArray[i].update();
+                    particlesArray[i].draw();
+
+                    // CONNECTIONS (Neural Network Structure)
+                    for (let j = i + 1; j < particlesArray.length; j++) {
+                        const dx = particlesArray[i].x - particlesArray[j].x;
+                        const dy = particlesArray[i].y - particlesArray[j].y;
+                        const distSq = dx*dx + dy*dy;
+                        const connDistSq = CONNECTION_DISTANCE * CONNECTION_DISTANCE;
+
+                        if (distSq < connDistSq) {
+                            const dist = Math.sqrt(distSq);
+                            // Sharper opacity curve for cleaner lines
+                            let opacity = 1 - (dist / CONNECTION_DISTANCE);
+                            opacity = opacity * opacity; // Ease out
+                            
+                            // Scale by particle alpha so lines fade with nodes
+                            opacity *= Math.min(particlesArray[i].alpha, particlesArray[j].alpha);
+
+                            if (opacity > 0.05) {
+                                ctx.beginPath();
+                                const gradient = ctx.createLinearGradient(
+                                    particlesArray[i].x, particlesArray[i].y, 
+                                    particlesArray[j].x, particlesArray[j].y
+                                );
+
+                                const c1 = particlesArray[i].type === 'CLIMATE' ? COLOR_CLIMATE : COLOR_AI;
+                                const c2 = particlesArray[j].type === 'CLIMATE' ? COLOR_CLIMATE : COLOR_AI;
+
+                                // Slightly stronger lines for "network" visibility
+                                gradient.addColorStop(0, `rgba(${c1}, ${opacity * 0.4})`);
+                                gradient.addColorStop(1, `rgba(${c2}, ${opacity * 0.4})`);
+
+                                ctx.strokeStyle = gradient;
+                                ctx.lineWidth = 1.2; // Thicker lines
+                                ctx.moveTo(particlesArray[i].x, particlesArray[i].y);
+                                ctx.lineTo(particlesArray[j].x, particlesArray[j].y);
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                }
+                requestAnimationFrame(animate);
+            }
+
+            // Listeners
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                init();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                mouse.x = e.x;
+                mouse.y = e.y;
+            });
+            
+            window.addEventListener('mouseout', () => {
+                mouse.x = null;
+                mouse.y = null;
+            });
+
+            // Start
+            resizeCanvas();
+            init();
+            animate();
+
+        })();
+    </script>
+</body>
+</html>
