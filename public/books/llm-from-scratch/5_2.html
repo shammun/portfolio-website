@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flattening Tensors for Cross-Entropy Loss</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        .math-var {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-style: italic;
+            color: #6366f1;
+        }
+
+        /* Card Styles */
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-title .icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Main Visualization Layout */
+        .viz-container {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1.5rem;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        /* 3D Tensor Visualization */
+        .tensor-3d-container {
+            position: relative;
+            height: 400px;
+        }
+
+        .tensor-3d {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .batch-group {
+            position: absolute;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .time-slice {
+            position: absolute;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .time-slice:hover {
+            transform: scale(1.05);
+            z-index: 100;
+        }
+
+        .time-slice.highlighted {
+            box-shadow: 0 0 0 3px #8b5cf6, 0 8px 24px rgba(139, 92, 246, 0.4);
+            z-index: 100;
+        }
+
+        .vocab-cell {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* Warm gradient for input */
+        .batch-0 .time-slice {
+            background: linear-gradient(135deg, rgba(252, 211, 77, 0.3) 0%, rgba(249, 115, 22, 0.3) 100%);
+            border: 2px solid rgba(249, 115, 22, 0.5);
+        }
+
+        .batch-0 .vocab-cell {
+            background: linear-gradient(135deg, #fcd34d 0%, #f97316 100%);
+        }
+
+        .batch-1 .time-slice {
+            background: linear-gradient(135deg, rgba(248, 113, 113, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%);
+            border: 2px solid rgba(220, 38, 38, 0.5);
+        }
+
+        .batch-1 .vocab-cell {
+            background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+        }
+
+        /* Dimension Labels */
+        .dim-label {
+            position: absolute;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .dim-label .math-var {
+            font-size: 1rem;
+        }
+
+        /* Middle Transformation Area */
+        .transform-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .flatten-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .flatten-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+        }
+
+        .flatten-btn:active {
+            transform: translateY(0);
+        }
+
+        .flatten-btn.active {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+
+        .arrow-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #8b5cf6;
+        }
+
+        .arrow-svg {
+            width: 60px;
+            height: 24px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
+            width: 0%;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 2D Matrix Visualization */
+        .matrix-2d-container {
+            position: relative;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .matrix-2d {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            opacity: 0.3;
+            transition: opacity 0.5s ease;
+        }
+
+        .matrix-2d.active {
+            opacity: 1;
+        }
+
+        .matrix-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(50px);
+            opacity: 0;
+        }
+
+        .matrix-2d.active .matrix-row {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .matrix-row.highlighted {
+            box-shadow: 0 0 0 3px #8b5cf6, 0 4px 16px rgba(139, 92, 246, 0.3);
+            z-index: 10;
+        }
+
+        .matrix-row.from-batch-0 {
+            background: linear-gradient(135deg, rgba(110, 231, 183, 0.3) 0%, rgba(45, 212, 191, 0.3) 100%);
+            border: 2px solid rgba(20, 184, 166, 0.5);
+        }
+
+        .matrix-row.from-batch-0 .vocab-cell {
+            background: linear-gradient(135deg, #6ee7b7 0%, #14b8a6 100%);
+        }
+
+        .matrix-row.from-batch-1 {
+            background: linear-gradient(135deg, rgba(34, 211, 238, 0.3) 0%, rgba(8, 145, 178, 0.3) 100%);
+            border: 2px solid rgba(8, 145, 178, 0.5);
+        }
+
+        .matrix-row.from-batch-1 .vocab-cell {
+            background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%);
+        }
+
+        .row-label {
+            position: absolute;
+            left: -40px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #64748b;
+            width: 35px;
+            text-align: right;
+        }
+
+        /* Bottom Section */
+        .bottom-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: #1e1e2e;
+            border-radius: 12px;
+            padding: 1.25rem;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .code-block pre {
+            margin: 0;
+        }
+
+        .code-block code {
+            color: #ffffff;
+        }
+
+        .code-comment {
+            color: #6a9955;
+        }
+
+        .code-keyword {
+            color: #c586c0;
+        }
+
+        .code-variable {
+            color: #9cdcfe;
+        }
+
+        .code-function {
+            color: #dcdcaa;
+        }
+
+        .code-number {
+            color: #b5cea8;
+        }
+
+        .code-operator {
+            color: #ffffff;
+        }
+
+        .code-string {
+            color: #ce9178;
+        }
+
+        .code-punctuation {
+            color: #ffffff;
+        }
+
+        .code-highlight {
+            background: rgba(139, 92, 246, 0.3);
+            border-radius: 4px;
+            padding: 0 4px;
+            transition: background 0.3s ease;
+        }
+
+        /* Educational Text */
+        .explanation-box {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .explanation-box h3 {
+            color: #6366f1;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .explanation-box p {
+            color: #475569;
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        /* Key Takeaway */
+        .takeaway {
+            background: linear-gradient(135deg, #6ee7b7 0%, #0891b2 100%);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            color: white;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .takeaway-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .takeaway h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .takeaway p {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Batch Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+        }
+
+        .legend-color.batch-0-color {
+            background: linear-gradient(135deg, #fcd34d 0%, #f97316 100%);
+        }
+
+        .legend-color.batch-1-color {
+            background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+        }
+
+        /* Dimension Info */
+        .dimension-info {
+            display: flex;
+            justify-content: space-around;
+            padding: 1rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 12px;
+            margin-top: 1rem;
+        }
+
+        .dim-item {
+            text-align: center;
+        }
+
+        .dim-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6366f1;
+        }
+
+        .dim-name {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        /* Shape badges */
+        .shape-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            background: #f1f5f9;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+            margin-top: 0.75rem;
+        }
+
+        .shape-badge.input {
+            background: linear-gradient(135deg, rgba(252, 211, 77, 0.2) 0%, rgba(249, 115, 22, 0.2) 100%);
+            color: #c2410c;
+        }
+
+        .shape-badge.output {
+            background: linear-gradient(135deg, rgba(110, 231, 183, 0.2) 0%, rgba(8, 145, 178, 0.2) 100%);
+            color: #0e7490;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .matrix-row:nth-child(1) { transition-delay: 0ms; }
+        .matrix-row:nth-child(2) { transition-delay: 80ms; }
+        .matrix-row:nth-child(3) { transition-delay: 160ms; }
+        .matrix-row:nth-child(4) { transition-delay: 240ms; }
+        .matrix-row:nth-child(5) { transition-delay: 320ms; }
+        .matrix-row:nth-child(6) { transition-delay: 400ms; }
+
+        /* Slider */
+        .slider-container {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #e2e8f0;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .viz-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .bottom-section {
+                grid-template-columns: 1fr;
+            }
+
+            .transform-area {
+                flex-direction: row;
+                justify-content: center;
+            }
+
+            .arrow-svg {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Flattening Tensors for Cross-Entropy Loss</h1>
+        <p class="subtitle">Understanding how LLM outputs are reshaped for training</p>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color batch-0-color"></div>
+                <span>Batch 0 (First Sequence)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color batch-1-color"></div>
+                <span>Batch 1 (Second Sequence)</span>
+            </div>
+        </div>
+
+        <!-- Main Visualization -->
+        <div class="viz-container">
+            <!-- Left Panel: 3D Tensor -->
+            <div class="card">
+                <div class="card-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
+                    Input: 3D Logits Tensor
+                </div>
+                <div class="tensor-3d-container" id="tensor3d">
+                    <!-- 3D visualization rendered here -->
+                </div>
+                <div class="shape-badge input">
+                    Shape: [<span class="math-var">B</span>=2, <span class="math-var">T</span>=3, <span class="math-var">V</span>=4]
+                </div>
+                <div class="dimension-info">
+                    <div class="dim-item">
+                        <div class="dim-value">2</div>
+                        <div class="dim-name">Batch Size</div>
+                    </div>
+                    <div class="dim-item">
+                        <div class="dim-value">3</div>
+                        <div class="dim-name">Time Steps</div>
+                    </div>
+                    <div class="dim-item">
+                        <div class="dim-value">4</div>
+                        <div class="dim-name">Vocab Size</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle: Transformation -->
+            <div class="transform-area">
+                <div class="arrow-container">
+                    <svg class="arrow-svg" viewBox="0 0 60 24" fill="none">
+                        <defs>
+                            <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#8b5cf6"/>
+                                <stop offset="100%" style="stop-color:#6366f1"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M0 12 H50 M40 4 L52 12 L40 20" stroke="url(#arrowGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <button class="flatten-btn" id="flattenBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="17 11 12 6 7 11"></polyline>
+                        <polyline points="17 18 12 13 7 18"></polyline>
+                    </svg>
+                    <span id="btnText">Flatten</span>
+                </button>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="animSlider" min="0" max="100" value="0">
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <!-- Right Panel: 2D Matrix -->
+            <div class="card">
+                <div class="card-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                        <line x1="3" y1="15" x2="21" y2="15"></line>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                        <line x1="15" y1="3" x2="15" y2="21"></line>
+                    </svg>
+                    Output: 2D Flattened Matrix
+                </div>
+                <div class="matrix-2d-container">
+                    <div class="matrix-2d" id="matrix2d">
+                        <!-- 2D matrix rendered here -->
+                    </div>
+                </div>
+                <div class="shape-badge output">
+                    Shape: [<span class="math-var">N</span>=6, <span class="math-var">V</span>=4] where <span class="math-var">N</span> = <span class="math-var">B</span>×<span class="math-var">T</span>
+                </div>
+                <div class="dimension-info">
+                    <div class="dim-item">
+                        <div class="dim-value">6</div>
+                        <div class="dim-name">Total Samples (B×T)</div>
+                    </div>
+                    <div class="dim-item">
+                        <div class="dim-value">4</div>
+                        <div class="dim-name">Vocab Size</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Section -->
+        <div class="bottom-section">
+            <!-- Code Block -->
+            <div class="card">
+                <div class="card-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2">
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                    PyTorch Implementation
+                </div>
+                <div class="code-block">
+                    <pre><code><span class="code-comment"># B=Batch, T=Time, C=Vocab_Size</span>
+<span class="code-variable">B</span><span class="code-punctuation">,</span> <span class="code-variable">T</span><span class="code-punctuation">,</span> <span class="code-variable">C</span> <span class="code-operator">=</span> <span class="code-variable">logits</span><span class="code-punctuation">.</span><span class="code-function">shape</span>
+
+<span class="code-comment"># Flatten Batch and Time dimensions</span>
+<span id="codeLine1" class="code-highlight"><span class="code-variable">logits</span> <span class="code-operator">=</span> <span class="code-variable">logits</span><span class="code-punctuation">.</span><span class="code-function">view</span><span class="code-punctuation">(</span><span class="code-variable">B</span><span class="code-operator">*</span><span class="code-variable">T</span><span class="code-punctuation">,</span> <span class="code-variable">C</span><span class="code-punctuation">)</span></span>
+<span class="code-variable">targets</span> <span class="code-operator">=</span> <span class="code-variable">targets</span><span class="code-punctuation">.</span><span class="code-function">view</span><span class="code-punctuation">(</span><span class="code-variable">B</span><span class="code-operator">*</span><span class="code-variable">T</span><span class="code-punctuation">)</span>
+
+<span class="code-comment"># Calculate Loss</span>
+<span class="code-variable">loss</span> <span class="code-operator">=</span> <span class="code-variable">F</span><span class="code-punctuation">.</span><span class="code-function">cross_entropy</span><span class="code-punctuation">(</span><span class="code-variable">logits</span><span class="code-punctuation">,</span> <span class="code-variable">targets</span><span class="code-punctuation">)</span></code></pre>
+                </div>
+            </div>
+
+            <!-- Explanation -->
+            <div class="card">
+                <div class="card-title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    Why Do We Need This?
+                </div>
+                <div class="explanation-box">
+                    <h3>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                        The Shape Mismatch Problem
+                    </h3>
+                    <p>
+                        PyTorch's <code>CrossEntropyLoss</code> expects a 2D input of shape <strong>[N, C]</strong> where N is the number of samples and C is the number of classes. However, LLMs output 3D tensors: <strong>[Batch, Time, Vocab]</strong>.
+                    </p>
+                    <p style="margin-top: 0.75rem;">
+                        The loss function treats every token prediction as an <strong>independent event</strong>. It doesn't care about the sequence structure—it just needs a list of guesses (logits) and a list of correct answers (targets).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Takeaway -->
+        <div class="takeaway">
+            <div class="takeaway-icon">💡</div>
+            <div>
+                <h3>Key Takeaway</h3>
+                <p>
+                    <strong>Flattening converts a batch of sequences into a long list of individual token predictions.</strong> 
+                    By merging the Batch and Time dimensions, we create a unified list where each row represents one token's logits, 
+                    regardless of which sequence or position it came from. The order is preserved: Batch 0's tokens come first, 
+                    then Batch 1's tokens are appended below.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const B = 2;  // Batch size
+        const T = 3;  // Time steps
+        const V = 4;  // Vocab size
+
+        // State
+        let isFlattened = false;
+        let animationProgress = 0;
+        let highlightedSlice = null;
+
+        // Sample logit values (for display)
+        const logitValues = [
+            // Batch 0
+            [[0.1, 0.5, 0.2, 0.8], [0.3, 0.7, 0.4, 0.1], [0.9, 0.2, 0.6, 0.3]],
+            // Batch 1
+            [[0.4, 0.2, 0.8, 0.5], [0.6, 0.1, 0.3, 0.7], [0.2, 0.9, 0.5, 0.4]]
+        ];
+
+        // Initialize 3D Tensor Visualization
+        function init3DTensor() {
+            const container = document.getElementById('tensor3d');
+            container.innerHTML = '';
+
+            for (let b = 0; b < B; b++) {
+                const batchGroup = document.createElement('div');
+                batchGroup.className = `batch-group batch-${b}`;
+                batchGroup.id = `batch-${b}`;
+
+                for (let t = 0; t < T; t++) {
+                    const timeSlice = document.createElement('div');
+                    timeSlice.className = 'time-slice';
+                    timeSlice.id = `slice-${b}-${t}`;
+                    timeSlice.setAttribute('data-batch', b);
+                    timeSlice.setAttribute('data-time', t);
+
+                    for (let v = 0; v < V; v++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'vocab-cell';
+                        cell.textContent = logitValues[b][t][v].toFixed(1);
+                        timeSlice.appendChild(cell);
+                    }
+
+                    // Position slices in isometric-like arrangement
+                    const baseX = 40;
+                    const baseY = b === 0 ? 30 : 200;
+                    timeSlice.style.left = `${baseX + t * 20}px`;
+                    timeSlice.style.top = `${baseY + t * 30}px`;
+                    timeSlice.style.zIndex = T - t;
+
+                    // Add hover effect
+                    timeSlice.addEventListener('mouseenter', () => handleSliceHover(b, t));
+                    timeSlice.addEventListener('mouseleave', () => handleSliceLeave());
+
+                    batchGroup.appendChild(timeSlice);
+                }
+
+                container.appendChild(batchGroup);
+            }
+
+            // Add dimension labels
+            addDimensionLabels(container);
+        }
+
+        function addDimensionLabels(container) {
+            // Batch label
+            const batchLabel = document.createElement('div');
+            batchLabel.className = 'dim-label';
+            batchLabel.innerHTML = '<span class="math-var">B</span>atch →';
+            batchLabel.style.left = '0';
+            batchLabel.style.top = '50%';
+            batchLabel.style.transform = 'translateY(-50%) rotate(-90deg)';
+            container.appendChild(batchLabel);
+
+            // Time label
+            const timeLabel = document.createElement('div');
+            timeLabel.className = 'dim-label';
+            timeLabel.innerHTML = '<span class="math-var">T</span>ime →';
+            timeLabel.style.left = '50%';
+            timeLabel.style.bottom = '10px';
+            timeLabel.style.transform = 'translateX(-50%)';
+            container.appendChild(timeLabel);
+        }
+
+        // Initialize 2D Matrix Visualization
+        function init2DMatrix() {
+            const container = document.getElementById('matrix2d');
+            container.innerHTML = '';
+
+            let rowIndex = 0;
+            for (let b = 0; b < B; b++) {
+                for (let t = 0; t < T; t++) {
+                    const row = document.createElement('div');
+                    row.className = `matrix-row from-batch-${b}`;
+                    row.id = `row-${rowIndex}`;
+                    row.setAttribute('data-source-batch', b);
+                    row.setAttribute('data-source-time', t);
+                    row.style.position = 'relative';
+
+                    // Row label
+                    const label = document.createElement('span');
+                    label.className = 'row-label';
+                    label.textContent = `[${rowIndex}]`;
+                    row.appendChild(label);
+
+                    for (let v = 0; v < V; v++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'vocab-cell';
+                        cell.textContent = logitValues[b][t][v].toFixed(1);
+                        row.appendChild(cell);
+                    }
+
+                    row.addEventListener('mouseenter', () => {
+                        highlightCorrespondingSlice(b, t);
+                    });
+                    row.addEventListener('mouseleave', () => {
+                        clearHighlights();
+                    });
+
+                    container.appendChild(row);
+                    rowIndex++;
+                }
+            }
+        }
+
+        // Hover effects
+        function handleSliceHover(batch, time) {
+            highlightedSlice = { batch, time };
+            
+            // Highlight the slice
+            const slice = document.getElementById(`slice-${batch}-${time}`);
+            if (slice) slice.classList.add('highlighted');
+
+            // Highlight corresponding row in 2D matrix
+            const rowIndex = batch * T + time;
+            const row = document.getElementById(`row-${rowIndex}`);
+            if (row) row.classList.add('highlighted');
+        }
+
+        function handleSliceLeave() {
+            clearHighlights();
+            highlightedSlice = null;
+        }
+
+        function highlightCorrespondingSlice(batch, time) {
+            const slice = document.getElementById(`slice-${batch}-${time}`);
+            if (slice) slice.classList.add('highlighted');
+
+            const rowIndex = batch * T + time;
+            const row = document.getElementById(`row-${rowIndex}`);
+            if (row) row.classList.add('highlighted');
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.highlighted').forEach(el => {
+                el.classList.remove('highlighted');
+            });
+        }
+
+        // Animation
+        function updateVisualization(progress) {
+            const tensor3d = document.getElementById('tensor3d');
+            const matrix2d = document.getElementById('matrix2d');
+            const progressFill = document.getElementById('progressFill');
+
+            progressFill.style.width = `${progress}%`;
+
+            // Update 3D tensor positions
+            for (let b = 0; b < B; b++) {
+                for (let t = 0; t < T; t++) {
+                    const slice = document.getElementById(`slice-${b}-${t}`);
+                    if (slice) {
+                        const startX = 40 + t * 20;
+                        const startY = b === 0 ? 30 + t * 30 : 200 + t * 30;
+                        
+                        // End position: stack vertically
+                        const endX = 80;
+                        const rowIndex = b * T + t;
+                        const endY = 20 + rowIndex * 55;
+
+                        const currentX = startX + (endX - startX) * (progress / 100);
+                        const currentY = startY + (endY - startY) * (progress / 100);
+
+                        slice.style.left = `${currentX}px`;
+                        slice.style.top = `${currentY}px`;
+                        slice.style.opacity = 1 - (progress / 100) * 0.7;
+                        slice.style.transform = `scale(${1 - (progress / 100) * 0.2})`;
+                    }
+                }
+            }
+
+            // Update 2D matrix visibility
+            if (progress > 30) {
+                matrix2d.classList.add('active');
+            } else {
+                matrix2d.classList.remove('active');
+            }
+        }
+
+        // Button click handler
+        function handleFlattenClick() {
+            const btn = document.getElementById('flattenBtn');
+            const btnText = document.getElementById('btnText');
+            const slider = document.getElementById('animSlider');
+
+            if (!isFlattened) {
+                // Animate to flattened state
+                animateToValue(100);
+                btnText.textContent = 'Reset';
+                btn.classList.add('active');
+                isFlattened = true;
+            } else {
+                // Animate back
+                animateToValue(0);
+                btnText.textContent = 'Flatten';
+                btn.classList.remove('active');
+                isFlattened = false;
+            }
+        }
+
+        function animateToValue(targetValue) {
+            const slider = document.getElementById('animSlider');
+            const startValue = animationProgress;
+            const startTime = performance.now();
+            const duration = 800;
+
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Ease out cubic
+                const eased = 1 - Math.pow(1 - progress, 3);
+                
+                animationProgress = startValue + (targetValue - startValue) * eased;
+                slider.value = animationProgress;
+                updateVisualization(animationProgress);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Slider handler
+        function handleSliderInput(e) {
+            animationProgress = parseInt(e.target.value);
+            updateVisualization(animationProgress);
+
+            const btn = document.getElementById('flattenBtn');
+            const btnText = document.getElementById('btnText');
+
+            if (animationProgress > 50) {
+                btnText.textContent = 'Reset';
+                btn.classList.add('active');
+                isFlattened = true;
+            } else {
+                btnText.textContent = 'Flatten';
+                btn.classList.remove('active');
+                isFlattened = false;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            init3DTensor();
+            init2DMatrix();
+
+            document.getElementById('flattenBtn').addEventListener('click', handleFlattenClick);
+            document.getElementById('animSlider').addEventListener('input', handleSliderInput);
+        });
+    </script>
+</body>
+</html>

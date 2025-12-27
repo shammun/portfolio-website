@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive LLM Loss Calculation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            color: #1e293b;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .progress-container {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.12));
+        }
+
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-top: 20px;
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 20px;
+            left: 40px;
+            right: 40px;
+            height: 3px;
+            background: #e2e8f0;
+            z-index: 0;
+        }
+
+        .progress-line-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+            transition: width 0.5s ease;
+        }
+
+        .step-indicator {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .step-circle.active {
+            background: #8b5cf6;
+            border-color: #8b5cf6;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .step-circle.completed {
+            background: #c4b5fd;
+            border-color: #c4b5fd;
+            color: white;
+        }
+
+        .step-label {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #64748b;
+            text-align: center;
+            max-width: 100px;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.12));
+            min-height: 500px;
+        }
+
+        .controls-panel {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-group {
+            background: #f8fafc;
+            padding: 15px 20px;
+            border-radius: 13px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .control-label {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .batch-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .batch-btn {
+            padding: 8px 16px;
+            border-radius: 13px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .batch-btn.active {
+            background: #14b8a6;
+            border-color: #14b8a6;
+            color: white;
+        }
+
+        .batch-btn:hover {
+            transform: translateY(-2px);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        /* Styles for the Play/Pause button specifically to handle width changes */
+        #autoPlayBtn {
+            min-width: 110px;
+        }
+
+        .visualization-area {
+            margin: 30px 0;
+            padding: 30px;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            border-radius: 13px;
+            min-height: 350px;
+        }
+
+        .explanation-panel {
+            background: #ecfdf5;
+            border-left: 4px solid #14b8a6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .explanation-panel h3 {
+            color: #0f766e;
+            margin-bottom: 10px;
+        }
+
+        .explanation-panel p {
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .code-panel {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 13px;
+            font-family: "Source Code Pro", monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            margin-top: 15px;
+            display: none;
+            position: relative;
+        }
+
+        .code-panel.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background: #8b5cf6;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .copy-btn:hover {
+            background: #7c3aed;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .nav-btn {
+            padding: 12px 30px;
+            border-radius: 13px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .nav-btn.prev {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .nav-btn.next {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .token-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .token-box {
+            background: #fef3c7;
+            border: 2px solid #f97316;
+            padding: 15px 25px;
+            border-radius: 13px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .token-box.output {
+            background: #ecfdf5;
+            border-color: #14b8a6;
+        }
+
+        .token-text {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        .token-id {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-family: "Source Code Pro", monospace;
+        }
+
+        .arrow {
+            font-size: 2rem;
+            color: #8b5cf6;
+        }
+
+        .tensor-3d {
+            perspective: 1000px;
+            margin: 60px auto;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            height: 350px;
+        }
+
+        .tensor-cube {
+            width: 420px;
+            height: 300px;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateX(-20deg) rotateY(20deg);
+            transition: transform 0.5s ease;
+        }
+
+        .tensor-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr) 30px 1fr;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 3px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            transition: all 0.5s ease;
+            backface-visibility: hidden; /* Helps with rendering */
+        }
+
+        /* Front/Back positioning classes */
+        .tensor-layer.front {
+            transform: translateZ(50px);
+            z-index: 10;
+        }
+
+        .tensor-layer.back {
+            transform: translateZ(-50px);
+            z-index: 1;
+        }
+
+        /* Active/Inactive States for Layers */
+        .tensor-layer.active {
+            opacity: 1;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+
+        .tensor-layer.inactive {
+            opacity: 0.15; /* Lower opacity to prevent blurring */
+            filter: grayscale(100%);
+        }
+
+        .tensor-label {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-weight: 700;
+            color: #64748b;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tensor-cell {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .tensor-cell:hover {
+            background: #c4b5fd;
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .tensor-cell.highlight {
+            background: #14b8a6;
+            color: white;
+            font-weight: 600;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .dimension-label {
+            position: absolute;
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .prob-extraction {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .prob-row {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .prob-cell {
+            width: 50px;
+            height: 40px;
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .prob-cell.target {
+            background: #fef3c7;
+            border-color: #f97316;
+            font-weight: 600;
+        }
+
+        .prob-cell.extracted {
+            background: #ecfdf5;
+            border-color: #14b8a6;
+            font-weight: 600;
+            animation: extractAnim 1s ease;
+        }
+
+        @keyframes extractAnim {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .loss-pipeline {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .pipeline-step {
+            background: white;
+            padding: 20px;
+            border-radius: 13px;
+            border: 2px solid #e2e8f0;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .pipeline-step.transform {
+            background: #f3e8ff;
+            border-color: #8b5cf6;
+        }
+
+        .pipeline-arrow {
+            font-size: 1.5rem;
+            color: #8b5cf6;
+        }
+
+        .key-takeaway {
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            border-left: 4px solid #f97316;
+            padding: 30px;
+            border-radius: 13px;
+            margin-top: 30px;
+        }
+
+        .key-takeaway h2 {
+            color: #ea580c;
+            margin-bottom: 15px;
+        }
+
+        .key-takeaway p {
+            color: #334155;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .key-takeaway ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .key-takeaway li {
+            padding: 10px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .key-takeaway li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #f97316;
+            font-weight: 600;
+        }
+
+        .toggle-code {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #8b5cf6;
+            color: white;
+            border-radius: 13px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-code:hover {
+            background: #7c3aed;
+            transform: translateY(-2px);
+        }
+
+        .vocab-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Increased width for long tokens */
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .vocab-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .vocab-word {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .vocab-id {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-family: "Source Code Pro", monospace;
+        }
+
+        .math-display {
+            background: white;
+            padding: 20px;
+            border-radius: 13px;
+            margin: 20px 0;
+            text-align: center;
+            font-family: Georgia, serif;
+            font-size: 1.1rem;
+        }
+
+        .formula {
+            font-style: italic;
+            color: #475569;
+            margin: 10px 0;
+        }
+
+        .highlight-orange {
+            color: #f97316;
+            font-weight: 600;
+        }
+
+        .highlight-teal {
+            color: #14b8a6;
+            font-weight: 600;
+        }
+
+        .highlight-purple {
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        /* Matrix Animation Styles */
+        .matrix-container {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr) 40px 1fr;
+            gap: 5px;
+            margin: 20px 0;
+            font-family: 'Source Code Pro', monospace;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .matrix-header {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #64748b;
+            font-weight: bold;
+            padding: 5px;
+        }
+        
+        .matrix-row-label {
+            text-align: right;
+            padding-right: 10px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-weight: 500;
+        }
+        
+        .matrix-row-label.highlighted {
+            color: #f97316;
+            font-weight: 700;
+        }
+        
+        .matrix-cell {
+            height: 35px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: #cbd5e1;
+            transition: all 0.5s ease;
+            position: relative;
+        }
+        
+        .matrix-cell.dimmed {
+            opacity: 0.4;
+            filter: blur(0.5px);
+        }
+        
+        .matrix-cell.active-row {
+            background: #f8fafc;
+            color: #64748b;
+            border-color: #cbd5e1;
+            opacity: 1;
+            filter: none;
+        }
+        
+        .matrix-cell.target {
+            background: #14b8a6;
+            color: white;
+            border-color: #0f766e;
+            transform: scale(1.15);
+            z-index: 10;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            opacity: 1;
+            filter: none;
+            font-weight: 700;
+        }
+        
+        .flying-value {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f766e;
+            font-weight: bold;
+            z-index: 20;
+            pointer-events: none;
+            font-size: 0.9rem;
+            animation: flyToResult 1.5s ease-in-out forwards;
+        }
+        
+        @keyframes flyToResult {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            30% { transform: translate(0, -20px) scale(1.3); opacity: 1; }
+            100% { transform: translate(0, 40px) scale(0.5); opacity: 0; }
+        }
+
+        .extracted-result {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .extracted-result.show {
+            opacity: 1;
+        }
+
+        /* Modal for Full Code */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            color: #e2e8f0;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            border-radius: 16px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: white;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            font-family: "Source Code Pro", monospace;
+            font-size: 0.9rem;
+        }
+
+        /* New Styles for Code Sections */
+        .code-section {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .code-section.active {
+            background-color: rgba(139, 92, 246, 0.15);
+            border-left-color: #8b5cf6;
+            opacity: 1;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .code-section.dimmed {
+            opacity: 0.4;
+        }
+
+        .section-header {
+            color: #94a3b8;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            .main-card {
+                padding: 20px;
+            }
+
+            .tensor-cube {
+                width: 300px;
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Text Generation Loss Calculation in LLMs</h1>
+            <p class="subtitle">How Large Language Models learn to predict the next token</p>
+        </header>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-line">
+                    <div class="progress-line-fill" id="progressFill"></div>
+                </div>
+                <div class="step-indicator" onclick="goToStep(0)">
+                    <div class="step-circle" id="step0">1</div>
+                    <div class="step-label">Tokenization</div>
+                </div>
+                <div class="step-indicator" onclick="goToStep(1)">
+                    <div class="step-circle" id="step1">2</div>
+                    <div class="step-label">Softmax</div>
+                </div>
+                <div class="step-indicator" onclick="goToStep(2)">
+                    <div class="step-circle" id="step2">3</div>
+                    <div class="step-label">3D Tensor</div>
+                </div>
+                <div class="step-indicator" onclick="goToStep(3)">
+                    <div class="step-circle" id="step3">4</div>
+                    <div class="step-label">Extract Probs</div>
+                </div>
+                <div class="step-indicator" onclick="goToStep(4)">
+                    <div class="step-circle" id="step4">5</div>
+                    <div class="step-label">Loss</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-panel">
+            <div class="control-group">
+                <div class="control-label">Select Batch:</div>
+                <div class="batch-selector">
+                    <button class="batch-btn active" onclick="selectBatch(0)">Batch 0: "every effort moves"</button>
+                    <button class="batch-btn" onclick="selectBatch(1)">Batch 1: "I really like"</button>
+                </div>
+            </div>
+
+            <!-- New Playback Controls -->
+            <div class="control-group">
+                <div class="control-label">Animation:</div>
+                <div class="batch-selector">
+                    <button class="batch-btn" id="autoPlayBtn" onclick="toggleAutoPlay()">▶ Auto Play</button>
+                    <button class="batch-btn" onclick="stepForward()">Step ⏵</button>
+                </div>
+            </div>
+            
+            <div>
+                <button class="toggle-code" onclick="showFullCode()">📜 Show Step Code</button>
+            </div>
+        </div>
+
+        <div class="main-card">
+            <div id="stepContent"></div>
+            
+            <button class="toggle-code" onclick="toggleCode()">💻 Show Snippet</button>
+            <div class="code-panel" id="codePanel"></div>
+
+            <div class="nav-buttons">
+                <button class="nav-btn prev" onclick="prevStep()" id="prevBtn">◀ Previous</button>
+                <button class="nav-btn next" onclick="nextStep()" id="nextBtn">Next ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Code Modal -->
+    <div class="modal-overlay" id="fullCodeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Complete PyTorch Pipeline Code</div>
+                <button class="modal-close" onclick="closeFullCode()">&times;</button>
+            </div>
+            <div class="modal-body" id="fullCodeContent">
+                <!-- Content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        let currentBatch = 0;
+        let step4Timeouts = []; // Track animation timeouts
+        let autoPlayInterval; // Track autoplay interval
+
+        // Updated Vocab - Merged needed words into 7 specific indices to fit grid
+        // 0: really, 1: effort, 2: every, 3: zoo, 4: moves, 5: you, 6: like
+        const vocab = {
+            0: "really", 1: "effort", 2: "every", 3: "zoo", 4: "moves", 5: "you", 6: "like"
+        };
+
+        const batch0 = {
+            text: "every effort moves",
+            inputs: [2, 1, 4], // every, effort, moves
+            targets: [1, 4, 5], // effort, moves, you
+            targetWords: ["effort", "moves", "you"], 
+            probs: [
+                // Row 0: Target 'effort' (1) gets 0.60
+                [0.10, 0.60, 0.20, 0.05, 0.03, 0.01, 0.01],
+                // Row 1: Target 'moves' (4) gets 0.35
+                [0.06, 0.07, 0.01, 0.26, 0.35, 0.13, 0.12],
+                // Row 2: Target 'you' (5) gets 0.34
+                [0.01, 0.10, 0.10, 0.20, 0.12, 0.34, 0.13]
+            ],
+            extractedProbs: [0.60, 0.35, 0.34]
+        };
+
+        const batch1 = {
+            text: "I really like",
+            inputs: [99, 0, 6], // 'I'(dummy), 'really', 'like'
+            targets: [0, 6, 3], // 'really', 'like', 'zoo'
+            targetWords: ["really", "like", "zoo"],
+            probs: [
+                // Row 0: Target 'really' (0) gets 0.45
+                [0.45, 0.05, 0.10, 0.15, 0.10, 0.08, 0.07],
+                // Row 1: Target 'like' (6) gets 0.41
+                [0.05, 0.12, 0.08, 0.15, 0.10, 0.09, 0.41], 
+                // Row 2: Target 'zoo' (3) gets 0.38
+                [0.03, 0.12, 0.12, 0.38, 0.15, 0.11, 0.09] 
+            ],
+            extractedProbs: [0.45, 0.41, 0.38]
+        };
+
+        const steps = [
+            {
+                title: "Step 1: Input Text → Token IDs",
+                content: renderStep1,
+                code: `# Step 1: Convert text to token IDs
+inputs = torch.tensor([
+    [16833, 3626, 6100],   # "every effort moves"
+    [40,    1107, 588]     # "I really like"
+])
+
+# Targets are inputs shifted by one position
+targets = torch.tensor([
+    [3626, 6100, 345],     # "effort moves you"
+    [1107, 588, 11311]     # "really like zoo"
+])`
+            },
+            {
+                title: "Step 2: Model Forward Pass → Softmax → Probabilities",
+                content: renderStep2,
+                code: `# Step 2: Get model predictions and convert to probabilities
+with torch.no_grad():
+    logits = model(inputs)  # Shape: [2, 3, 50257]
+    
+# Apply softmax to convert logits to probabilities
+probas = torch.softmax(logits, dim=-1)
+print(probas.shape)  # torch.Size([2, 3, 50257])
+
+# Each probability distribution sums to 1.0
+print(probas[0, 0].sum())  # tensor(1.0000)`
+            },
+            {
+                title: "Step 3: Understanding the 3D Tensor Structure",
+                content: renderStep3,
+                code: `# Step 3: The 3D tensor structure
+# probas shape: [batch_size, sequence_length, vocab_size]
+# In our case: [2, 3, 50257]
+
+# To access a specific probability:
+# probas[batch_idx, token_position, vocab_idx]
+#         ↓             ↓               ↓
+#    Which         Which token     Which word's
+#    sentence?     in sequence?     probability?
+
+# Example: probability of "moves" after "effort" in batch 0
+batch_idx = 0
+token_pos = 1  # After "effort"
+vocab_idx = 4  # "moves"
+prob = probas[batch_idx, token_pos, vocab_idx]`
+            },
+            {
+                title: "Step 4: Extract Target Token Probabilities",
+                content: renderStep4,
+                code: `# Step 4: Extract probabilities for the CORRECT tokens
+text_idx = 0  # First sequence
+
+# The magic indexing operation
+target_probas_1 = probas[text_idx, [0, 1, 2], targets[text_idx]]
+print("Text 1:", target_probas_1)
+# tensor([0.60, 0.35, 0.34])
+
+# This simultaneously extracts:
+# probas[0, 0, 3626] → P("effort" after "every")
+# probas[0, 1, 6100] → P("moves" after "every effort")
+# probas[0, 2, 345]  → P("you" after "every effort moves")
+
+text_idx = 1  # Second sequence
+target_probas_2 = probas[text_idx, [0, 1, 2], targets[text_idx]]
+print("Text 2:", target_probas_2)
+# tensor([0.45, 0.41, 0.38])`
+            },
+            {
+                title: "Step 5: Calculate Cross-Entropy Loss",
+                content: renderStep5,
+                code: `# Step 5: Calculate cross-entropy loss
+log_probas = torch.log(torch.cat((target_probas_1, target_probas_2)))
+print(log_probas)
+# tensor([-9.5148, -10.3788, -11.3680, -11.4799, -9.7759, -12.2556])
+
+avg_log_probas = torch.mean(log_probas)
+print(avg_log_probas)  # tensor(-10.7940)
+
+# Cross-entropy loss (negate the log probability)
+neg_avg_log_probas = avg_log_probas * (-1)
+print(neg_avg_log_probas)  # tensor(10.7940)
+
+# Equivalent using PyTorch's built-in function:
+logits_flat = logits.flatten(0, 1)    # [6, 50257]
+targets_flat = targets.flatten()       # [6]
+loss = torch.nn.functional.cross_entropy(logits_flat, targets_flat)
+print(loss)  # tensor(10.7940)`
+            }
+        ];
+
+        function renderStep1() {
+            const batch = currentBatch === 0 ? batch0 : batch1;
+            return `
+                <h2>${steps[0].title}</h2>
+                <div class="explanation-panel">
+                    <h3>🔤 What happens:</h3>
+                    <p>Convert human-readable text into numerical token IDs using the vocabulary. After tokenization, the shape will be <strong>[3, 50257]</strong> for one sentence (conceptual one-hot target space). For two sentences or two batches, the shape will be <strong>[2, 3, 50257]</strong>.</p>
+                </div>
+                
+                <div class="visualization-area">
+                    <div class="token-flow">
+                        <div class="token-box">
+                            <div class="token-text">"${batch.text}"</div>
+                            <div class="token-id">Input Text</div>
+                        </div>
+                        <div class="arrow">→</div>
+                        <div class="token-box" style="background: #f3e8ff; border-color: #8b5cf6;">
+                            <div class="token-text">Tokenizer</div>
+                            <div class="token-id">Vocab Lookup</div>
+                        </div>
+                        <div class="arrow">→</div>
+                        <div class="token-box output">
+                            <div class="token-text">[${batch.inputs.join(', ')}]</div>
+                            <div class="token-id">Token IDs</div>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 30px; text-align: center; color: #64748b;">Vocabulary (50257 tokens)</h3>
+                    <div class="vocab-display">
+                        ${Object.entries(vocab).map(([id, word]) => `
+                            <div class="vocab-item">
+                                <div class="vocab-word">"${word}"</div>
+                                <div class="vocab-id">ID: ${id}</div>
+                            </div>
+                        `).join('')}
+                        <div class="vocab-item" style="border:none; background:transparent;">
+                            <div class="vocab-word">...</div>
+                        </div>
+                        <div class="vocab-item">
+                            <div class="vocab-word">"&lt;|endoftext|&gt;"</div>
+                            <div class="vocab-id">ID: 50256</div>
+                        </div>
+                    </div>
+
+                    <div class="explanation-panel" style="margin-top: 20px;">
+                        <h3>🎯 Target Tokens:</h3>
+                        <p>The model learns to predict the <strong class="highlight-teal">next token</strong>. So our targets are: <code>[3, 50257]</code> → <strong>${batch.targetWords.join(', ')}</strong>. For two sentences of batch size of 2, the target shape is [2, 3, 50257].</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStep2() {
+            // Mock data for visualization of the large vector
+            const vectorData = [
+                { idx: 0, token: "a", logit: 2.1, prob: 0.05 },
+                { idx: 1, token: "effort", logit: -0.5, prob: 0.01 },
+                { idx: 2, token: "every", logit: -1.2, prob: 0.005 },
+            ];
+            const lastItem = { idx: 50256, token: "<|endoftext|>", logit: -3.0, prob: 0.0001 };
+
+            return `
+                <h2>${steps[1].title}</h2>
+                <div class="explanation-panel">
+                    <h3>🧠 What happens:</h3>
+                    <p>The LLM processes input tokens and produces raw "logits" (unnormalized scores). Softmax converts these to probabilities that sum to 1.0. For EACH token position in the batch, we get a probability distribution over ALL <strong>50,257</strong> possible next tokens.</p>
+                </div>
+                
+                <div class="visualization-area">
+                    <div class="loss-pipeline">
+                        <div class="pipeline-step">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Input</div>
+                            <div style="font-family: monospace; font-size: 0.85rem;">[2, 3]</div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-step transform">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Model</div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-step">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Logits</div>
+                            <div style="font-family: monospace; font-size: 0.75rem;">Shape: [2, 3, 50257]</div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-step transform">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Softmax</div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-step" style="border-color: #14b8a6; background: #ecfdf5;">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Probabilities</div>
+                            <div style="font-family: monospace; font-size: 0.75rem;">Shape: [2, 3, 50257]</div>
+                        </div>
+                    </div>
+
+                    <div class="math-display">
+                        <div style="font-weight: 600; margin-bottom: 15px; font-size: 1.2rem;">Softmax Formula</div>
+                        <div class="formula">
+                            softmax(z<sub>i</sub>) = <span style="font-size: 1.3rem;">e<sup>z<sub>i</sub></sup></span> / <span style="font-size: 1.3rem;">Σ</span> e<sup>z<sub>j</sub></sup>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.95rem; color: #64748b;">
+                            Converts 50,257 raw scores into probabilities summing to 1.0
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: center; gap: 40px; margin-top: 40px;">
+                        <!-- Logits Column -->
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <h4 style="margin-bottom: 10px; color: #64748b;">Logits Vector (Size 50,257)</h4>
+                            <div style="background: white; border: 2px solid #e2e8f0; border-radius: 8px; padding: 10px; width: 180px; text-align: center;">
+                                ${vectorData.map(d => `
+                                    <div style="border-bottom: 1px solid #f1f5f9; padding: 5px 0; font-family: monospace; display: flex; justify-content: space-between;">
+                                        <span style="color: #94a3b8; font-size: 0.8em;">[${d.idx}]</span>
+                                        <span>${d.logit.toFixed(1)}</span>
+                                    </div>
+                                `).join('')}
+                                <div style="padding: 10px 0; color: #94a3b8; font-weight: bold;">⋮</div>
+                                <div style="border-top: 1px solid #f1f5f9; padding: 5px 0; font-family: monospace; display: flex; justify-content: space-between;">
+                                    <span style="color: #94a3b8; font-size: 0.8em;">[${lastItem.idx}]</span>
+                                    <span>${lastItem.logit.toFixed(1)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; color: #8b5cf6; font-size: 1.5rem;">→</div>
+
+                        <!-- Probs Column -->
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <h4 style="margin-bottom: 10px; color: #14b8a6;">Probabilities (Sum=1.0)</h4>
+                            <div style="background: white; border: 2px solid #14b8a6; border-radius: 8px; padding: 10px; width: 220px;">
+                                ${vectorData.map(d => `
+                                    <div style="border-bottom: 1px solid #f1f5f9; padding: 8px 0; display: flex; align-items: center; gap: 10px;">
+                                        <span style="font-family: monospace; color: #94a3b8; font-size: 0.8em; width: 30px;">[${d.idx}]</span>
+                                        <div style="flex-grow: 1; background: #f0fdfa; height: 10px; border-radius: 5px; overflow: hidden;">
+                                            <div style="width: ${d.prob * 100}%; background: #14b8a6; height: 100%;"></div>
+                                        </div>
+                                        <span style="font-family: monospace; font-size: 0.9em;">${d.prob.toFixed(3)}</span>
+                                    </div>
+                                `).join('')}
+                                <div style="padding: 10px 0; color: #94a3b8; font-weight: bold; text-align: center;">⋮</div>
+                                <div style="border-top: 1px solid #f1f5f9; padding: 8px 0; display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-family: monospace; color: #94a3b8; font-size: 0.8em; width: 30px;">[${lastItem.idx}]</span>
+                                    <div style="flex-grow: 1; background: #f0fdfa; height: 10px; border-radius: 5px; overflow: hidden;">
+                                        <div style="width: ${lastItem.prob * 100}%; background: #14b8a6; height: 100%;"></div>
+                                    </div>
+                                    <span style="font-family: monospace; font-size: 0.9em;">${lastItem.prob.toFixed(4)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px; color: #64748b; font-size: 0.9rem;">
+                        <em>(Visualized for a single token position in the sequence)</em>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStep3() {
+            return `
+                <h2>${steps[2].title}</h2>
+                <div class="explanation-panel">
+                    <h3>📦 What happens:</h3>
+                    <p>Conceptualize how the probability tensor is organized. It's a 3D structure: <code>[batch_size, sequence_length, vocab_size]</code> or <code>[2, 3, 50257]</code> in our simplified case.</p>
+                </div>
+                
+                <div class="visualization-area">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-family: 'Source Code Pro', monospace; font-size: 1.1rem; color: #8b5cf6; font-weight: 600;">
+                            probas.shape = [<span class="highlight-orange">2</span>, <span class="highlight-purple">3</span>, <span class="highlight-teal">50257</span>]
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 40px; margin-top: 15px; flex-wrap: wrap;">
+                            <div>
+                                <div style="font-weight: 600;">Batch Size</div>
+                                <div style="color: #64748b;">2 sequences</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600;">Sequence Length</div>
+                                <div style="color: #64748b;">3 tokens each</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600;">Vocab Size</div>
+                                <div style="color: #64748b;">50257 possible words</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="math-display">
+                        <div style="display: grid; grid-template-columns: auto auto auto auto auto; justify-content: center; gap: 5px; text-align: center; align-items: start;">
+                            <!-- Formula Row -->
+                            <div style="font-size: 1.1rem; font-style: italic; color: #475569; padding-bottom: 10px;">probas[</div>
+                            <div style="font-size: 1.1rem; font-style: italic; color: #475569; padding-bottom: 10px;"><span class="highlight-orange">batch_idx</span></div>
+                            <div style="font-size: 1.1rem; font-style: italic; color: #475569; padding-bottom: 10px;">, <span class="highlight-purple">token_position</span></div>
+                            <div style="font-size: 1.1rem; font-style: italic; color: #475569; padding-bottom: 10px;">, <span class="highlight-teal">vocab_idx</span></div>
+                            <div style="font-size: 1.1rem; font-style: italic; color: #475569; padding-bottom: 10px;">]</div>
+                            
+                            <!-- Arrow Row -->
+                            <div></div>
+                            <div class="highlight-orange" style="font-weight: 600;">↓<br><span style="font-size: 0.8rem; color: #64748b; font-weight: normal;">Which<br>sentence?</span></div>
+                            <div class="highlight-purple" style="font-weight: 600;">↓<br><span style="font-size: 0.8rem; color: #64748b; font-weight: normal;">Which token<br>in sequence?</span></div>
+                            <div class="highlight-teal" style="font-weight: 600;">↓<br><span style="font-size: 0.8rem; color: #64748b; font-weight: normal;">Which word's<br>probability?</span></div>
+                            <div></div>
+                        </div>
+                    </div>
+
+                    <div id="tensor3d" class="tensor-3d">
+                        ${renderTensor3D()}
+                    </div>
+
+                    <div class="explanation-panel" style="margin-top: 20px;">
+                        <h3>💡 Key Insight:</h3>
+                        <p>To find the probability of a specific word at a specific position, you need <strong>THREE coordinates</strong> - like finding a point in 3D space! Hover over cells above to see their coordinates.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTensor3D() {
+            // Render BOTH batches stacked
+            let html = '<div class="tensor-cube">';
+            
+            // Generate layers for batch 0 and 1
+            [0, 1].forEach(batchId => {
+                const batch = batchId === 0 ? batch0 : batch1;
+                // Determine CSS class based on current selection
+                const isActive = batchId === currentBatch;
+                // Dynamic positioning: Active layer goes to FRONT, Inactive goes to BACK
+                const positionClass = isActive ? 'front' : 'back';
+                const statusClass = isActive ? 'active' : 'inactive';
+                
+                html += `<div class="tensor-layer ${positionClass} ${statusClass}">`;
+                html += `<div class="tensor-label">Batch ${batchId}: "${batch.text}"</div>`;
+                
+                for (let pos = 0; pos < 3; pos++) {
+                    for (let vocabIdx = 0; vocabIdx < 7; vocabIdx++) {
+                        const prob = batch.probs[pos][vocabIdx];
+                        const isTarget = batch.targets[pos] === vocabIdx;
+                        // Only highlight target if active batch
+                        const highlightClass = (isActive && isTarget) ? 'highlight' : '';
+                        
+                        html += `<div class="tensor-cell ${highlightClass}" 
+                                 title="Batch ${batchId}, Pos ${pos}, '${vocab[vocabIdx]}' = ${prob.toFixed(3)}"
+                                 style="font-size: 0.65rem;">
+                            ${prob.toFixed(2)}
+                        </div>`;
+                    }
+                    html += `<div class="tensor-cell" style="border:none; background:transparent; font-weight:bold; color:#cbd5e1;">...</div>`;
+                    html += `<div class="tensor-cell" style="font-size: 0.6rem; color:#94a3b8;" title="index 50256">0.00</div>`;
+                }
+                html += '</div>';
+            });
+            
+            // Labels for dimensions (Added indices below words)
+            html += `<div style="position: absolute; bottom: -70px; width: 100%; display: grid; grid-template-columns: repeat(7, 1fr) 30px 1fr; text-align: center; font-size: 0.7rem; color: #64748b;">
+                ${Object.entries(vocab).map(([id, word]) => `<div><span style="font-weight:600; color:#1e293b;">"${word}"</span><br><span style="color:#64748b; font-size:0.65rem;">${id}</span></div>`).join('')}
+                <div style="align-self:center;">...</div>
+                <div style="font-size:0.6rem; line-height:1.2;">Token<br>#50257<br>Idx:50256</div>
+            </div>`;
+            
+            html += `<div style="position: absolute; left: -60px; top: 0; height: 100%; display: flex; flex-direction: column; justify-content: space-around; font-size: 0.7rem; color: #64748b; font-weight:bold;">
+                <div>Pos 0</div><div>Pos 1</div><div>Pos 2</div>
+            </div>`;
+            
+            html += '</div>';
+            return html;
+        }
+
+        function renderStep4() {
+            const batch = currentBatch === 0 ? batch0 : batch1;
+            
+            // Build the Matrix HTML
+            let matrixHTML = `
+                <div class="matrix-container">
+                    <div class="matrix-header"></div> <!-- Spacer for row labels -->
+                    ${Object.values(vocab).map(word => `<div class="matrix-header">${word}</div>`).join('')}
+                    <div class="matrix-header">...</div>
+                    <div class="matrix-header" style="font-size:0.65rem;">Token<br>#50257</div>
+            `;
+
+            for (let rowIdx = 0; rowIdx < 3; rowIdx++) {
+                // Row Label
+                matrixHTML += `<div class="matrix-row-label" id="row-label-${rowIdx}">Input[${rowIdx}]</div>`;
+                
+                // Cells
+                for (let colIdx = 0; colIdx < 7; colIdx++) {
+                    const prob = batch.probs[rowIdx][colIdx];
+                    
+                    matrixHTML += `
+                        <div class="matrix-cell dimmed" id="cell-${rowIdx}-${colIdx}" data-row="${rowIdx}" data-col="${colIdx}">
+                            ${prob.toFixed(2)}
+                        </div>
+                    `;
+                }
+                // Ellipsis Cell
+                matrixHTML += `<div class="matrix-cell" style="border:none; background:transparent;">...</div>`;
+                // Last Cell (Index 50256)
+                matrixHTML += `<div class="matrix-cell dimmed" id="cell-${rowIdx}-last">0.00</div>`;
+            }
+            
+            // Footer Row (Indices)
+            matrixHTML += `<div class="matrix-header" style="color:#64748b; font-weight:500;">Index:</div>`;
+            matrixHTML += Object.keys(vocab).map(id => `<div class="matrix-header" style="color:#64748b;">${id}</div>`).join('');
+            matrixHTML += `<div class="matrix-header">...</div>`;
+            matrixHTML += `<div class="matrix-header" style="color:#64748b;">50256</div>`;
+            
+            matrixHTML += `</div>`;
+
+            return `
+                <h2>${steps[3].title}</h2>
+                <div class="explanation-panel">
+                    <h3>🎯 What happens:</h3>
+                    <p>We need to find out how much probability the model assigned to the <strong>CORRECT</strong> next tokens. This is the critical step that enables learning!</p>
+                </div>
+                
+                <div class="visualization-area">
+                    <div class="math-display">
+                        <div style="font-weight: 600; margin-bottom: 15px;">The Magic Indexing Operation</div>
+                        <div class="formula" style="font-size: 1.1rem;">
+                            probas[<span class="highlight-orange">${currentBatch}</span>, <span class="highlight-purple">[0, 1, 2]</span>, <span class="highlight-teal">targets[${currentBatch}]</span>]
+                        </div>
+                        <div style="margin-top: 10px; font-size: 0.9rem; color: #64748b;">
+                            = probas[<span class="highlight-orange">${currentBatch}</span>, <span class="highlight-purple">[0, 1, 2]</span>, <span class="highlight-teal">[${batch.targets.join(', ')}]</span>]
+                        </div>
+                    </div>
+
+                    <div style="position: relative;">
+                        <h3 style="color: #64748b; margin-bottom: 10px; text-align: center;">Probability Matrix (Batch ${currentBatch})</h3>
+                        ${matrixHTML}
+                    </div>
+
+                    <div class="extracted-result" id="extractedResult" style="margin-top: 30px;">
+                        <div class="explanation-panel">
+                            <h3>📊 Result:</h3>
+                            <div style="font-family: 'Source Code Pro', monospace; font-size: 1.1rem; margin: 15px 0; padding: 15px; background: white; border-radius: 8px;">
+                                target_probas = [${batch.extractedProbs.map(p => p.toFixed(2)).join(', ')}]
+                            </div>
+                            <p>These are the probabilities the model assigned to the <strong class="highlight-teal">correct</strong> next tokens (${batch.targetWords.join(', ')}). ${batch.extractedProbs[0] > 0.5 ? 'The model is doing pretty well!' : 'These are mixed - the model needs more training!'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function startStep4Animation() {
+            const batch = currentBatch === 0 ? batch0 : batch1;
+            
+            // Clear any existing timeouts first
+            clearStep4Timeouts();
+
+            // Phase 1: Highlight Rows (Start after 0.5s)
+            step4Timeouts.push(setTimeout(() => {
+                for(let r=0; r<3; r++) {
+                    document.getElementById(`row-label-${r}`).classList.add('highlighted');
+                    // Highlight main cells
+                    for(let c=0; c<7; c++) {
+                        const cell = document.getElementById(`cell-${r}-${c}`);
+                        if(cell) {
+                            cell.classList.remove('dimmed');
+                            cell.classList.add('active-row');
+                        }
+                    }
+                    // Highlight last cell
+                    const lastCell = document.getElementById(`cell-${r}-last`);
+                    if(lastCell) {
+                        lastCell.classList.remove('dimmed');
+                        lastCell.classList.add('active-row');
+                    }
+                }
+            }, 500));
+
+            // Phase 2: Highlight Targets (Start after 2s)
+            step4Timeouts.push(setTimeout(() => {
+                for(let r=0; r<3; r++) {
+                    const targetCol = batch.targets[r];
+                    // Dim non-targets again to emphasize target
+                    for(let c=0; c<7; c++) {
+                        const cell = document.getElementById(`cell-${r}-${c}`);
+                        if(c !== targetCol) {
+                            cell.classList.remove('active-row');
+                            cell.classList.add('dimmed');
+                        }
+                    }
+                    // Dim last cell as it's not a target
+                    const lastCell = document.getElementById(`cell-${r}-last`);
+                    if(lastCell) {
+                        lastCell.classList.remove('active-row');
+                        lastCell.classList.add('dimmed');
+                    }
+                    
+                    // Highlight target
+                    const targetCell = document.getElementById(`cell-${r}-${targetCol}`);
+                    if(targetCell) {
+                        targetCell.classList.add('target');
+                    }
+                }
+            }, 2000));
+
+            // Phase 3: Extract Values (Start after 3.5s)
+            step4Timeouts.push(setTimeout(() => {
+                for(let r=0; r<3; r++) {
+                    const targetCol = batch.targets[r];
+                    const targetCell = document.getElementById(`cell-${r}-${targetCol}`);
+                    const probValue = batch.probs[r][targetCol].toFixed(2);
+                    
+                    if(targetCell) {
+                        // Create flying value
+                        const flyer = document.createElement('div');
+                        flyer.className = 'flying-value';
+                        flyer.innerText = probValue;
+                        targetCell.appendChild(flyer);
+                    }
+                }
+                
+                // Show result box
+                document.getElementById('extractedResult').classList.add('show');
+            }, 3500));
+        }
+
+        function clearStep4Timeouts() {
+            step4Timeouts.forEach(id => clearTimeout(id));
+            step4Timeouts = [];
+        }
+
+        function renderStep5() {
+            const batch = currentBatch === 0 ? batch0 : batch1;
+            // Use ONLY the selected batch extracted probabilities
+            const extractedProbs = batch.extractedProbs;
+            const logProbs = extractedProbs.map(p => Math.log(p));
+            const avgLogProb = logProbs.reduce((a, b) => a + b) / logProbs.length;
+            const loss = -avgLogProb;
+
+            return `
+                <h2>${steps[4].title}</h2>
+                <div class="explanation-panel">
+                    <h3>🧮 What happens:</h3>
+                    <p>Convert probabilities to a single loss number that training can minimize. We use <strong>negative log likelihood</strong> (cross-entropy) because it has nice mathematical properties for optimization.</p>
+                </div>
+                
+                <div class="visualization-area">
+                    <div class="math-display">
+                        <div style="font-weight: 600; margin-bottom: 15px;">Why Negative Log?</div>
+                        <div style="text-align: left; max-width: 600px; margin: 0 auto; color: #475569; line-height: 1.8;">
+                            <p><strong>Problem:</strong> Raw probabilities are 0 to 1. Perfect = 1.0, but we want loss = 0 when perfect.</p>
+                            <p><strong>Solution:</strong> log(1.0) = 0 ✓ (perfect) and log(0.01) = -4.6 (bad)</p>
+                            <p><strong>Final step:</strong> Multiply by -1 to flip sign → minimize positive loss</p>
+                        </div>
+                    </div>
+
+                    <div class="loss-pipeline">
+                        <div class="pipeline-step">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Target Probabilities</div>
+                            <div style="font-family: monospace; font-size: 0.75rem;">
+                                [${extractedProbs.map(p => p.toFixed(2)).join(', ')}]
+                            </div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-step transform">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Take Log</div>
+                            <div class="formula">log(p)</div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-step">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Log Probabilities</div>
+                            <div style="font-family: monospace; font-size: 0.75rem;">
+                                [${logProbs.map(p => p.toFixed(2)).join(', ')}]
+                            </div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-step transform">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Mean</div>
+                            <div class="formula">Σ / n</div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-step">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Average</div>
+                            <div style="font-family: monospace; font-size: 0.9rem;">
+                                ${avgLogProb.toFixed(4)}
+                            </div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-step transform">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Negate</div>
+                            <div class="formula">× (-1)</div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-step" style="border-color: #f97316; background: #fef3c7;">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Loss</div>
+                            <div style="font-size: 1.5rem; color: #ea580c; font-weight: 700;">
+                                ${loss.toFixed(4)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="explanation-panel" style="margin-top: 30px;">
+                        <h3>📊 Loss Interpretation (Batch ${currentBatch}):</h3>
+                        <p style="font-size: 1.1rem;">
+                            A loss of <strong class="highlight-orange">${loss.toFixed(2)}</strong> means the model is ${loss > 2 ? 'struggling - it needs more training!' : 'doing reasonably well, but can improve!'}
+                        </p>
+                        <ul style="margin-top: 15px;">
+                            <li><strong>High loss (10+):</strong> Model is essentially guessing randomly</li>
+                            <li><strong>Medium loss (1-3):</strong> Model has learned some patterns</li>
+                            <li><strong>Low loss (< 0.5):</strong> Model confidently predicts correct tokens</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="key-takeaway">
+                    <h2>🎯 Key Takeaway</h2>
+                    <p><strong>Cross-entropy loss measures how "surprised" the model is by the correct answers.</strong></p>
+                    
+                    <ul>
+                        <li><strong>High loss:</strong> Model assigned very low probabilities to correct tokens (guessing randomly)</li>
+                        <li><strong>Low loss:</strong> Model confidently predicts correct tokens (has learned patterns)</li>
+                    </ul>
+
+                    <h3 style="margin-top: 20px; color: #ea580c;">The Training Process:</h3>
+                    <ul>
+                        <li>Forward pass → Get probabilities for all tokens</li>
+                        <li>Extract probabilities for the CORRECT tokens</li>
+                        <li>Calculate how bad these probabilities are (loss)</li>
+                        <li>Backpropagation → Adjust weights to increase correct token probabilities</li>
+                        <li>Repeat until loss is minimized</li>
+                    </ul>
+
+                    <p style="margin-top: 20px; font-size: 1.05rem;">
+                        <strong>The magic indexing <code>probas[text_idx, [0, 1, 2], targets[text_idx]]</code></strong> efficiently extracts exactly the probabilities we need to evaluate - nothing more, nothing less. This is the foundation of how every modern LLM learns!
+                    </p>
+                </div>
+            `;
+        }
+
+        function updateStepContent() {
+            // Stop any ongoing animations from previous step
+            clearStep4Timeouts();
+
+            const content = steps[currentStep].content();
+            document.getElementById('stepContent').innerHTML = content;
+            
+            // Trigger animation if on Step 4 (Index 3)
+            if (currentStep === 3) {
+                startStep4Animation();
+            }
+
+            // Update progress indicators
+            for (let i = 0; i < steps.length; i++) {
+                const circle = document.getElementById(`step${i}`);
+                circle.classList.remove('active', 'completed');
+                if (i < currentStep) {
+                    circle.classList.add('completed');
+                } else if (i === currentStep) {
+                    circle.classList.add('active');
+                }
+            }
+
+            // Update progress bar
+            const progress = (currentStep / (steps.length - 1)) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+
+            // Update buttons
+            document.getElementById('prevBtn').disabled = currentStep === 0;
+            document.getElementById('nextBtn').disabled = currentStep === steps.length - 1;
+
+            // Update code panel
+            document.getElementById('codePanel').innerHTML = `
+                <button class="copy-btn" onclick="copyCode()">Copy</button>
+                <pre>${steps[currentStep].code}</pre>
+            `;
+            document.getElementById('codePanel').classList.remove('show');
+        }
+
+        function nextStep() {
+            stopAutoPlay();
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                updateStepContent();
+            }
+        }
+
+        function stepForward() {
+            stopAutoPlay();
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                updateStepContent();
+            }
+        }
+
+        function prevStep() {
+            stopAutoPlay();
+            if (currentStep > 0) {
+                currentStep--;
+                updateStepContent();
+            }
+        }
+
+        function goToStep(step) {
+            stopAutoPlay();
+            currentStep = step;
+            updateStepContent();
+        }
+
+        function selectBatch(batchIdx) {
+            stopAutoPlay();
+            currentBatch = batchIdx;
+            
+            // Re-render buttons state (manual update since we have mixed buttons now)
+            const batchButtons = document.querySelectorAll('.control-group:first-child .batch-btn');
+            batchButtons.forEach((btn, idx) => {
+                btn.classList.toggle('active', idx === batchIdx);
+            });
+
+            updateStepContent();
+        }
+
+        function toggleAutoPlay() {
+            const btn = document.getElementById('autoPlayBtn');
+            if (autoPlayInterval) {
+                stopAutoPlay();
+            } else {
+                btn.innerHTML = '⏸ Pause';
+                btn.classList.add('active');
+                
+                // If at end, restart
+                if (currentStep === steps.length - 1) {
+                    currentStep = 0;
+                    updateStepContent();
+                }
+
+                autoPlayInterval = setInterval(() => {
+                    if (currentStep < steps.length - 1) {
+                        currentStep++;
+                        updateStepContent();
+                    } else {
+                        stopAutoPlay();
+                    }
+                }, 5000);
+            }
+        }
+
+        function stopAutoPlay() {
+            const btn = document.getElementById('autoPlayBtn');
+            if (btn) {
+                btn.innerHTML = '▶ Auto Play';
+                btn.classList.remove('active');
+            }
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = null;
+            }
+        }
+
+        function toggleCode() {
+            const codePanel = document.getElementById('codePanel');
+            codePanel.classList.toggle('show');
+        }
+
+        function copyCode() {
+            const code = steps[currentStep].code;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // Full Code Modal Logic
+        function showFullCode() {
+            const modalBody = document.getElementById('fullCodeContent');
+            // Clear previous raw text
+            modalBody.innerHTML = '';
+            
+            // Generate HTML
+            let html = '';
+            steps.forEach((s, index) => {
+                const isActive = index === currentStep;
+                const activeClass = isActive ? 'active' : 'dimmed';
+                html += `<div id="code-section-${index}" class="code-section ${activeClass}">`;
+                html += `<div class="section-header"># ${s.title}</div>`;
+                html += `<pre style="margin:0;">${s.code}</pre>`; // Use pre to preserve formatting
+                html += `</div>`;
+            });
+            
+            modalBody.innerHTML = html;
+            
+            document.getElementById('fullCodeModal').style.display = 'flex';
+            
+            // Scroll to active section
+            setTimeout(() => {
+                const activeEl = document.getElementById(`code-section-${currentStep}`);
+                if (activeEl) {
+                    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+
+        function closeFullCode() {
+            document.getElementById('fullCodeModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('fullCodeModal');
+            if (event.target === modal) {
+                closeFullCode();
+            }
+        }
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowRight') {
+                stepForward();
+            } else if (event.key === 'ArrowLeft') {
+                prevStep();
+            }
+        });
+
+        // Initialize
+        updateStepContent();
+    </script>
+</body>
+</html>

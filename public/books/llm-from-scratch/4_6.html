@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Transformer Block Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <style>
+        :root {
+            --primary-color: #7c3aed;
+            --secondary-color: #64748b;
+            --accent-color: #f59e0b;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --highlight-bg: #f3e8ff;
+            --arrow-inactive: #94a3b8;
+            --arrow-active: #7c3aed;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-color);
+            color: #1e293b;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: var(--secondary-color);
+            font-size: 1rem;
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            overflow: hidden;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Left Panel: Diagram */
+        .diagram-panel {
+            flex: 1;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* Right Panel: Information & Code */
+        .info-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Explanation Box */
+        .explanation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .explanation-title {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .explanation-text {
+            color: var(--secondary-color);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        /* Feed Forward Structure Visual */
+        .ff-structure {
+            display: none; /* Hidden by default */
+            margin-top: 15px;
+            padding: 15px;
+            background: #ecfdf5;
+            border: 1px dashed #10b981;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .ff-structure.visible {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        .ff-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .ff-box {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 2px solid #10b981;
+            color: #047857;
+        }
+        .ff-arrow {
+            color: #10b981;
+            font-size: 1.2rem;
+        }
+
+        /* Code Viewer Sections */
+        .code-section {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 200px;
+        }
+        
+        .code-header {
+            background: #1e1e1e;
+            color: #e2e8f0;
+            padding: 8px 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .code-content {
+            background: #282c34;
+            padding: 15px;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            overflow: auto;
+            flex: 1;
+        }
+
+        pre {
+            margin: 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+        }
+        
+        /* Highlight for shortcut variable */
+        .highlight-shortcut {
+            color: #f59e0b !important;
+            font-weight: bold;
+            border: 1px solid #f59e0b;
+            border-radius: 3px;
+            padding: 0 2px;
+            background-color: rgba(245, 158, 11, 0.15);
+        }
+
+        /* SVG Styles */
+        svg {
+            width: 100%;
+            height: auto;
+            max-width: 500px;
+        }
+
+        .block-rect {
+            fill: white;
+            stroke: var(--secondary-color);
+            stroke-width: 2px;
+            rx: 8;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .block-rect:hover {
+            stroke: var(--primary-color);
+            stroke-width: 3px;
+            filter: drop-shadow(0 4px 6px rgba(124, 58, 237, 0.2));
+        }
+
+        .block-text {
+            fill: #334155;
+            font-size: 13px;
+            font-weight: 600;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+        
+        .math-text {
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            fill: #64748b;
+            font-size: 12px;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        /* Connections */
+        .connection-line {
+            fill: none;
+            stroke: var(--arrow-inactive);
+            stroke-width: 2px;
+            transition: stroke 0.3s, stroke-width 0.3s;
+        }
+
+        .arrow-head {
+            fill: var(--arrow-inactive);
+            transition: fill 0.3s;
+        }
+
+        /* Animation States */
+        .active-element {
+            stroke: var(--accent-color) !important;
+            stroke-width: 3px !important;
+            fill: #fffbeb !important;
+        }
+        
+        .active-text {
+            fill: var(--accent-color) !important;
+            font-weight: 800 !important;
+        }
+
+        .active-path {
+            stroke: var(--accent-color) !important;
+            stroke-width: 3px !important;
+            stroke-dasharray: 10;
+            animation: dash 1s linear infinite;
+        }
+
+        .active-arrow {
+            fill: var(--accent-color) !important;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -20; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--secondary-color);
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: var(--highlight-bg);
+        }
+
+        button.active-btn {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Transformer Block Visualization</h1>
+        <p class="subtitle">Interactive Step-by-Step Flow</p>
+        <div class="controls">
+            <button onclick="previousStep()">⬅ Previous</button>
+            <button id="autoplay-btn" onclick="toggleAutoPlay()">▶ Start Animation</button>
+            <button onclick="nextStep()">Next ➡</button>
+            <button onclick="resetViz()">↺ Reset</button>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <!-- SVG Diagram -->
+        <div class="diagram-panel">
+            <svg id="diagram" viewBox="0 0 500 850">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" class="arrow-head" />
+                    </marker>
+                    <marker id="arrowhead-active" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+                    </marker>
+                </defs>
+
+                <!-- 1. Input -->
+                <g id="input-group" class="interactive-group" onclick="manualSelect('input')">
+                    <!-- Widened rect to prevent text overflow -->
+                    <rect x="90" y="20" width="320" height="60" class="block-rect" rx="8" />
+                    <text x="250" y="45" class="block-text">Input Embedding + Positional Embedding</text>
+                    <text x="250" y="65" class="math-text">x</text>
+                </g>
+
+                <!-- Path: Input to Norm1 -->
+                <line id="path-input-norm1" x1="250" y1="80" x2="250" y2="120" class="connection-line" marker-end="url(#arrowhead)" />
+                
+                <!-- Residual Start Point A -->
+                <circle cx="250" cy="100" r="4" fill="#64748b" />
+                <!-- Path: Residual A (Input to Add1) -->
+                <path id="path-res-a" d="M 250 100 L 420 100 L 420 380 L 275 380" class="connection-line" fill="none" marker-end="url(#arrowhead)" />
+
+                <!-- 2. LayerNorm 1 -->
+                <g id="norm1-group" class="interactive-group" onclick="manualSelect('norm1')">
+                    <rect x="150" y="120" width="200" height="50" class="block-rect" rx="8" />
+                    <text x="250" y="145" class="block-text">LayerNorm 1</text>
+                    <text x="250" y="162" class="math-text">norm1(x)</text>
+                </g>
+
+                <!-- Path: Norm1 to MHA -->
+                <line id="path-norm1-mha" x1="250" y1="170" x2="250" y2="210" class="connection-line" marker-end="url(#arrowhead)" />
+
+                <!-- 3. Masked Multi-Head Attention -->
+                <g id="mha-group" class="interactive-group" onclick="manualSelect('mha')">
+                    <rect x="120" y="210" width="260" height="80" class="block-rect" fill="#fee2e2" />
+                    <text x="250" y="245" class="block-text">Masked Multi-Head Attention</text>
+                    
+                    <!-- Little heads visualization -->
+                    <g transform="translate(165, 260)">
+                         <rect x="0" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="15" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="30" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="45" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="60" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="75" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="90" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="105" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="120" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="135" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="150" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                         <rect x="165" y="0" width="10" height="10" fill="#cbd5e1" rx="2"/>
+                    </g>
+                </g>
+
+                <!-- Path: MHA to Dropout1 -->
+                <line id="path-mha-drop1" x1="250" y1="290" x2="250" y2="320" class="connection-line" marker-end="url(#arrowhead)" />
+
+                <!-- 4. Dropout 1 -->
+                <g id="drop1-group" class="interactive-group" onclick="manualSelect('drop1')">
+                    <rect x="190" y="320" width="120" height="30" class="block-rect" stroke-dasharray="4" />
+                    <text x="250" y="340" class="block-text" style="font-size: 11px;">Dropout</text>
+                </g>
+
+                <!-- Path: Dropout1 to Add1 -->
+                <line id="path-drop1-add1" x1="250" y1="350" x2="250" y2="365" class="connection-line" />
+
+                <!-- 5. Add 1 -->
+                <g id="add1-group" class="interactive-group" onclick="manualSelect('add1')">
+                    <circle cx="250" cy="380" r="15" class="block-rect" />
+                    <text x="250" y="385" class="block-text" style="font-size: 18px;">+</text>
+                </g>
+
+                <!-- Path: Add1 to Norm2 -->
+                <line id="path-add1-norm2" x1="250" y1="395" x2="250" y2="430" class="connection-line" marker-end="url(#arrowhead)" />
+                
+                <!-- Residual Start Point B -->
+                <circle cx="250" cy="415" r="4" fill="#64748b" />
+                <!-- Path: Residual B (Add1 to Add2) -->
+                <path id="path-res-b" d="M 250 415 L 80 415 L 80 690 L 225 690" class="connection-line" fill="none" marker-end="url(#arrowhead)" />
+
+                <!-- 6. LayerNorm 2 -->
+                <g id="norm2-group" class="interactive-group" onclick="manualSelect('norm2')">
+                    <rect x="150" y="430" width="200" height="50" class="block-rect" rx="8" />
+                    <text x="250" y="455" class="block-text">LayerNorm 2</text>
+                    <text x="250" y="472" class="math-text">norm2(x)</text>
+                </g>
+
+                <!-- Path: Norm2 to FF -->
+                <line id="path-norm2-ff" x1="250" y1="480" x2="250" y2="520" class="connection-line" marker-end="url(#arrowhead)" />
+
+                <!-- 7. Feed Forward -->
+                <g id="ff-group" class="interactive-group" onclick="manualSelect('ff')">
+                    <rect x="120" y="520" width="260" height="80" class="block-rect" fill="#d1fae5" />
+                    <text x="250" y="555" class="block-text">Feed Forward (MLP)</text>
+                    <text x="250" y="575" class="math-text" style="font-size: 10px;">Linear &rarr; GELU &rarr; Linear</text>
+                </g>
+
+                <!-- Path: FF to Dropout2 -->
+                <line id="path-ff-drop2" x1="250" y1="600" x2="250" y2="630" class="connection-line" marker-end="url(#arrowhead)" />
+
+                <!-- 8. Dropout 2 -->
+                <g id="drop2-group" class="interactive-group" onclick="manualSelect('drop2')">
+                    <rect x="190" y="630" width="120" height="30" class="block-rect" stroke-dasharray="4" />
+                    <text x="250" y="650" class="block-text" style="font-size: 11px;">Dropout</text>
+                </g>
+
+                <!-- Path: Dropout2 to Add2 -->
+                <line id="path-drop2-add2" x1="250" y1="660" x2="250" y2="675" class="connection-line" />
+
+                <!-- 9. Add 2 -->
+                <g id="add2-group" class="interactive-group" onclick="manualSelect('add2')">
+                    <circle cx="250" cy="690" r="15" class="block-rect" />
+                    <text x="250" y="695" class="block-text" style="font-size: 18px;">+</text>
+                </g>
+
+                <!-- Path: Add2 to Output -->
+                <line id="path-add2-out" x1="250" y1="705" x2="250" y2="750" class="connection-line" marker-end="url(#arrowhead)" />
+
+                <!-- 10. Output -->
+                <g id="out-group" class="interactive-group" onclick="manualSelect('out')">
+                    <rect x="150" y="750" width="200" height="50" class="block-rect" rx="8" />
+                    <text x="250" y="775" class="block-text">Output</text>
+                    <text x="250" y="792" class="math-text">x (Next Block)</text>
+                </g>
+            </svg>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="info-panel">
+            <!-- 1. Description & FF Detail -->
+            <div class="card">
+                <div class="explanation-header">
+                    <span id="info-title" class="explanation-title">Welcome</span>
+                    <span id="step-count" style="color: #94a3b8; font-size: 0.9rem;"></span>
+                </div>
+                <p id="info-desc" class="explanation-text">
+                    Click "Start Animation" to see the data flow, or click any block in the diagram to inspect its code.
+                </p>
+                
+                <!-- Hidden Feed Forward Detail Box -->
+                <div id="ff-detail" class="ff-structure">
+                    <div style="margin-bottom: 8px; font-weight: bold; color: #059669;">Feed Forward Internal Structure</div>
+                    <div class="ff-flow">
+                        <div class="ff-box">Linear<br><span style="font-size:9px">x4 Expand</span></div>
+                        <div class="ff-arrow">&rarr;</div>
+                        <div class="ff-box" style="border-radius: 50%; border-color: #f59e0b; color: #d97706;">GELU<br><span style="font-size:9px">Activation</span></div>
+                        <div class="ff-arrow">&rarr;</div>
+                        <div class="ff-box">Linear<br><span style="font-size:9px">Project</span></div>
+                    </div>
+                    <div style="font-size: 11px; margin-top: 5px; color: #64748b;">Typically: 768 &rarr; 3072 &rarr; 768 dims</div>
+                </div>
+            </div>
+
+            <!-- 2. Dual Code Views -->
+            <div class="code-section">
+                <div class="code-header">
+                    <span>1. Architecture Context (Class View)</span>
+                    <span style="color: #fbbf24;">PyTorch</span>
+                </div>
+                <div class="code-content">
+                    <pre><code id="code-context" class="language-python"># Select a component to see its context...</code></pre>
+                </div>
+            </div>
+
+            <div class="code-section">
+                <div class="code-header">
+                    <span>2. Implementation Detail (Snippet View)</span>
+                    <span style="color: #60a5fa;">Focus</span>
+                </div>
+                <div class="code-content">
+                    <pre><code id="code-snippet" class="language-python"># Select a component to see specific logic...</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        
+        // Full Class Code (Context) - REPLACED AS REQUESTED
+        const blockClassCode = `from chapter03 import MultiHeadAttention
+
+class TransformerBlock(nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+        self.att = MultiHeadAttention(
+            d_in=cfg["emb_dim"],
+            d_out=cfg["emb_dim"],
+            context_length=cfg["context_length"],
+            num_heads=cfg["n_heads"], 
+            dropout=cfg["drop_rate"],
+            qkv_bias=cfg["qkv_bias"])
+        self.ff = FeedForward(cfg)
+        self.norm1 = LayerNorm(cfg["emb_dim"])
+        self.norm2 = LayerNorm(cfg["emb_dim"])
+        self.drop_shortcut = nn.Dropout(cfg["drop_rate"])
+
+    def forward(self, x):
+
+        shortcut = x
+        x = self.norm1(x)
+        x = self.att(x)
+        x = self.drop_shortcut(x)
+        x = x + shortcut
+
+        shortcut = x
+        x = self.norm2(x)
+        x = self.ff(x)
+        x = self.drop_shortcut(x)
+        x = x + shortcut
+        return x`;
+
+        // Specific Data for each component
+        const componentData = {
+            'input': {
+                title: "Input Embedding + Positional Embedding",
+                desc: "The block begins with the sum of token embeddings and positional encodings. This represents the vector 'x' with shape (Batch, Time, Channels).",
+                snippet: `vocab_size = 50257
+output_dim = 256
+token_embedding_layer = torch.nn.Embedding(vocab_size, output_dim)
+token_embeddings = token_embedding_layer(inputs)
+
+pos_embedding_layer = torch.nn.Embedding(context_length, output_dim)
+pos_embeddings = pos_embedding_layer(torch.arange(context_length))
+x = token_embeddings + pos_embeddings`,
+                contextLine: "def forward(self, x):",
+                occurrence: 1,
+                isFF: false
+            },
+            'norm1': {
+                title: "Layer Normalization 1",
+                desc: "We normalize the input 'x' before passing it to the attention mechanism. This is the 'Pre-Norm' configuration, standard in modern GPT models.",
+                snippet: `class LayerNorm(nn.Module):
+  def __init__(self, emb_dim):
+    super().__init__()
+    self.eps = 1e-5
+    self.scale = nn.Parameter(torch.ones(emb_dim))
+    self.shift = nn.Parameter(torch.zeros(emb_dim))
+
+  def forward(self, x):
+    mean = x.mean(dim=-1, keepdims=True)
+    var = x.var(dim=-1, keepdims=True, unbiased=False)
+    norm_x = (x - mean) / torch.sqrt(var + self.eps)
+    return self.scale * norm_x + self.shift`,
+                contextLine: "        x = self.norm1(x)",
+                occurrence: 1,
+                isFF: false
+            },
+            'mha': {
+                title: "Masked Multi-Head Attention",
+                desc: "The core communication mechanism. Tokens look at previous tokens (masked) to gather context. Multiple heads allow attending to different relationships simultaneously.",
+                snippet: `import torch
+import torch.nn as nn
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_in, d_out, context_length, dropout, num_heads, qkv_bias=False):
+        super().__init__()
+        assert (d_out % num_heads == 0)
+
+        self.d_out = d_out
+        self.num_heads = num_heads
+        self.head_dim = d_out // num_heads
+
+        self.W_query = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_key = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_value = nn.Linear(d_in, d_out, bias=qkv_bias)
+
+        self.out_proj = nn.Linear(d_out, d_out)
+        self.dropout = nn.Dropout(dropout)
+
+        self.register_buffer(
+            "mask",
+            torch.triu(torch.ones(context_length, context_length), diagonal=1)
+        )
+
+    def forward(self, x):
+        b, num_tokens, d_in = x.shape
+
+        keys = self.W_key(x)
+        queries = self.W_query(x)
+        values = self.W_value(x)
+
+        keys = keys.view(b, num_tokens, self.num_heads, self.head_dim)
+        values = values.view(b, num_tokens, self.num_heads, self.head_dim)
+        queries = queries.view(b, num_tokens, self.num_heads, self.head_dim)
+
+        keys = keys.transpose(1, 2)
+        queries = queries.transpose(1, 2)
+        values = values.transpose(1, 2)
+
+        attn_scores = queries @ keys.transpose(2, 3)
+
+        mask_bool = self.mask.bool()[:num_tokens, :num_tokens]
+        attn_scores.masked_fill_(mask_bool, -torch.inf)
+
+        attn_weights = torch.softmax(
+            attn_scores / keys.shape[-1]**0.5,
+            dim=-1
+        )
+
+        attn_weights = self.dropout(attn_weights)
+
+        context_vec = attn_weights @ values
+        context_vec = context_vec.transpose(1, 2)
+        context_vec = context_vec.contiguous().view(b, num_tokens, self.d_out)
+        context_vec = self.out_proj(context_vec)
+
+        return context_vec`,
+                contextLine: "        x = self.att(x)",
+                occurrence: 1,
+                isFF: false
+            },
+            'drop1': {
+                title: "Dropout 1",
+                desc: "Dropout is applied to the output of the attention layer for regularization during training.",
+                snippet: `x = self.dropout(x)`,
+                contextLine: "        x = self.drop_shortcut(x)",
+                occurrence: 1,
+                isFF: false
+            },
+            'add1': {
+                title: "Residual Connection 1",
+                desc: "The original input (resid) is added back to the processed signal. This 'skip connection' is crucial for gradient flow in deep networks.",
+                snippet: `# Residual Addition
+x = x + shortcut`,
+                contextLine: "        x = x + shortcut",
+                occurrence: 1,
+                isFF: false
+            },
+            'norm2': {
+                title: "Layer Normalization 2",
+                desc: "The signal is normalized again before entering the Feed Forward network.",
+                snippet: `class LayerNorm(nn.Module):
+  def __init__(self, emb_dim):
+    super().__init__()
+    self.eps = 1e-5
+    self.scale = nn.Parameter(torch.ones(emb_dim))
+    self.shift = nn.Parameter(torch.zeros(emb_dim))
+
+  def forward(self, x):
+    mean = x.mean(dim=-1, keepdims=True)
+    var = x.var(dim=-1, keepdims=True, unbiased=False)
+    norm_x = (x - mean) / torch.sqrt(var + self.eps)
+    return self.scale * norm_x + self.shift`,
+                contextLine: "        x = self.norm2(x)",
+                occurrence: 1,
+                isFF: false
+            },
+            'ff': {
+                title: "Feed Forward Network",
+                desc: "A Multi-Layer Perceptron (MLP) applied to each token independently. It processes the information gathered during attention.",
+                snippet: `class FeedForward(nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(cfg["emb_dim"], 4 * cfg["emb_dim"]),
+            GELU(),
+            nn.Linear(4 * cfg["emb_dim"], cfg["emb_dim"]),
+        )
+
+    def forward(self, x):
+        return self.layers(x)
+
+class GELU(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return 0.5 * x * (1 + torch.tanh(
+            torch.sqrt(torch.tensor(2.0 / torch.pi)) * (x + 0.044715 * torch.pow(x, 3))
+        ))`,
+                contextLine: "        x = self.ff(x)",
+                occurrence: 1,
+                isFF: true
+            },
+            'drop2': {
+                title: "Dropout 2",
+                desc: "Dropout is applied after the Feed Forward network.",
+                snippet: `x = self.dropout(x)`,
+                contextLine: "        x = self.drop_shortcut(x)",
+                occurrence: 2,
+                isFF: false
+            },
+            'add2': {
+                title: "Residual Connection 2",
+                desc: "The second residual connection adds the pre-FF signal back to the output.",
+                snippet: `# Residual Addition
+x = x + shortcut`,
+                contextLine: "        x = x + shortcut",
+                occurrence: 2,
+                isFF: false
+            },
+            'out': {
+                title: "Block Output",
+                desc: "The final processed tensor 'x' is returned, ready to be passed to the next transformer block.",
+                snippet: `return x`,
+                contextLine: "        return x",
+                occurrence: 1,
+                isFF: false
+            }
+        };
+
+        // --- ANIMATION SEQUENCE ---
+        // Defines the visual flow: which paths light up, then which block lights up
+        // Updated to link residual paths to 'add' keys for code viewing
+        const sequence = [
+            { type: 'block', id: 'input-group', key: 'input' },
+            { type: 'path',  id: 'path-input-norm1' },
+            { type: 'block', id: 'norm1-group', key: 'norm1' },
+            { type: 'path',  id: 'path-norm1-mha' },
+            { type: 'block', id: 'mha-group', key: 'mha' },
+            { type: 'path',  id: 'path-mha-drop1' },
+            { type: 'block', id: 'drop1-group', key: 'drop1' },
+            { type: 'path',  id: 'path-drop1-add1' },
+            // Residual A flows in parallel technically, but we visualize it merging here
+            // Link this path step to 'add1' so code view updates and highlights shortcut
+            { type: 'path',  id: 'path-res-a', special: true, key: 'add1' }, 
+            { type: 'block', id: 'add1-group', key: 'add1' },
+            { type: 'path',  id: 'path-add1-norm2' },
+            { type: 'block', id: 'norm2-group', key: 'norm2' },
+            { type: 'path',  id: 'path-norm2-ff' },
+            { type: 'block', id: 'ff-group', key: 'ff' },
+            { type: 'path',  id: 'path-ff-drop2' },
+            { type: 'block', id: 'drop2-group', key: 'drop2' },
+            { type: 'path',  id: 'path-drop2-add2' },
+            // Link this path step to 'add2'
+            { type: 'path',  id: 'path-res-b', special: true, key: 'add2' },
+            { type: 'block', id: 'add2-group', key: 'add2' },
+            { type: 'path',  id: 'path-add2-out' },
+            { type: 'block', id: 'out-group', key: 'out' }
+        ];
+
+        // --- STATE ---
+        let currentStepIndex = -1;
+        let isPlaying = false;
+        let timer = null;
+
+        // --- FUNCTIONS ---
+
+        function renderCode(key, highlightShortcut = false) {
+            const data = componentData[key];
+            if (!data) return;
+
+            // 1. Text Updates
+            document.getElementById('info-title').textContent = data.title;
+            document.getElementById('info-desc').textContent = data.desc;
+
+            // 2. Feed Forward Detail Visibility
+            const ffBox = document.getElementById('ff-detail');
+            if (data.isFF) {
+                ffBox.classList.add('visible');
+            } else {
+                ffBox.classList.remove('visible');
+            }
+
+            // 3. Render Context Code (Full Class)
+            // Enhanced logic to find correct occurrence of the line
+            const contextEl = document.getElementById('code-context');
+            
+            const contextLine = data.contextLine;
+            const occurrence = data.occurrence || 1;
+            
+            // Split code by the target line to find the correct instance
+            const parts = blockClassCode.split(contextLine);
+            
+            if (parts.length > occurrence) {
+                // Reassemble the code with the marker inserted at the correct spot
+                const before = parts.slice(0, occurrence).join(contextLine);
+                const after = parts.slice(occurrence).join(contextLine);
+                const marked = `👉 ${contextLine}  <--- CURRENT STEP`;
+                contextEl.textContent = before + marked + after;
+            } else {
+                // Fallback if not found (shouldn't happen if keys match)
+                contextEl.textContent = blockClassCode;
+            }
+            
+            hljs.highlightElement(contextEl);
+
+            // SPECIAL LOGIC: Highlight 'shortcut' variable if this is an Add block and flag is true
+            if ((key === 'add1' || key === 'add2') && highlightShortcut) {
+                // We look for the active line marker we just inserted
+                // and wrap 'shortcut' in a span.
+                const html = contextEl.innerHTML;
+                const marker = "👉";
+                
+                // We want to replace 'shortcut' only on the line that has the marker
+                const lines = html.split('\n');
+                const newLines = lines.map(line => {
+                    if (line.includes(marker)) {
+                        return line.replace(/shortcut/g, '<span class="highlight-shortcut">shortcut</span>');
+                    }
+                    return line;
+                });
+                contextEl.innerHTML = newLines.join('\n');
+            }
+
+            // 4. Render Snippet Code
+            const snippetEl = document.getElementById('code-snippet');
+            snippetEl.textContent = data.snippet;
+            hljs.highlightElement(snippetEl);
+        }
+
+        function highlightVisuals(stepIndex) {
+            // Reset everything
+            document.querySelectorAll('.active-element, .active-path, .active-arrow, .active-text').forEach(el => {
+                el.classList.remove('active-element', 'active-path', 'active-arrow', 'active-text');
+                if(el.getAttribute('marker-end') === 'url(#arrowhead-active)') {
+                    el.setAttribute('marker-end', 'url(#arrowhead)');
+                }
+            });
+
+            // If reset state
+            if (stepIndex < 0) return;
+
+            const step = sequence[stepIndex];
+            const el = document.getElementById(step.id);
+            
+            if (step.type === 'block') {
+                // Highlight block
+                const rect = el.querySelector('rect, circle');
+                const text = el.querySelector('.block-text');
+                if (rect) rect.classList.add('active-element');
+                if (text) text.classList.add('active-text');
+                
+                // Show info - disable shortcut highlight for blocks
+                renderCode(step.key, false);
+            } 
+            else if (step.type === 'path') {
+                // Highlight Path
+                el.classList.add('active-path');
+                el.setAttribute('marker-end', 'url(#arrowhead-active)');
+                
+                // If the path has an associated key (like the skip connections)
+                if (step.key) {
+                    // Enable shortcut highlight for residual paths
+                    renderCode(step.key, true);
+                } else {
+                    // Otherwise keep context of previous block
+                    let prevBlockKey = 'input'; 
+                    for(let i = stepIndex; i >= 0; i--) {
+                        if (sequence[i].type === 'block') {
+                            prevBlockKey = sequence[i].key;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            document.getElementById('step-count').textContent = `Step ${stepIndex + 1}/${sequence.length}`;
+        }
+
+        // Manual click handler
+        window.manualSelect = function(key) {
+            stopAutoPlay();
+            // Prefer block if available to prevent selecting the path/shortcut highlight state
+            let idx = sequence.findIndex(s => s.key === key && s.type === 'block');
+            if (idx === -1) {
+                // Fallback
+                idx = sequence.findIndex(s => s.key === key);
+            }
+            if (idx !== -1) {
+                currentStepIndex = idx;
+                highlightVisuals(idx);
+            }
+        };
+
+        window.nextStep = function() {
+            if (currentStepIndex < sequence.length - 1) {
+                currentStepIndex++;
+                highlightVisuals(currentStepIndex);
+            } else {
+                if(isPlaying) {
+                    currentStepIndex = 0;
+                    highlightVisuals(currentStepIndex);
+                }
+            }
+        };
+
+        window.previousStep = function() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                highlightVisuals(currentStepIndex);
+            }
+        };
+
+        window.toggleAutoPlay = function() {
+            const btn = document.getElementById('autoplay-btn');
+            if (isPlaying) {
+                stopAutoPlay();
+            } else {
+                isPlaying = true;
+                btn.textContent = "⏸ Stop Animation";
+                btn.classList.add('active-btn');
+                
+                if (currentStepIndex === sequence.length - 1) currentStepIndex = -1;
+                
+                nextStep();
+                timer = setInterval(nextStep, 1200); 
+            }
+        };
+
+        window.stopAutoPlay = function() {
+            isPlaying = false;
+            clearInterval(timer);
+            const btn = document.getElementById('autoplay-btn');
+            btn.textContent = "▶ Start Animation";
+            btn.classList.remove('active-btn');
+        };
+
+        window.resetViz = function() {
+            stopAutoPlay();
+            currentStepIndex = -1;
+            highlightVisuals(-1);
+            document.getElementById('info-title').textContent = "Welcome";
+            document.getElementById('info-desc').textContent = "Click Start Animation to see the data flow...";
+            document.getElementById('code-context').textContent = "# Select a component...";
+            document.getElementById('code-snippet').textContent = "# Select a component...";
+            document.getElementById('ff-detail').classList.remove('visible');
+            document.getElementById('step-count').textContent = "";
+        };
+
+        // Init Highlight.js
+        hljs.highlightAll();
+        
+        // Initial text
+        document.getElementById('code-context').textContent = blockClassCode;
+        hljs.highlightElement(document.getElementById('code-context'));
+
+    </script>
+</body>
+</html>

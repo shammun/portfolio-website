@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Spam Classification Pipeline - Interactive Visualization</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            min-height: 100vh;
+            padding: 12px;
+            padding-bottom: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 4px;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+        }
+
+        /* Example Selector */
+        .example-selector {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.08);
+        }
+
+        .example-selector h3 {
+            color: #1e293b;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .example-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 8px;
+        }
+
+        .example-btn {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .example-btn:hover {
+            border-color: #8b5cf6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+        }
+
+        .example-btn.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border-color: #8b5cf6;
+        }
+
+        .example-text {
+            font-weight: 600;
+            margin-bottom: 2px;
+            font-size: 0.85rem;
+        }
+
+        .example-hint {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        /* Step Navigation */
+        .step-nav {
+            background: white;
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.08);
+            overflow-x: auto;
+        }
+
+        .step-cards {
+            display: flex;
+            gap: 8px;
+            min-width: max-content;
+        }
+
+        .step-card {
+            padding: 10px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 140px;
+            background: white;
+        }
+
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+        }
+
+        .step-card.active {
+            border-color: currentColor;
+            box-shadow: 0 4px 16px currentColor;
+            transform: scale(1.05);
+        }
+
+        .step-card.orange { color: #f97316; }
+        .step-card.purple { color: #8b5cf6; }
+        .step-card.teal { color: #14b8a6; }
+
+        .step-number {
+            font-size: 0.65rem;
+            font-weight: 600;
+            opacity: 0.7;
+            margin-bottom: 2px;
+        }
+
+        .step-title {
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+            color: #1e293b;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.08);
+            font-size: 0.9rem;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.15);
+        }
+
+        .control-btn.primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 12px;
+            height: 480px;
+            align-items: stretch;
+            margin-bottom: 20px;
+        }
+
+        .viz-panel, .info-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.08);
+            overflow: hidden;
+        }
+
+        .viz-panel {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-width: 0;
+        }
+
+        .explanation {
+            flex: 1;
+            padding: 12px 16px;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .explanation h2 {
+            color: #1e293b;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .explanation p {
+            color: #475569;
+            line-height: 1.4;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+        }
+
+        .explanation ul {
+            margin-left: 16px;
+            margin-bottom: 6px;
+        }
+
+        .explanation li {
+            color: #475569;
+            line-height: 1.4;
+            margin-bottom: 3px;
+            font-size: 0.8rem;
+        }
+
+        .explanation strong {
+            font-weight: 600;
+        }
+
+        .explanation code {
+            background: #f1f5f9;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .key-insight {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 2px solid #3b82f6;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin: 6px 0;
+        }
+
+        .key-insight-title {
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+        }
+
+        .key-insight-text {
+            color: #1e3a8a;
+            line-height: 1.3;
+            font-size: 0.75rem;
+        }
+
+        .shape-display {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 6px 0;
+            font-size: 0.7rem;
+            line-height: 1.3;
+        }
+
+        .code-section {
+            border-top: 2px solid #e2e8f0;
+            background: #1e293b;
+            height: 140px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .code-header {
+            background: #0f172a;
+            padding: 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+
+        .code-header-title {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .view-full-btn {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-full-btn:hover {
+            background: #7c3aed;
+            transform: translateY(-1px);
+        }
+
+        .code-section pre {
+            margin: 0 !important;
+            background: transparent !important;
+            padding: 8px 12px !important;
+        }
+
+        .code-section code {
+            font-size: 0.75rem !important;
+            line-height: 1.3 !important;
+        }
+
+        /* Full Code Modal */
+        .full-code-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .full-code-modal.active {
+            display: flex;
+        }
+
+        .full-code-content {
+            background: #1e293b;
+            border-radius: 12px;
+            max-width: 1000px;
+            max-height: 90vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .full-code-header {
+            background: #0f172a;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #8b5cf6;
+        }
+
+        .full-code-title {
+            color: #8b5cf6;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .close-modal-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-modal-btn:hover {
+            background: #dc2626;
+        }
+
+        .full-code-body {
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .code-highlight {
+            background: rgba(139, 92, 246, 0.25);
+            border-left: 4px solid #8b5cf6;
+            padding-left: 8px;
+            display: block;
+            margin: 2px 0;
+        }
+
+        /* SVG Visualization */
+        svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .svg-text {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .token-box {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .token-box:hover {
+            filter: brightness(1.1);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Result Card */
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            border: 3px solid #14b8a6;
+            box-shadow: 0 8px 24px rgba(20, 184, 166, 0.15);
+        }
+
+        .result-title {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f766e;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .result-prediction {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #14b8a6;
+            margin-bottom: 12px;
+        }
+
+        .result-confidence {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+
+        .result-probas {
+            background: #f0fdfa;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .proba-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .proba-label {
+            font-weight: 600;
+            color: #0f766e;
+        }
+
+        .proba-bar-container {
+            flex: 1;
+            margin: 0 16px;
+            height: 24px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .proba-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #14b8a6 0%, #0d9488 100%);
+            transition: width 0.5s ease;
+            border-radius: 12px;
+        }
+
+        .proba-value {
+            font-weight: 700;
+            color: #0f766e;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .viz-panel {
+                min-height: 400px;
+            }
+
+            .info-panel {
+                height: auto;
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .subtitle {
+                font-size: 0.85rem;
+            }
+
+            .example-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .viz-panel {
+                min-height: 350px;
+            }
+
+            .main-content {
+                height: auto;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LLM Spam Classification Pipeline</h1>
+        <p class="subtitle">Interactive visualization of how text transforms into predictions through a fine-tuned GPT-2 model</p>
+
+        <!-- Example Selector -->
+        <div class="example-selector">
+            <h3>📝 Select an Example Input</h3>
+            <div class="example-buttons">
+                <button class="example-btn" data-text="Do you have time" data-hint="Neutral message - model's prediction varies">
+                    <div class="example-text">"Do you have time"</div>
+                    <div class="example-hint">Neutral message - model's prediction varies</div>
+                </button>
+                <button class="example-btn active" data-text="Free money! Click here now!" data-hint="Obvious spam - high confidence">
+                    <div class="example-text">"Free money! Click here now!"</div>
+                    <div class="example-hint">Obvious spam - high confidence</div>
+                </button>
+                <button class="example-btn" data-text="Meeting at 3pm tomorrow" data-hint="Obvious not-spam - high confidence">
+                    <div class="example-text">"Meeting at 3pm tomorrow"</div>
+                    <div class="example-hint">Obvious not-spam - high confidence</div>
+                </button>
+                <button class="example-btn" data-text="You won the lottery" data-hint="Potentially ambiguous - interesting case">
+                    <div class="example-text">"You won the lottery"</div>
+                    <div class="example-hint">Potentially ambiguous - interesting case</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step Navigation -->
+        <div class="step-nav">
+            <div class="step-cards">
+                <div class="step-card orange active" data-step="0">
+                    <div class="step-number">STEP 1</div>
+                    <div class="step-title">Input Text</div>
+                </div>
+                <div class="step-card orange" data-step="1">
+                    <div class="step-number">STEP 2</div>
+                    <div class="step-title">Tokenization</div>
+                </div>
+                <div class="step-card orange" data-step="2">
+                    <div class="step-number">STEP 3</div>
+                    <div class="step-title">Embeddings</div>
+                </div>
+                <div class="step-card purple" data-step="3">
+                    <div class="step-number">STEP 4</div>
+                    <div class="step-title">Transformers</div>
+                </div>
+                <div class="step-card purple" data-step="4">
+                    <div class="step-number">STEP 5</div>
+                    <div class="step-title">Last Token</div>
+                </div>
+                <div class="step-card teal" data-step="5">
+                    <div class="step-number">STEP 6</div>
+                    <div class="step-title">Classification Head</div>
+                </div>
+                <div class="step-card teal" data-step="6">
+                    <div class="step-number">STEP 7</div>
+                    <div class="step-title">Softmax</div>
+                </div>
+                <div class="step-card teal" data-step="7">
+                    <div class="step-number">STEP 8</div>
+                    <div class="step-title">Prediction</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="control-btn" id="prevBtn">← Previous</button>
+            <button class="control-btn primary" id="playBtn">▶ Play</button>
+            <button class="control-btn" id="nextBtn">Next →</button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Visualization Panel -->
+            <div class="viz-panel">
+                <svg id="vizSvg" viewBox="0 0 700 500" style="width: 100%; height: auto;">
+                    <!-- Visualization will be rendered here -->
+                </svg>
+            </div>
+
+            <!-- Info Panel -->
+            <div class="info-panel">
+                <div class="explanation" id="explanation">
+                    <!-- Explanation content will be inserted here -->
+                </div>
+                <div class="code-section">
+                    <div class="code-header">
+                        <span class="code-header-title">PyTorch Logic</span>
+                        <button class="view-full-btn" onclick="openFullCode()">View Full Code</button>
+                    </div>
+                    <pre><code class="language-python" id="codeBlock"></code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Code Modal -->
+        <div class="full-code-modal" id="fullCodeModal">
+            <div class="full-code-content">
+                <div class="full-code-header">
+                    <div class="full-code-title">🔍 Complete GPT-2 Spam Classification Pipeline</div>
+                    <button class="close-modal-btn" onclick="closeFullCode()">✕ Close</button>
+                </div>
+                <div class="full-code-body">
+                    <pre><code class="language-python" id="fullCodeBlock"></code></pre>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script>
+        // Complete implementation code with highlight markers
+        const completeCode = `# ============================================================
+# COMPLETE GPT-2 SPAM CLASSIFICATION PIPELINE
+# ============================================================
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from transformers import GPT2Tokenizer
+
+# ============================================================
+# STEP 1: INPUT TEXT
+# ============================================================
+###HIGHLIGHT_STEP_0_START###
+text = "Free money! Click here now!"
+print(f"Input text: {text}")
+print(f"Text type: {type(text)}")
+print(f"Text length: {len(text)} characters")
+###HIGHLIGHT_STEP_0_END###
+
+# ============================================================
+# STEP 2: TOKENIZATION
+# ============================================================
+###HIGHLIGHT_STEP_1_START###
+# Load GPT-2 tokenizer
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+
+# Tokenize the text
+inputs = tokenizer(text, return_tensors="pt")
+token_ids = inputs['input_ids']
+
+print(f"Token IDs: {token_ids}")
+print(f"Token IDs shape: {token_ids.shape}")  # [1, num_tokens]
+print(f"Number of tokens: {token_ids.shape[1]}")
+###HIGHLIGHT_STEP_1_END###
+
+# ============================================================
+# STEP 3: TOKEN EMBEDDINGS
+# ============================================================
+###HIGHLIGHT_STEP_2_START###
+class GPT2Embeddings(nn.Module):
+    def __init__(self, vocab_size=50257, embed_dim=768, max_pos=1024):
+        super().__init__()
+        self.tok_emb = nn.Embedding(vocab_size, embed_dim)
+        self.pos_emb = nn.Embedding(max_pos, embed_dim)
+        self.drop = nn.Dropout(0.1)
+    
+    def forward(self, input_ids):
+        batch_size, seq_len = input_ids.shape
+        
+        # Token embeddings
+        token_embeddings = self.tok_emb(input_ids)
+        
+        # Position embeddings
+        positions = torch.arange(seq_len, device=input_ids.device)
+        position_embeddings = self.pos_emb(positions)
+        
+        # Combine and apply dropout
+        embeddings = token_embeddings + position_embeddings
+        embeddings = self.drop(embeddings)
+        
+        return embeddings
+
+# Create embeddings
+embedding_layer = GPT2Embeddings()
+embeddings = embedding_layer(token_ids)
+
+print(f"Embeddings shape: {embeddings.shape}")  # [1, num_tokens, 768]
+print(f"Each token is now a 768-dimensional vector")
+###HIGHLIGHT_STEP_2_END###
+
+# ============================================================
+# STEP 4: TRANSFORMER LAYERS
+# ============================================================
+###HIGHLIGHT_STEP_3_START###
+class MultiHeadAttention(nn.Module):
+    def __init__(self, embed_dim=768, num_heads=12):
+        super().__init__()
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        
+        self.qkv_proj = nn.Linear(embed_dim, embed_dim * 3)
+        self.out_proj = nn.Linear(embed_dim, embed_dim)
+        self.dropout = nn.Dropout(0.1)
+    
+    def forward(self, x):
+        batch_size, seq_len, embed_dim = x.shape
+        
+        # Generate Q, K, V
+        qkv = self.qkv_proj(x)
+        qkv = qkv.reshape(batch_size, seq_len, 3, self.num_heads, self.head_dim)
+        qkv = qkv.permute(2, 0, 3, 1, 4)
+        q, k, v = qkv[0], qkv[1], qkv[2]
+        
+        # Scaled dot-product attention with causal mask
+        scores = torch.matmul(q, k.transpose(-2, -1)) / (self.head_dim ** 0.5)
+        
+        # Apply causal mask (for autoregressive generation)
+        mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool()
+        scores = scores.masked_fill(mask, float('-inf'))
+        
+        attn_weights = F.softmax(scores, dim=-1)
+        attn_weights = self.dropout(attn_weights)
+        
+        attn_output = torch.matmul(attn_weights, v)
+        attn_output = attn_output.transpose(1, 2).reshape(batch_size, seq_len, embed_dim)
+        output = self.out_proj(attn_output)
+        
+        return output
+
+class FeedForward(nn.Module):
+    def __init__(self, embed_dim=768, ff_dim=3072):
+        super().__init__()
+        self.fc1 = nn.Linear(embed_dim, ff_dim)
+        self.fc2 = nn.Linear(ff_dim, embed_dim)
+        self.dropout = nn.Dropout(0.1)
+    
+    def forward(self, x):
+        x = self.fc1(x)
+        x = F.gelu(x)  # GELU activation
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+class TransformerBlock(nn.Module):
+    def __init__(self, embed_dim=768):
+        super().__init__()
+        self.norm1 = nn.LayerNorm(embed_dim)
+        self.attn = MultiHeadAttention(embed_dim)
+        self.dropout1 = nn.Dropout(0.1)
+        
+        self.norm2 = nn.LayerNorm(embed_dim)
+        self.ff = FeedForward(embed_dim)
+        self.dropout2 = nn.Dropout(0.1)
+    
+    def forward(self, x):
+        # First residual path (Attention)
+        shortcut = x
+        x = self.norm1(x)
+        x = self.attn(x)
+        x = self.dropout1(x)
+        x = x + shortcut  # Residual connection A
+        
+        # Second residual path (Feed-forward)
+        shortcut = x
+        x = self.norm2(x)
+        x = self.ff(x)
+        x = self.dropout2(x)
+        x = x + shortcut  # Residual connection B
+        
+        return x
+
+# Process through 12 transformer layers
+transformer_blocks = nn.ModuleList([TransformerBlock() for _ in range(12)])
+
+x = embeddings
+for block in transformer_blocks:
+    x = block(x)
+
+print(f"After transformers shape: {x.shape}")  # [1, num_tokens, 768]
+print("Context-aware representations generated!")
+###HIGHLIGHT_STEP_3_END###
+
+# ============================================================
+# STEP 5: LAST TOKEN SELECTION
+# ============================================================
+###HIGHLIGHT_STEP_4_START###
+# Extract the last token's output (contains full sequence information)
+last_token_output = x[:, -1, :]  # [1, 768]
+
+print(f"Last token output shape: {last_token_output.shape}")
+print("Using last token for classification")
+###HIGHLIGHT_STEP_4_END###
+
+# ============================================================
+# STEP 6: CLASSIFICATION HEAD
+# ============================================================
+###HIGHLIGHT_STEP_5_START###
+class ClassificationHead(nn.Module):
+    def __init__(self, embed_dim=768, num_classes=2):
+        super().__init__()
+        self.linear = nn.Linear(embed_dim, num_classes)
+    
+    def forward(self, x):
+        # Project from 768 to 2 dimensions (one per class)
+        logits = self.linear(x)
+        return logits
+
+# Get logits
+classifier = ClassificationHead()
+logits = classifier(last_token_output)
+
+print(f"Logits shape: {logits.shape}")  # [1, 2]
+print(f"Logits values: {logits}")
+print("Raw unnormalized scores (not spam, spam)")
+###HIGHLIGHT_STEP_5_END###
+
+# ============================================================
+# STEP 7: SOFTMAX
+# ============================================================
+###HIGHLIGHT_STEP_6_START###
+# Convert logits to probabilities
+probabilities = F.softmax(logits, dim=-1)
+
+print(f"Logits: {logits}")
+print(f"Probabilities: {probabilities}")
+print(f"Sum of probabilities: {probabilities.sum():.4f}")
+print("Probabilities are between 0 and 1, and sum to 1.0")
+###HIGHLIGHT_STEP_6_END###
+
+# ============================================================
+# STEP 8: PREDICTION
+# ============================================================
+###HIGHLIGHT_STEP_7_START###
+# Get the predicted class
+predicted_class = torch.argmax(probabilities, dim=-1)
+confidence = probabilities[0, predicted_class]
+
+class_names = ["not spam", "spam"]
+print(f"\\nFinal Prediction:")
+print(f"  Predicted class: {class_names[predicted_class]}")
+print(f"  Confidence: {confidence:.2%}")
+print(f"\\nClass probabilities:")
+for i, (name, prob) in enumerate(zip(class_names, probabilities[0])):
+    print(f"    {name}: {prob:.2%}")
+###HIGHLIGHT_STEP_7_END###
+
+# ============================================================
+# COMPLETE MODEL CLASS
+# ============================================================
+class GPT2SpamClassifier(nn.Module):
+    """Complete spam classification model using GPT-2 architecture"""
+    
+    def __init__(self, vocab_size=50257, embed_dim=768, num_layers=12, num_classes=2):
+        super().__init__()
+        self.embeddings = GPT2Embeddings(vocab_size, embed_dim)
+        self.transformer_blocks = nn.ModuleList([
+            TransformerBlock(embed_dim) for _ in range(num_layers)
+        ])
+        self.classifier = ClassificationHead(embed_dim, num_classes)
+    
+    def forward(self, input_ids):
+        # Step 3: Get embeddings
+        x = self.embeddings(input_ids)
+        
+        # Step 4: Process through transformer layers
+        for block in self.transformer_blocks:
+            x = block(x)
+        
+        # Step 5: Extract last token
+        x = x[:, -1, :]
+        
+        # Step 6: Get logits
+        logits = self.classifier(x)
+        
+        return logits
+    
+    def predict(self, input_ids):
+        """Make prediction with probabilities"""
+        logits = self.forward(input_ids)
+        probabilities = F.softmax(logits, dim=-1)
+        predicted_class = torch.argmax(probabilities, dim=-1)
+        confidence = probabilities[0, predicted_class]
+        
+        return predicted_class, confidence, probabilities
+
+# Usage
+model = GPT2SpamClassifier()
+predicted_class, confidence, probabilities = model.predict(token_ids)
+
+print("\\n" + "="*60)
+print("FINAL RESULT FROM COMPLETE MODEL")
+print("="*60)
+print(f"Input: {text}")
+print(f"Prediction: {class_names[predicted_class]}")
+print(f"Confidence: {confidence:.2%}")`;
+
+        // Modal functions
+        function openFullCode() {
+            const modal = document.getElementById('fullCodeModal');
+            const fullCodeBlock = document.getElementById('fullCodeBlock');
+            
+            // Get the complete code
+            let codeToDisplay = completeCode;
+            
+            // Replace highlight markers with HTML for the current step
+            const highlightStart = `###HIGHLIGHT_STEP_${currentStep}_START###`;
+            const highlightEnd = `###HIGHLIGHT_STEP_${currentStep}_END###`;
+            
+            // First, remove all highlight markers from other steps
+            for (let i = 0; i < 8; i++) {
+                if (i !== currentStep) {
+                    const startMarker = `###HIGHLIGHT_STEP_${i}_START###`;
+                    const endMarker = `###HIGHLIGHT_STEP_${i}_END###`;
+                    codeToDisplay = codeToDisplay.replace(new RegExp(startMarker, 'g'), '');
+                    codeToDisplay = codeToDisplay.replace(new RegExp(endMarker, 'g'), '');
+                }
+            }
+            
+            // Now handle the current step's highlights
+            codeToDisplay = codeToDisplay.replace(new RegExp(highlightStart, 'g'), '###HIGHLIGHT_START###');
+            codeToDisplay = codeToDisplay.replace(new RegExp(highlightEnd, 'g'), '###HIGHLIGHT_END###');
+            
+            // Set the code content
+            fullCodeBlock.textContent = codeToDisplay;
+            
+            // Highlight the code with Prism
+            Prism.highlightElement(fullCodeBlock);
+            
+            // After Prism highlighting, wrap the highlighted section
+            let html = fullCodeBlock.innerHTML;
+            
+            // Split by our markers and wrap the highlighted section
+            const parts = html.split('###HIGHLIGHT_START###');
+            if (parts.length > 1) {
+                const afterStart = parts[1].split('###HIGHLIGHT_END###');
+                if (afterStart.length > 1) {
+                    const highlightedCode = afterStart[0];
+                    const highlightedLines = highlightedCode.split('\n');
+                    const wrappedLines = highlightedLines.map(line => 
+                        `<span class="code-highlight">${line}</span>`
+                    ).join('\n');
+                    
+                    html = parts[0] + wrappedLines + afterStart[1];
+                    fullCodeBlock.innerHTML = html;
+                }
+            }
+            
+            // Show modal
+            modal.classList.add('active');
+            
+            // Scroll to highlighted section
+            setTimeout(() => {
+                const highlightedElement = fullCodeBlock.querySelector('.code-highlight');
+                if (highlightedElement) {
+                    highlightedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+
+        function closeFullCode() {
+            const modal = document.getElementById('fullCodeModal');
+            modal.classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('fullCodeModal');
+            if (event.target === modal) {
+                closeFullCode();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeFullCode();
+            }
+        });
+
+        // State
+        let currentStep = 0;
+        let currentText = "Free money! Click here now!";
+        let isPlaying = false;
+        let playInterval = null;
+
+        // Example data with realistic predictions
+        const examples = {
+            "Do you have time": {
+                tokens: ["Do", " you", " have", " time"],
+                tokenIds: [5211, 345, 423, 640],
+                logits: [2.15, -1.89],
+                probas: [0.97, 0.03],
+                prediction: 0
+            },
+            "Free money! Click here now!": {
+                tokens: ["Free", " money", "!", " Click", " here", " now", "!"],
+                tokenIds: [11146, 1637, 0, 6914, 994, 783, 0],
+                logits: [-4.23, 5.87],
+                probas: [0.002, 0.998],
+                prediction: 1
+            },
+            "Meeting at 3pm tomorrow": {
+                tokens: ["Meeting", " at", " ", "3", "pm", " tomorrow"],
+                tokenIds: [36669, 379, 513, 18, 4426, 9095],
+                logits: [5.42, -4.98],
+                probas: [0.999, 0.001],
+                prediction: 0
+            },
+            "You won the lottery": {
+                tokens: ["You", " won", " the", " lottery"],
+                tokenIds: [1639, 1839, 262, 15847],
+                logits: [-2.34, 3.12],
+                probas: [0.006, 0.994],
+                prediction: 1
+            }
+        };
+
+        // Step content
+        const steps = [
+            {
+                title: "Input Text",
+                color: "orange",
+                explanation: `
+                    <h2>Step 1: Input Text</h2>
+                    <p>Raw text input that needs binary classification: spam (class 1) or not spam (class 0).</p>
+                    <p>Neural networks only process numbers, so text must be converted to numerical representation.</p>
+                `,
+                code: `# Example input
+text = "${currentText}"
+# This text will be tokenized and processed`
+            },
+            {
+                title: "Tokenization",
+                color: "orange",
+                explanation: `
+                    <h2>Step 2: Tokenization</h2>
+                    <p>Convert text to token IDs using GPT-2's Byte Pair Encoding (BPE).</p>
+                    <div class="shape-display">Token IDs shape: [1, ${examples[currentText].tokens.length}]<br>  ↑  ↑<br>  │  └─ number of tokens<br>  └──── batch size</div>
+                `,
+                code: `from transformers import AutoTokenizer
+tokenizer = AutoTokenizer.from_pretrained("gpt2")
+
+inputs = tokenizer(text, return_tensors="pt")
+# Shape: [1, ${examples[currentText].tokens.length}]`
+            },
+            {
+                title: "Token Embeddings",
+                color: "orange",
+                explanation: `
+                    <h2>Step 3: Token Embeddings</h2>
+                    <p>Each token ID → 768-dimensional vector (learned during pretraining).</p>
+                    <div class="shape-display">Embeddings: [1, ${examples[currentText].tokens.length}, 768]<br>             ↑  ↑   ↑<br>             │  │   └─ embedding dimension<br>             │  └───── tokens<br>             └──────── batch</div>
+                `,
+                code: `tok_emb = self.tok_emb(input_ids)  
+# Shape: [1, ${examples[currentText].tokens.length}, 768]
+
+pos_emb = self.pos_emb(torch.arange(num_tokens))
+x = tok_emb + pos_emb  # Add positional info`
+            },
+            {
+                title: "Transformer Layers",
+                color: "purple",
+                explanation: `
+                    <h2>Step 4: Transformer Layers</h2>
+                    <p>12 transformer blocks apply self-attention and feed-forward networks.</p>
+                    <p>Each token's representation becomes context-aware by attending to all previous tokens.</p>
+                    <div class="shape-display">Output: [1, ${examples[currentText].tokens.length}, 768]<br>Shape unchanged, values now context-aware</div>
+                `,
+                code: `x = embeddings  # [1, ${examples[currentText].tokens.length}, 768]
+
+for block in self.transformer_blocks:
+    x = block(x)  # attention → feed-forward → residual`
+            },
+            {
+                title: "Last Token Selection",
+                color: "purple",
+                explanation: `
+                    <h2>Step 5: Last Token Selection</h2>
+                    <p>For classification, use only the last token's output - it contains information about the entire sequence.</p>
+                    <div class="shape-display">[1, ${examples[currentText].tokens.length}, 768] → [1, 768]<br>Extract position -1 only</div>
+                `,
+                code: `# Extract last token's output
+logits = model(input_batch)[:, -1, :]  
+# Shape: [1, 768]`
+            },
+            {
+                title: "Classification Head",
+                color: "teal",
+                explanation: `
+                    <h2>Step 6: Classification Head</h2>
+                    <p>Linear layer: 768 → 2 dimensions (one per class).</p>
+                    <p>Outputs are raw logits: [${examples[currentText].logits[0].toFixed(2)}, ${examples[currentText].logits[1].toFixed(2)}]</p>
+                    <div class="shape-display">[1, 768] → [1, 2]<br>Raw unnormalized scores</div>
+                `,
+                code: `self.out_head = nn.Linear(768, 2)
+
+logits = self.out_head(last_token_output)
+# Output: [[${examples[currentText].logits[0].toFixed(2)}, ${examples[currentText].logits[1].toFixed(2)}]]`
+            },
+            {
+                title: "Softmax",
+                color: "teal",
+                explanation: `
+                    <h2>Step 7: Softmax</h2>
+                    <p>Convert logits to probabilities (0-1, sum=1).</p>
+                    <p>Result: [${examples[currentText].probas[0].toFixed(3)}, ${examples[currentText].probas[1].toFixed(3)}]</p>
+                `,
+                code: `probas = torch.softmax(logits, dim=-1)
+# Before: [[${examples[currentText].logits[0].toFixed(2)}, ${examples[currentText].logits[1].toFixed(2)}]]
+# After:  [[${examples[currentText].probas[0].toFixed(2)}, ${examples[currentText].probas[1].toFixed(2)}]]`
+            },
+            {
+                title: "Argmax",
+                color: "teal",
+                explanation: `
+                    <h2>Step 8: Prediction</h2>
+                    <p>Select class with highest probability.</p>
+                    <p><strong>Prediction:</strong> ${examples[currentText].prediction === 0 ? 'NOT SPAM' : 'SPAM'} (${(examples[currentText].probas[examples[currentText].prediction] * 100).toFixed(1)}% confidence)</p>
+                `,
+                code: `label = torch.argmax(probas, dim=-1)
+# Returns: tensor([${examples[currentText].prediction}])
+
+predicted_class = ["not spam", "spam"][label.item()]
+# Result: "${examples[currentText].prediction === 0 ? 'not spam' : 'spam'}"`
+            }
+        ];
+
+        // Visualization functions
+        function renderVisualization(step) {
+            const svg = document.getElementById('vizSvg');
+            const data = examples[currentText];
+            
+            switch(step) {
+                case 0: renderStep0(svg, data); break;
+                case 1: renderStep1(svg, data); break;
+                case 2: renderStep2(svg, data); break;
+                case 3: renderStep3(svg, data); break;
+                case 4: renderStep4(svg, data); break;
+                case 5: renderStep5(svg, data); break;
+                case 6: renderStep6(svg, data); break;
+                case 7: renderStep7(svg, data); break;
+            }
+        }
+
+        function renderStep0(svg, data) {
+            svg.innerHTML = `
+                <rect x="100" y="180" width="500" height="140" fill="#fff7ed" stroke="#f97316" stroke-width="3" rx="12" class="fade-in"/>
+                <text x="350" y="230" text-anchor="middle" class="svg-text" font-size="16" font-weight="600" fill="#ea580c">INPUT TEXT</text>
+                <text x="350" y="270" text-anchor="middle" class="svg-text" font-size="22" font-weight="700" fill="#1e293b">"${currentText}"</text>
+                <text x="350" y="300" text-anchor="middle" class="svg-text" font-size="14" fill="#64748b">Raw text ready for processing</text>
+            `;
+        }
+
+        function renderStep1(svg, data) {
+            const tokens = data.tokens;
+            const tokenIds = data.tokenIds;
+            const boxWidth = 500 / tokens.length;
+            
+            let tokenBoxes = '';
+            tokens.forEach((token, i) => {
+                const x = 100 + i * boxWidth;
+                tokenBoxes += `
+                    <rect x="${x}" y="120" width="${boxWidth - 10}" height="80" fill="#fff7ed" stroke="#f97316" stroke-width="2" rx="8" class="token-box fade-in"/>
+                    <text x="${x + boxWidth/2 - 5}" y="150" text-anchor="middle" class="svg-text" font-size="14" font-weight="600" fill="#ea580c">${token}</text>
+                    <text x="${x + boxWidth/2 - 5}" y="180" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">${tokenIds[i]}</text>
+                `;
+            });
+            
+            svg.innerHTML = `
+                <text x="350" y="60" text-anchor="middle" class="svg-text" font-size="16" font-weight="600" fill="#f97316">TOKENIZATION</text>
+                <text x="350" y="85" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">"${currentText}" → ${tokens.length} tokens</text>
+                ${tokenBoxes}
+                <text x="350" y="240" text-anchor="middle" class="svg-text" font-size="14" fill="#64748b">Token IDs: [${tokenIds.join(', ')}]</text>
+                <text x="350" y="270" text-anchor="middle" class="svg-text" font-size="13" font-weight="600" fill="#8b5cf6">Shape: [1, ${tokens.length}]</text>
+            `;
+        }
+
+        function renderStep2(svg, data) {
+            const tokens = data.tokens;
+            const boxWidth = Math.min(80, 500 / tokens.length);
+            const startX = 350 - (tokens.length * boxWidth) / 2;
+            
+            let embeddings = '';
+            tokens.forEach((token, i) => {
+                const x = startX + i * boxWidth;
+                // Draw embedding as gradient bars
+                for(let j = 0; j < 10; j++) {
+                    const opacity = 0.3 + (Math.sin(i + j) + 1) * 0.35;
+                    embeddings += `<rect x="${x}" y="${140 + j * 18}" width="${boxWidth - 10}" height="16" fill="#f97316" opacity="${opacity}" rx="2"/>`;
+                }
+                embeddings += `<text x="${x + boxWidth/2 - 5}" y="350" text-anchor="middle" class="svg-text" font-size="11" fill="#64748b">${token}</text>`;
+            });
+            
+            svg.innerHTML = `
+                <text x="350" y="60" text-anchor="middle" class="svg-text" font-size="16" font-weight="600" fill="#f97316">TOKEN EMBEDDINGS</text>
+                <text x="350" y="85" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">Each token → 768-dimensional vector</text>
+                ${embeddings}
+                <text x="350" y="390" text-anchor="middle" class="svg-text" font-size="13" font-weight="600" fill="#8b5cf6">Shape: [1, ${tokens.length}, 768]</text>
+                <text x="350" y="420" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">Dense vectors in semantic space</text>
+            `;
+        }
+
+        function renderStep3(svg, data) {
+            // Detailed Transformer Block Visualization
+            svg.innerHTML = `
+                <defs>
+                    <marker id="arrowhead-t" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                    </marker>
+                    <marker id="arrowhead-skip" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+                    </marker>
+                </defs>
+
+                <text x="350" y="32" text-anchor="middle" class="svg-text" font-size="16" font-weight="600" fill="#8b5cf6">TRANSFORMER LAYERS</text>
+                <text x="350" y="50" text-anchor="middle" class="svg-text" font-size="10" fill="#64748b">Single block structure (Repeated 12 times in GPT-2)</text>
+
+                <!-- Main container box -->
+                <rect x="200" y="70" width="300" height="395" fill="rgba(241, 245, 249, 0.6)" stroke="#10b981" stroke-width="2" stroke-dasharray="8, 4" rx="12" />
+                
+                <!-- Input from embeddings -->
+                <rect x="265" y="85" width="170" height="34" fill="white" stroke="#8b5cf6" stroke-width="2" rx="6"/>
+                <text x="350" y="106" text-anchor="middle" class="block-text" font-size="11">Input Embeddings</text>
+                
+                <!-- Path to Norm1 -->
+                <line x1="350" y1="119" x2="350" y2="135" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead-t)"/>
+                
+                <!-- Residual Connection A - Start point -->
+                <circle cx="350" cy="124" r="3" fill="#f59e0b" />
+                
+                <!-- Layer Norm 1 -->
+                <rect x="285" y="135" width="130" height="28" fill="white" stroke="#64748b" stroke-width="2" rx="6"/>
+                <text x="350" y="153" text-anchor="middle" class="block-text" font-size="11">LayerNorm</text>
+                
+                <!-- Path to MHA -->
+                <line x1="350" y1="163" x2="350" y2="179" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead-t)"/>
+                
+                <!-- Multi-Head Attention -->
+                <rect x="235" y="179" width="230" height="52" fill="#fee2e2" stroke="#ef4444" stroke-width="2" rx="6"/>
+                <text x="350" y="200" text-anchor="middle" class="block-text" font-size="11">Multi-Head Attention</text>
+                <text x="350" y="218" text-anchor="middle" class="svg-text" font-size="8" fill="#64748b">(Masked - causal)</text>
+                
+                <!-- Path from MHA -->
+                <line x1="350" y1="231" x2="350" y2="249" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead-t)"/>
+                
+                <!-- Residual Connection A (skip path) - Fixed with horizontal line first -->
+                <path d="M 350 124 L 490 124 L 490 259 L 368 259" stroke="#f59e0b" stroke-width="2" fill="none" stroke-dasharray="5,3" marker-end="url(#arrowhead-skip)"/>
+                
+                <!-- Add & Norm 1 -->
+                <circle cx="350" cy="259" r="16" fill="white" stroke="#f59e0b" stroke-width="2"/>
+                <text x="350" y="265" text-anchor="middle" class="block-text" font-size="18" fill="#f59e0b">+</text>
+                
+                <!-- Path to Norm2 -->
+                <line x1="350" y1="275" x2="350" y2="293" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead-t)"/>
+                
+                <!-- Residual Connection B - Start point -->
+                <circle cx="350" cy="282" r="3" fill="#f59e0b" />
+                
+                <!-- Layer Norm 2 -->
+                <rect x="285" y="293" width="130" height="28" fill="white" stroke="#64748b" stroke-width="2" rx="6"/>
+                <text x="350" y="311" text-anchor="middle" class="block-text" font-size="11">LayerNorm</text>
+                
+                <!-- Path to FF -->
+                <line x1="350" y1="321" x2="350" y2="337" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead-t)"/>
+                
+                <!-- Feed Forward -->
+                <rect x="235" y="337" width="230" height="48" fill="#d1fae5" stroke="#10b981" stroke-width="2" rx="6"/>
+                <text x="350" y="357" text-anchor="middle" class="block-text" font-size="11">Feed Forward (MLP)</text>
+                <text x="350" y="373" text-anchor="middle" class="svg-text" font-size="8" fill="#64748b" font-style="italic">Linear → GELU → Linear</text>
+                
+                <!-- Path from FF -->
+                <line x1="350" y1="385" x2="350" y2="403" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead-t)"/>
+                
+                <!-- Residual Connection B (skip path) - Fixed with horizontal line first -->
+                <path d="M 350 282 L 210 282 L 210 413 L 332 413" stroke="#f59e0b" stroke-width="2" fill="none" stroke-dasharray="5,3" marker-end="url(#arrowhead-skip)"/>
+                
+                <!-- Add & Norm 2 -->
+                <circle cx="350" cy="413" r="16" fill="white" stroke="#f59e0b" stroke-width="2"/>
+                <text x="350" y="419" text-anchor="middle" class="block-text" font-size="18" fill="#f59e0b">+</text>
+                
+                <!-- Output -->
+                <line x1="350" y1="429" x2="350" y2="443" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead-t)"/>
+                <rect x="265" y="443" width="170" height="32" fill="white" stroke="#8b5cf6" stroke-width="2" rx="6"/>
+                <text x="350" y="463" text-anchor="middle" class="block-text" font-size="11">Output</text>
+                
+                <!-- Labels for residual connections -->
+                <text x="500" y="192" text-anchor="middle" class="svg-text" font-size="8" fill="#f59e0b" font-weight="600">Residual A</text>
+                <text x="175" y="346" text-anchor="middle" class="svg-text" font-size="8" fill="#f59e0b" font-weight="600">Residual B</text>
+                
+                <!-- Bottom note -->
+                <text x="350" y="490" text-anchor="middle" class="svg-text" font-size="10" fill="#8b5cf6" font-weight="600">→ To next layer (12 total)</text>
+            `;
+        }
+
+        function renderStep4(svg, data) {
+            const tokens = data.tokens;
+            const boxWidth = Math.min(80, 500 / tokens.length);
+            const startX = 350 - (tokens.length * boxWidth) / 2;
+            
+            let tokenBoxes = '';
+            tokens.forEach((token, i) => {
+                const x = startX + i * boxWidth;
+                const isLast = i === tokens.length - 1;
+                tokenBoxes += `
+                    <rect x="${x}" y="180" width="${boxWidth - 10}" height="100" 
+                          fill="${isLast ? '#c4b5fd' : '#f1f5f9'}" 
+                          stroke="${isLast ? '#8b5cf6' : '#cbd5e1'}" 
+                          stroke-width="${isLast ? 4 : 2}" 
+                          rx="8" 
+                          class="${isLast ? 'pulse' : ''}"/>
+                    <text x="${x + boxWidth/2 - 5}" y="220" text-anchor="middle" class="svg-text" font-size="12" fill="${isLast ? '#5b21b6' : '#64748b'}">${token}</text>
+                    <text x="${x + boxWidth/2 - 5}" y="245" text-anchor="middle" class="svg-text" font-size="10" fill="${isLast ? '#5b21b6' : '#94a3b8'}">768-d</text>
+                    ${isLast ? `<text x="${x + boxWidth/2 - 5}" y="265" text-anchor="middle" class="svg-text" font-size="11" font-weight="700" fill="#8b5cf6">SELECTED</text>` : ''}
+                `;
+            });
+            
+            svg.innerHTML = `
+                <text x="350" y="60" text-anchor="middle" class="svg-text" font-size="16" font-weight="600" fill="#8b5cf6">LAST TOKEN SELECTION</text>
+                <text x="350" y="85" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">Using only the last token's output</text>
+                <text x="350" y="140" text-anchor="middle" class="svg-text" font-size="13" fill="#8b5cf6">Shape: [1, ${tokens.length}, 768] → [1, 768]</text>
+                ${tokenBoxes}
+                <text x="350" y="320" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">Last token contains full sequence information</text>
+            `;
+        }
+
+        function renderStep5(svg, data) {
+            svg.innerHTML = `
+                <text x="350" y="60" text-anchor="middle" class="svg-text" font-size="16" font-weight="600" fill="#14b8a6">CLASSIFICATION HEAD</text>
+                <text x="350" y="85" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">Linear layer: 768 → 2 dimensions</text>
+                
+                <rect x="150" y="140" width="120" height="200" fill="#ecfdf5" stroke="#14b8a6" stroke-width="2" rx="8"/>
+                <text x="210" y="170" text-anchor="middle" class="svg-text" font-size="12" font-weight="600" fill="#0f766e">Input</text>
+                <text x="210" y="250" text-anchor="middle" class="svg-text" font-size="11" fill="#14748b">[1, 768]</text>
+                
+                <path d="M 270 240 L 430 200 M 270 240 L 430 280" stroke="#8b5cf6" stroke-width="2" opacity="0.3"/>
+                
+                <rect x="430" y="160" width="120" height="160" fill="#ecfdf5" stroke="#14b8a6" stroke-width="3" rx="8" class="pulse"/>
+                <text x="490" y="190" text-anchor="middle" class="svg-text" font-size="12" font-weight="600" fill="#0f766e">Logits</text>
+                <text x="490" y="230" text-anchor="middle" class="svg-text" font-size="14" font-weight="700" fill="#14b8a6">${data.logits[0].toFixed(2)}</text>
+                <text x="490" y="250" text-anchor="middle" class="svg-text" font-size="10" fill="#64748b">not spam</text>
+                <text x="490" y="280" text-anchor="middle" class="svg-text" font-size="14" font-weight="700" fill="#14b8a6">${data.logits[1].toFixed(2)}</text>
+                <text x="490" y="300" text-anchor="middle" class="svg-text" font-size="10" fill="#64748b">spam</text>
+                
+                <text x="350" y="380" text-anchor="middle" class="svg-text" font-size="13" font-weight="600" fill="#14b8a6">Shape: [1, 2]</text>
+                <text x="350" y="410" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">Raw unnormalized scores</text>
+            `;
+        }
+
+        function renderStep6(svg, data) {
+            const barWidth = Math.max(data.probas[0], data.probas[1]) > 0.5 ? 300 : 150;
+            
+            svg.innerHTML = `
+                <text x="350" y="60" text-anchor="middle" class="svg-text" font-size="16" font-weight="600" fill="#14b8a6">SOFTMAX</text>
+                <text x="350" y="85" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">Converting logits to probabilities</text>
+                
+                <text x="350" y="140" text-anchor="middle" class="svg-text" font-size="13" fill="#64748b">Before: [${data.logits[0].toFixed(2)}, ${data.logits[1].toFixed(2)}]</text>
+                <text x="350" y="165" text-anchor="middle" class="svg-text" font-size="13" font-weight="600" fill="#14b8a6">After: [${data.probas[0].toFixed(3)}, ${data.probas[1].toFixed(3)}]</text>
+                
+                <text x="100" y="220" class="svg-text" font-size="12" font-weight="600" fill="#0f766e">Not Spam:</text>
+                <rect x="100" y="230" width="500" height="30" fill="#e2e8f0" rx="15"/>
+                <rect x="100" y="230" width="${data.probas[0] * 500}" height="30" fill="#14b8a6" rx="15" class="fade-in"/>
+                <text x="${100 + data.probas[0] * 500 + 10}" y="250" class="svg-text" font-size="14" font-weight="700" fill="#0f766e">${(data.probas[0] * 100).toFixed(1)}%</text>
+                
+                <text x="100" y="290" class="svg-text" font-size="12" font-weight="600" fill="#0f766e">Spam:</text>
+                <rect x="100" y="300" width="500" height="30" fill="#e2e8f0" rx="15"/>
+                <rect x="100" y="300" width="${data.probas[1] * 500}" height="30" fill="#14b8a6" rx="15" class="fade-in"/>
+                <text x="${100 + data.probas[1] * 500 + 10}" y="320" class="svg-text" font-size="14" font-weight="700" fill="#0f766e">${(data.probas[1] * 100).toFixed(1)}%</text>
+                
+                <text x="350" y="380" text-anchor="middle" class="svg-text" font-size="13" font-weight="600" fill="#14b8a6">Probabilities sum to 1.0</text>
+                <text x="350" y="410" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">Valid probability distribution</text>
+            `;
+        }
+
+        function renderStep7(svg, data) {
+            const predictedClass = data.prediction === 0 ? 'NOT SPAM' : 'SPAM';
+            const confidence = (data.probas[data.prediction] * 100).toFixed(1);
+            
+            svg.innerHTML = `
+                <text x="350" y="60" text-anchor="middle" class="svg-text" font-size="16" font-weight="600" fill="#14b8a6">ARGMAX & PREDICTION</text>
+                <text x="350" y="85" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">Selecting the class with highest probability</text>
+                
+                <rect x="150" y="140" width="400" height="240" fill="white" stroke="#14b8a6" stroke-width="3" rx="12" class="fade-in"/>
+                
+                <text x="350" y="180" text-anchor="middle" class="svg-text" font-size="14" font-weight="700" fill="#0f766e">CLASSIFICATION RESULT</text>
+                
+                <text x="350" y="230" text-anchor="middle" class="svg-text" font-size="28" font-weight="700" fill="#14b8a6">${predictedClass}</text>
+                <text x="350" y="260" text-anchor="middle" class="svg-text" font-size="18" fill="#64748b">Confidence: ${confidence}%</text>
+                
+                <line x1="200" y1="280" x2="500" y2="280" stroke="#e2e8f0" stroke-width="2"/>
+                
+                <text x="350" y="310" text-anchor="middle" class="svg-text" font-size="12" font-weight="600" fill="#64748b">Class Probabilities:</text>
+                <text x="350" y="335" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">• Not Spam: ${(data.probas[0] * 100).toFixed(1)}%</text>
+                <text x="350" y="360" text-anchor="middle" class="svg-text" font-size="12" fill="#64748b">• Spam: ${(data.probas[1] * 100).toFixed(1)}%</text>
+                
+                <text x="350" y="450" text-anchor="middle" class="svg-text" font-size="11" fill="#8b5cf6">argmax([${data.probas[0].toFixed(2)}, ${data.probas[1].toFixed(2)}]) = ${data.prediction}</text>
+            `;
+        }
+
+        // Update content
+        function updateContent() {
+            const data = examples[currentText];
+            const step = steps[currentStep];
+            
+            // Update explanation
+            document.getElementById('explanation').innerHTML = step.explanation
+                .replace(/\${currentText}/g, currentText)
+                .replace(/\${examples\[currentText\]\.tokens\.length}/g, data.tokens.length)
+                .replace(/\${examples\[currentText\]\.logits\[0\]\.toFixed\(4\)}/g, data.logits[0].toFixed(4))
+                .replace(/\${examples\[currentText\]\.logits\[1\]\.toFixed\(4\)}/g, data.logits[1].toFixed(4))
+                .replace(/\${examples\[currentText\]\.logits\[0\]\.toFixed\(2\)}/g, data.logits[0].toFixed(2))
+                .replace(/\${examples\[currentText\]\.logits\[1\]\.toFixed\(2\)}/g, data.logits[1].toFixed(2))
+                .replace(/\${examples\[currentText\]\.probas\[0\]\.toFixed\(3\)}/g, data.probas[0].toFixed(3))
+                .replace(/\${examples\[currentText\]\.probas\[1\]\.toFixed\(3\)}/g, data.probas[1].toFixed(3))
+                .replace(/\${examples\[currentText\]\.probas\[0\]\.toFixed\(2\)}/g, data.probas[0].toFixed(2))
+                .replace(/\${examples\[currentText\]\.probas\[1\]\.toFixed\(2\)}/g, data.probas[1].toFixed(2))
+                .replace(/\${examples\[currentText\]\.prediction}/g, data.prediction)
+                .replace(/\${examples\[currentText\]\.prediction === 0 \? 'NOT SPAM' : 'SPAM'}/g, data.prediction === 0 ? 'NOT SPAM' : 'SPAM')
+                .replace(/\${examples\[currentText\]\.prediction === 0 \? 'not spam' : 'spam'}/g, data.prediction === 0 ? 'not spam' : 'spam')
+                .replace(/\${\(examples\[currentText\]\.probas\[examples\[currentText\]\.prediction\] \* 100\)\.toFixed\(1\)}/g, (data.probas[data.prediction] * 100).toFixed(1))
+                .replace(/\${\(examples\[currentText\]\.probas\[examples\[currentText\]\.prediction\] \* 100\)\.toFixed\(0\)}/g, (data.probas[data.prediction] * 100).toFixed(0))
+                .replace(/\${\(examples\[currentText\]\.probas\[0\] \* 100\)\.toFixed\(1\)}/g, (data.probas[0] * 100).toFixed(1))
+                .replace(/\${\(examples\[currentText\]\.probas\[1\] \* 100\)\.toFixed\(1\)}/g, (data.probas[1] * 100).toFixed(1));
+            
+            // Update code
+            const codeBlock = document.getElementById('codeBlock');
+            codeBlock.textContent = step.code
+                .replace(/\${currentText}/g, currentText)
+                .replace(/\${examples\[currentText\]\.tokens\.length}/g, data.tokens.length)
+                .replace(/\${examples\[currentText\]\.logits\[0\]\.toFixed\(2\)}/g, data.logits[0].toFixed(2))
+                .replace(/\${examples\[currentText\]\.logits\[1\]\.toFixed\(2\)}/g, data.logits[1].toFixed(2))
+                .replace(/\${examples\[currentText\]\.probas\[0\]\.toFixed\(2\)}/g, data.probas[0].toFixed(2))
+                .replace(/\${examples\[currentText\]\.probas\[1\]\.toFixed\(2\)}/g, data.probas[1].toFixed(2))
+                .replace(/\${examples\[currentText\]\.prediction}/g, data.prediction)
+                .replace(/\${examples\[currentText\]\.prediction === 0 \? 'not spam' : 'spam'}/g, data.prediction === 0 ? 'not spam' : 'spam')
+                .replace(/\${\(examples\[currentText\]\.probas\[examples\[currentText\]\.prediction\] \* 100\)\.toFixed\(1\)}/g, (data.probas[data.prediction] * 100).toFixed(1));
+            
+            Prism.highlightElement(codeBlock);
+            
+            // Update visualization
+            renderVisualization(currentStep);
+            
+            // Update step cards
+            document.querySelectorAll('.step-card').forEach((card, i) => {
+                card.classList.toggle('active', i === currentStep);
+            });
+        }
+
+        // Event listeners
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.example-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentText = btn.dataset.text;
+                updateContent();
+            });
+        });
+
+        document.querySelectorAll('.step-card').forEach((card, index) => {
+            card.addEventListener('click', () => {
+                currentStep = index;
+                updateContent();
+                stopAutoPlay();
+            });
+        });
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentStep > 0) {
+                currentStep--;
+                updateContent();
+                stopAutoPlay();
+            }
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                updateContent();
+                stopAutoPlay();
+            }
+        });
+
+        document.getElementById('playBtn').addEventListener('click', () => {
+            if (isPlaying) {
+                stopAutoPlay();
+            } else {
+                startAutoPlay();
+            }
+        });
+
+        function startAutoPlay() {
+            isPlaying = true;
+            document.getElementById('playBtn').innerHTML = '⏸ Pause';
+            playInterval = setInterval(() => {
+                if (currentStep < steps.length - 1) {
+                    currentStep++;
+                    updateContent();
+                } else {
+                    currentStep = 0;
+                    updateContent();
+                }
+            }, 4000);
+        }
+
+        function stopAutoPlay() {
+            isPlaying = false;
+            document.getElementById('playBtn').innerHTML = '▶ Play';
+            if (playInterval) {
+                clearInterval(playInterval);
+                playInterval = null;
+            }
+        }
+
+        // Initialize
+        updateContent();
+    </script>
+</body>
+</html>

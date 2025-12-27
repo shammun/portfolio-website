@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTorch Training Loop Visualization</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #fafbff;
+            --bg-secondary: #f5f7ff;
+            --bg-card: #ffffff;
+            --orange-primary: #f97316;
+            --orange-light: #fff7ed;
+            --orange-border: #fed7aa;
+            --teal-primary: #14b8a6;
+            --teal-light: #ecfdf5;
+            --teal-border: #99f6e4;
+            --purple-primary: #8b5cf6;
+            --purple-secondary: #a78bfa;
+            --purple-light: #f3e8ff;
+            --purple-border: #c4b5fd;
+            --blue-primary: #3b82f6;
+            --blue-light: #eff6ff;
+            --gray-primary: #64748b;
+            --gray-light: #f8fafc;
+            --gray-border: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --warning: #dc2626;
+            --warning-light: #fef2f2;
+            --shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(99, 102, 241, 0.08);
+            --shadow-medium: 0 8px 30px rgba(99, 102, 241, 0.12);
+            --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+        .header { text-align: center; margin-bottom: 32px; }
+        .header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+        .header p { font-size: 16px; color: var(--text-secondary); }
+        
+        .controls-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 16px; margin-bottom: 24px; padding: 16px 24px;
+            background: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow-card);
+        }
+        .view-toggle {
+            display: flex; gap: 4px; background: var(--gray-light);
+            padding: 4px; border-radius: 12px;
+        }
+        .view-toggle button {
+            padding: 10px 20px; border: none; background: transparent;
+            font-family: var(--font-sans); font-size: 14px; font-weight: 500;
+            color: var(--text-secondary); border-radius: 8px; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .view-toggle button.active {
+            background: var(--bg-card); color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .playback-controls { display: flex; align-items: center; gap: 8px; }
+        .playback-controls button {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px 14px; border: 1px solid var(--gray-border);
+            background: var(--bg-card); font-family: var(--font-sans);
+            font-size: 13px; font-weight: 500; color: var(--text-primary);
+            border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
+        }
+        .playback-controls button:hover { background: var(--gray-light); border-color: var(--purple-border); }
+        .playback-controls button.primary {
+            background: var(--purple-primary); border-color: var(--purple-primary);
+            color: white; padding: 10px 18px;
+        }
+        .playback-controls button.primary:hover { background: #7c3aed; }
+        
+        .speed-control {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 16px; background: var(--gray-light); border-radius: 10px;
+        }
+        .speed-control label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+        .speed-control input[type="range"] {
+            width: 100px; height: 6px; -webkit-appearance: none;
+            background: var(--gray-border); border-radius: 3px;
+        }
+        .speed-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px;
+            background: var(--purple-primary); border-radius: 50%; cursor: pointer;
+        }
+        .speed-value { font-size: 13px; font-weight: 600; color: var(--purple-primary); min-width: 36px; }
+        
+        .view-code-btn {
+            display: flex; align-items: center; gap: 8px; padding: 10px 20px;
+            border: 2px solid var(--purple-border); background: var(--purple-light);
+            font-family: var(--font-sans); font-size: 14px; font-weight: 600;
+            color: var(--purple-primary); border-radius: 10px; cursor: pointer;
+        }
+        .view-code-btn:hover { background: var(--purple-primary); color: white; }
+        
+        .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px; }
+        @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+        
+        .flow-card {
+            background: var(--bg-card); border-radius: 20px;
+            padding: 28px; box-shadow: var(--shadow-card);
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card-title { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .view-badge {
+            padding: 4px 12px; background: var(--purple-light);
+            color: var(--purple-primary); font-size: 12px; font-weight: 600; border-radius: 20px;
+        }
+        .view-description {
+            padding: 12px 16px; background: var(--blue-light); border-radius: 10px;
+            font-size: 13px; color: var(--blue-primary); margin-bottom: 20px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        
+        .epoch-view, .batch-view { display: none; }
+        .epoch-view.active, .batch-view.active { display: block; }
+        
+        .epochs-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin-bottom: 20px; }
+        .epoch-box {
+            padding: 10px 6px; background: var(--gray-light); border-radius: 8px;
+            text-align: center; border: 2px solid transparent; transition: all 0.3s ease;
+        }
+        .epoch-box.completed { background: var(--teal-light); border-color: var(--teal-border); }
+        .epoch-box.current { background: var(--purple-light); border-color: var(--purple-primary); }
+        .epoch-box .epoch-num { font-size: 16px; font-weight: 700; }
+        .epoch-box.completed .epoch-num { color: var(--teal-primary); }
+        .epoch-box.current .epoch-num { color: var(--purple-primary); }
+        .epoch-box .epoch-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; }
+        
+        .epoch-progress-section { margin-bottom: 20px; }
+        .epoch-progress-label {
+            display: flex; justify-content: space-between; margin-bottom: 8px;
+            font-size: 14px; color: var(--text-secondary);
+        }
+        .epoch-progress-label strong { color: var(--text-primary); }
+        .progress-bar { height: 20px; background: var(--gray-light); border-radius: 10px; overflow: hidden; }
+        .progress-fill {
+            height: 100%; background: linear-gradient(90deg, var(--purple-primary), var(--teal-primary));
+            border-radius: 10px; transition: width 0.3s ease;
+        }
+        
+        .epoch-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
+        .stat-box { padding: 14px; background: var(--gray-light); border-radius: 12px; text-align: center; }
+        .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+        .stat-value { font-size: 20px; font-weight: 700; font-family: var(--font-mono); }
+        .stat-value.epoch { color: var(--purple-primary); }
+        .stat-value.batch { color: var(--blue-primary); }
+        .stat-value.step { color: var(--teal-primary); }
+        .stat-value.loss { color: var(--orange-primary); }
+        
+        .flow-diagram { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; }
+        .step-box {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            padding: 16px 20px; background: var(--bg-card); border: 2px solid var(--gray-border);
+            border-radius: 16px; cursor: pointer; transition: all 0.3s ease;
+            min-width: 120px; position: relative;
+        }
+        .step-box:hover { transform: translateY(-2px); box-shadow: var(--shadow-medium); }
+        .step-box.active { transform: translateY(-4px) scale(1.02); }
+        .step-box.completed { opacity: 0.5; }
+        
+        .step-box.step-1 { border-color: var(--purple-border); background: var(--purple-light); }
+        .step-box.step-1.active { border-color: var(--purple-primary); box-shadow: 0 8px 30px rgba(139,92,246,0.35); opacity: 1; }
+        .step-box.step-2 { border-color: var(--orange-border); background: var(--orange-light); }
+        .step-box.step-2.active { border-color: var(--orange-primary); box-shadow: 0 8px 30px rgba(249,115,22,0.35); opacity: 1; }
+        .step-box.step-3 { border-color: var(--purple-border); background: linear-gradient(135deg, #f3e8ff, #ede9fe); }
+        .step-box.step-3.active { border-color: var(--purple-secondary); box-shadow: 0 8px 30px rgba(167,139,250,0.35); opacity: 1; }
+        .step-box.step-4 { border-color: var(--teal-border); background: var(--teal-light); }
+        .step-box.step-4.active { border-color: var(--teal-primary); box-shadow: 0 8px 30px rgba(20,184,166,0.35); opacity: 1; }
+        
+        .step-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; border-radius: 10px; }
+        .step-1 .step-icon { background: rgba(139,92,246,0.15); }
+        .step-2 .step-icon { background: rgba(249,115,22,0.15); }
+        .step-3 .step-icon { background: rgba(167,139,250,0.15); }
+        .step-4 .step-icon { background: rgba(20,184,166,0.15); }
+        
+        .step-name { font-size: 13px; font-weight: 700; text-align: center; }
+        .step-1 .step-name { color: var(--purple-primary); }
+        .step-2 .step-name { color: var(--orange-primary); }
+        .step-3 .step-name { color: var(--purple-secondary); }
+        .step-4 .step-name { color: var(--teal-primary); }
+        
+        .step-code { font-size: 10px; font-family: var(--font-mono); opacity: 0.7; text-align: center; }
+        .step-1 .step-code { color: var(--purple-primary); }
+        .step-2 .step-code { color: var(--orange-primary); }
+        .step-3 .step-code { color: var(--purple-secondary); }
+        .step-4 .step-code { color: var(--teal-primary); }
+        
+        .step-number {
+            position: absolute; top: -10px; left: -10px; width: 26px; height: 26px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; color: white; border: 2px solid white;
+        }
+        .step-1 .step-number { background: var(--purple-primary); }
+        .step-2 .step-number { background: var(--orange-primary); }
+        .step-3 .step-number { background: var(--purple-secondary); }
+        .step-4 .step-number { background: var(--teal-primary); }
+        
+        .flow-arrow { color: var(--purple-border); font-size: 20px; font-weight: bold; }
+        .flow-return {
+            display: flex; align-items: center; justify-content: center; width: 100%;
+            margin-top: 16px; padding: 12px 24px; background: var(--gray-light);
+            border-radius: 12px; font-size: 13px; color: var(--text-secondary); gap: 8px;
+        }
+        
+        .batch-status-bar {
+            display: flex; justify-content: center; gap: 24px; margin-top: 20px;
+            padding: 16px; background: var(--gray-light); border-radius: 12px;
+        }
+        .batch-status-item { text-align: center; min-width: 80px; }
+        .batch-status-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+        .batch-status-value { font-size: 18px; font-weight: 600; font-family: var(--font-mono); }
+        .batch-status-value.step-num { color: var(--purple-primary); }
+        .batch-status-value.batch-num { color: var(--blue-primary); }
+        .batch-status-value.loss-num { color: var(--orange-primary); }
+        
+        /* Explanation Card */
+        .explanation-card {
+            background: var(--bg-card); border-radius: 20px; padding: 24px;
+            box-shadow: var(--shadow-card); display: flex; flex-direction: column;
+            min-height: 380px;
+        }
+        .explanation-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .explanation-icon {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
+            flex-shrink: 0;
+        }
+        .explanation-icon.step-1 { background: var(--purple-light); }
+        .explanation-icon.step-2 { background: var(--orange-light); }
+        .explanation-icon.step-3 { background: var(--purple-light); }
+        .explanation-icon.step-4 { background: var(--teal-light); }
+        .explanation-icon.training { background: var(--blue-light); }
+        .explanation-title { font-size: 16px; font-weight: 600; }
+        .explanation-content { flex: 1; font-size: 14px; color: var(--text-secondary); line-height: 1.7; min-height: 120px; }
+        .explanation-content p { margin-bottom: 10px; }
+        .explanation-content strong { color: var(--text-primary); }
+        
+        .explanation-code { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--gray-border); }
+        .code-snippet {
+            background: var(--text-primary); color: #e2e8f0; padding: 12px 16px;
+            border-radius: 10px; font-family: var(--font-mono); font-size: 13px;
+        }
+        .code-snippet .kw { color: #c4b5fd; }
+        .code-snippet .fn { color: #67e8f9; }
+        .code-snippet .var { color: #e2e8f0; }
+        
+        .view-in-context-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            margin-top: 12px; padding: 10px 16px; border: 1px solid var(--gray-border);
+            background: var(--bg-card); font-family: var(--font-sans); font-size: 13px;
+            font-weight: 500; color: var(--text-primary); border-radius: 8px;
+            cursor: pointer; width: 100%;
+        }
+        .view-in-context-btn:hover { background: var(--purple-light); border-color: var(--purple-border); color: var(--purple-primary); }
+        
+        /* Training in progress state */
+        .training-progress-panel {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 100%;
+            padding: 40px 20px;
+        }
+        .training-progress-panel.active { display: flex; }
+        .step-details-panel { display: block; }
+        .step-details-panel.hidden { display: none; }
+        
+        .training-spinner {
+            width: 60px; height: 60px; border-radius: 50%;
+            border: 4px solid var(--gray-border);
+            border-top-color: var(--purple-primary);
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .training-progress-title {
+            font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;
+        }
+        .training-progress-subtitle {
+            font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;
+        }
+        .training-stats {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%;
+        }
+        .training-stat {
+            padding: 12px; background: var(--gray-light); border-radius: 10px; text-align: center;
+        }
+        .training-stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+        .training-stat-value { font-size: 18px; font-weight: 700; font-family: var(--font-mono); }
+        .training-stat-value.epoch { color: var(--purple-primary); }
+        .training-stat-value.loss { color: var(--orange-primary); }
+        
+        .training-hint {
+            margin-top: 20px; padding: 12px 16px; background: var(--blue-light);
+            border-radius: 8px; font-size: 12px; color: var(--blue-primary);
+        }
+        
+        .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 900px) { .bottom-grid { grid-template-columns: 1fr; } }
+        
+        .gradient-card { background: var(--bg-card); border-radius: 20px; padding: 24px; box-shadow: var(--shadow-card); }
+        .gradient-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+        .gradient-side { padding: 14px; border-radius: 12px; min-height: 300px; }
+        .gradient-side.correct { background: var(--teal-light); border: 1px solid var(--teal-border); }
+        .gradient-side.incorrect { background: var(--warning-light); border: 1px solid #fca5a5; }
+        .gradient-side-title { font-size: 12px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+        .gradient-side.correct .gradient-side-title { color: var(--teal-primary); }
+        .gradient-side.incorrect .gradient-side-title { color: var(--warning); }
+        .gradient-bars { display: flex; flex-direction: column; gap: 6px; }
+        .gradient-bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; font-family: var(--font-mono); height: 24px; }
+        .gradient-bar-label { width: 50px; color: var(--text-muted); }
+        .gradient-bar {
+            height: 18px; border-radius: 4px;
+            display: flex; align-items: center; padding-left: 6px;
+            font-size: 10px; color: white; font-weight: 600; min-width: 35px;
+            transition: width 0.5s ease;
+        }
+        .gradient-side.correct .gradient-bar { background: linear-gradient(90deg, var(--teal-primary), #2dd4bf); }
+        .gradient-side.incorrect .gradient-bar { background: linear-gradient(90deg, var(--warning), #f87171); }
+        .gradient-side.incorrect .gradient-bar.warning { animation: pulse-warning 0.8s ease-in-out infinite; }
+        @keyframes pulse-warning { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .warning-badge {
+            margin-top: 10px; padding: 6px 10px; background: var(--warning);
+            color: white; border-radius: 6px; font-size: 11px; font-weight: 600;
+            display: none; align-items: center; gap: 6px;
+        }
+        .warning-badge.visible { display: flex; }
+        
+        .loss-card { background: var(--bg-card); border-radius: 20px; padding: 24px; box-shadow: var(--shadow-card); }
+        .loss-chart-container { position: relative; height: 300px; margin-top: 16px; }
+        .loss-chart { width: 100%; height: 100%; }
+        .loss-legend { display: flex; justify-content: center; gap: 24px; margin-top: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .legend-dot.train { background: var(--orange-primary); }
+        .legend-dot.val { background: var(--teal-primary); }
+        
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15,23,42,0.6); backdrop-filter: blur(4px);
+            opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 1000;
+        }
+        .modal-backdrop.visible { opacity: 1; visibility: visible; }
+        .code-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0.95);
+            width: 90%; max-width: 900px; max-height: 85vh; background: var(--bg-card);
+            border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 1001;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .code-modal.visible { opacity: 1; visibility: visible; transform: translate(-50%,-50%) scale(1); }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 24px; border-bottom: 1px solid var(--gray-border); background: var(--gray-light);
+        }
+        .modal-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .close-button {
+            width: 34px; height: 34px; border-radius: 10px; border: none;
+            background: var(--bg-card); color: var(--text-secondary); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 20px;
+        }
+        .close-button:hover { background: var(--gray-border); color: var(--text-primary); }
+        .code-container { flex: 1; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
+        .code-block {
+            font-family: var(--font-mono); font-size: 13px; line-height: 1.8;
+            background: var(--text-primary); color: #e2e8f0; border-radius: 14px;
+            padding: 20px; overflow-x: auto;
+        }
+        .code-line {
+            display: block; padding: 2px 14px; margin: 0 -14px;
+            border-left: 4px solid transparent; transition: all 0.3s ease; white-space: pre;
+        }
+        .code-line.highlighted { border-radius: 4px; }
+        .code-line.highlighted.purple { background: rgba(139,92,246,0.2); border-left-color: var(--purple-primary); }
+        .code-line.highlighted.orange { background: rgba(249,115,22,0.2); border-left-color: var(--orange-primary); }
+        .code-line.highlighted.purple-light { background: rgba(167,139,250,0.2); border-left-color: var(--purple-secondary); }
+        .code-line.highlighted.teal { background: rgba(20,184,166,0.2); border-left-color: var(--teal-primary); }
+        .ln { display: inline-block; width: 28px; color: #475569; text-align: right; margin-right: 16px; user-select: none; }
+        .kw { color: #c4b5fd; }
+        .fn { color: #67e8f9; }
+        .str { color: #86efac; }
+        .cmt { color: #64748b; font-style: italic; }
+        .num { color: #fcd34d; }
+        .var { color: #e2e8f0; }
+        
+        .tooltip {
+            position: fixed; background: var(--text-primary); color: white;
+            padding: 12px 16px; border-radius: 10px; font-size: 12px; max-width: 260px;
+            z-index: 100; opacity: 0; visibility: hidden; transition: all 0.2s ease;
+            pointer-events: none; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .tooltip.visible { opacity: 1; visibility: visible; }
+        .tooltip-code { font-family: var(--font-mono); font-size: 11px; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; margin-bottom: 8px; }
+        .tooltip-desc { color: #94a3b8; font-style: italic; }
+        
+        @media (max-width: 768px) {
+            .container { padding: 20px 16px; }
+            .header h1 { font-size: 24px; }
+            .controls-bar { flex-direction: column; align-items: stretch; }
+            .view-toggle, .playback-controls { justify-content: center; }
+            .speed-control { justify-content: center; }
+            .flow-diagram { flex-direction: column; }
+            .flow-arrow { transform: rotate(90deg); }
+            .gradient-comparison { grid-template-columns: 1fr; }
+            .epochs-grid { grid-template-columns: repeat(5, 1fr); }
+            .epoch-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🔄 PyTorch Training Loop</h1>
+            <p>Understanding how neural networks learn, one batch at a time</p>
+        </header>
+
+        <div class="controls-bar">
+            <div class="view-toggle">
+                <button id="epochViewBtn" class="active">Epoch View</button>
+                <button id="batchViewBtn">Batch View</button>
+            </div>
+            
+            <div class="playback-controls">
+                <button id="prevStepBtn" title="Previous Step">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    Prev
+                </button>
+                <button id="playBtn" class="primary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    Play
+                </button>
+                <button id="pauseBtn" class="primary" style="display: none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    Pause
+                </button>
+                <button id="nextStepBtn" title="Next Step">
+                    Next
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+                <button id="resetBtn" title="Reset">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                </button>
+            </div>
+
+            <div class="speed-control">
+                <label>Speed:</label>
+                <input type="range" id="speedSlider" min="1" max="20" value="5">
+                <span class="speed-value" id="speedValue">5x</span>
+            </div>
+
+            <button class="view-code-btn" id="viewFullCodeBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                View Code
+            </button>
+        </div>
+
+        <div class="main-grid">
+            <div class="flow-card">
+                <div class="epoch-view active" id="epochView">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            Training Progress
+                        </h2>
+                        <span class="view-badge">Epoch View</span>
+                    </div>
+                    <div class="view-description">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <strong>High-level view:</strong>&nbsp;Track progress across all 10 epochs. Each epoch = one complete pass through all training data.
+                    </div>
+                    <div class="epochs-grid" id="epochsGrid"></div>
+                    <div class="epoch-progress-section">
+                        <div class="epoch-progress-label">
+                            <span>Epoch <strong id="currentEpochLabel">1</strong> Progress</span>
+                            <span>Batch <strong id="currentBatchLabel">0</strong> / <strong id="totalBatchesLabel">125</strong></span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="epochProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="epoch-stats">
+                        <div class="stat-box"><div class="stat-label">Epoch</div><div class="stat-value epoch" id="statEpoch">1</div></div>
+                        <div class="stat-box"><div class="stat-label">Batch</div><div class="stat-value batch" id="statBatch">0</div></div>
+                        <div class="stat-box"><div class="stat-label">Global Step</div><div class="stat-value step" id="statStep">0</div></div>
+                        <div class="stat-box"><div class="stat-label">Loss</div><div class="stat-value loss" id="statLoss">4.50</div></div>
+                    </div>
+                </div>
+
+                <div class="batch-view" id="batchView">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+                            Single Batch Iteration
+                        </h2>
+                        <span class="view-badge">Batch View</span>
+                    </div>
+                    <div class="view-description">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <strong>Detailed view:</strong>&nbsp;The 4 steps that repeat for every single batch. This is the core learning loop!
+                    </div>
+                    <div class="flow-container">
+                        <div class="flow-diagram" id="flowDiagram">
+                            <div class="step-box step-1" data-step="zero_grad">
+                                <span class="step-number">1</span>
+                                <div class="step-icon">🔄</div>
+                                <div class="step-name">Reset</div>
+                                <div class="step-code">zero_grad()</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="step-box step-2" data-step="forward">
+                                <span class="step-number">2</span>
+                                <div class="step-icon">📊</div>
+                                <div class="step-name">Forward</div>
+                                <div class="step-code">calc_loss()</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="step-box step-3" data-step="backward">
+                                <span class="step-number">3</span>
+                                <div class="step-icon">⬅️</div>
+                                <div class="step-name">Backward</div>
+                                <div class="step-code">backward()</div>
+                            </div>
+                            <span class="flow-arrow">→</span>
+                            <div class="step-box step-4" data-step="step">
+                                <span class="step-number">4</span>
+                                <div class="step-icon">✅</div>
+                                <div class="step-name">Update</div>
+                                <div class="step-code">step()</div>
+                            </div>
+                        </div>
+                        <div class="flow-return">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                            Repeat for each batch → Complete all batches → Next epoch
+                        </div>
+                    </div>
+                    <div class="batch-status-bar">
+                        <div class="batch-status-item"><div class="batch-status-label">Current Step</div><div class="batch-status-value step-num" id="batchStepName">1 / 4</div></div>
+                        <div class="batch-status-item"><div class="batch-status-label">Batch</div><div class="batch-status-value batch-num" id="batchNum">0</div></div>
+                        <div class="batch-status-item"><div class="batch-status-label">Loss</div><div class="batch-status-value loss-num" id="batchLoss">4.50</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="explanation-card" id="explanationPanel">
+                <!-- Training Progress Panel (shown during auto-play) -->
+                <div class="training-progress-panel" id="trainingProgressPanel">
+                    <div class="training-spinner"></div>
+                    <div class="training-progress-title">Training in Progress</div>
+                    <div class="training-progress-subtitle">Model is learning from the data...</div>
+                    <div class="training-stats">
+                        <div class="training-stat">
+                            <div class="training-stat-label">Epoch</div>
+                            <div class="training-stat-value epoch" id="trainingEpoch">1 / 10</div>
+                        </div>
+                        <div class="training-stat">
+                            <div class="training-stat-label">Loss</div>
+                            <div class="training-stat-value loss" id="trainingLoss">4.50</div>
+                        </div>
+                    </div>
+                    <div class="training-hint">
+                        💡 Click <strong>Pause</strong> or use <strong>Prev/Next</strong> to see step details
+                    </div>
+                </div>
+                
+                <!-- Step Details Panel (shown during manual navigation) -->
+                <div class="step-details-panel" id="stepDetailsPanel">
+                    <div class="explanation-header">
+                        <div class="explanation-icon step-1" id="explanationIcon">🔄</div>
+                        <h3 class="explanation-title" id="explanationTitle">Step 1: Reset Gradients</h3>
+                    </div>
+                    <div class="explanation-content" id="explanationContent">
+                        <p><strong>What it does:</strong> Clears out any gradient values stored from the previous iteration.</p>
+                        <p><strong>Why it's necessary:</strong> PyTorch accumulates gradients by default. Without resetting, gradients from batch 1 add to batch 2.</p>
+                        <p><strong>Analogy:</strong> Discarding the previous throw's adjustments to start fresh for the current throw.</p>
+                    </div>
+                    <div class="explanation-code">
+                        <div class="code-snippet" id="explanationCode"><span class="fn">optimizer</span>.<span class="kw">zero_grad</span>()</div>
+                        <button class="view-in-context-btn" id="viewInContextBtn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            View in full code
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-grid">
+            <div class="gradient-card">
+                <h2 class="card-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                    Gradient Accumulation Demo
+                </h2>
+                <div class="gradient-comparison">
+                    <div class="gradient-side correct">
+                        <div class="gradient-side-title">✓ WITH zero_grad()</div>
+                        <div class="gradient-bars" id="correctBars"></div>
+                    </div>
+                    <div class="gradient-side incorrect">
+                        <div class="gradient-side-title">✗ WITHOUT zero_grad()</div>
+                        <div class="gradient-bars" id="incorrectBars"></div>
+                        <div class="warning-badge" id="warningBadge">⚠️ Gradients exploding!</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loss-card">
+                <h2 class="card-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    Training Loss Curve
+                </h2>
+                <div class="loss-chart-container">
+                    <svg class="loss-chart" id="lossChart" viewBox="0 0 400 270">
+                        <defs><pattern id="grid" width="40" height="26.67" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 26.67" fill="none" stroke="#e2e8f0" stroke-width="0.5"/></pattern></defs>
+                        <rect x="40" y="10" width="350" height="230" fill="url(#grid)"/>
+                        <line x1="40" y1="240" x2="390" y2="240" stroke="#94a3b8" stroke-width="1"/>
+                        <line x1="40" y1="10" x2="40" y2="240" stroke="#94a3b8" stroke-width="1"/>
+                        <text x="30" y="15" fill="#64748b" font-size="10" text-anchor="end">5.0</text>
+                        <text x="30" y="125" fill="#64748b" font-size="10" text-anchor="end">2.5</text>
+                        <text x="30" y="240" fill="#64748b" font-size="10" text-anchor="end">0.0</text>
+                        <text x="40" y="255" fill="#64748b" font-size="10" text-anchor="middle">0</text>
+                        <text x="215" y="255" fill="#64748b" font-size="10" text-anchor="middle">Steps</text>
+                        <text x="390" y="255" fill="#64748b" font-size="10" text-anchor="middle">1250</text>
+                        <path id="trainLossPath" d="" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path id="valLossPath" d="" fill="none" stroke="#14b8a6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5,3"/>
+                        <circle id="trainDot" cx="40" cy="30" r="5" fill="#f97316"/>
+                        <circle id="valDot" cx="40" cy="35" r="5" fill="#14b8a6"/>
+                    </svg>
+                </div>
+                <div class="loss-legend">
+                    <div class="legend-item"><div class="legend-dot train"></div><span>Training Loss</span></div>
+                    <div class="legend-item"><div class="legend-dot val"></div><span>Validation Loss</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-code" id="tooltipCode"></div>
+        <div class="tooltip-desc" id="tooltipDesc"></div>
+    </div>
+
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="code-modal" id="codeModal">
+        <div class="modal-header">
+            <div class="modal-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                Training Loop Code
+            </div>
+            <button class="close-button" id="closeModalBtn">×</button>
+        </div>
+        <div class="code-container" id="codeContainer">
+            <pre class="code-block" id="codeBlock"></pre>
+        </div>
+    </div>
+
+    <script>
+        // State
+        const state = {
+            isPlaying: false,
+            currentEpoch: 1,
+            currentBatch: 0,
+            totalBatches: 125,
+            totalEpochs: 10,
+            currentStepIndex: 0,
+            globalStep: 0,
+            loss: 4.5,
+            speed: 5,
+            animationId: null,
+            lastTime: 0,
+            lastGradientUpdate: 0,
+            lastLossUpdate: 0
+        };
+
+        // Pre-generate smooth loss curve data
+        const maxSteps = state.totalEpochs * state.totalBatches;
+        const lossData = { train: [], val: [] };
+        for (let i = 0; i <= maxSteps; i++) {
+            const progress = i / maxSteps;
+            const baseLoss = 4.5 * Math.exp(-3 * progress) + 0.3;
+            const noise = Math.sin(i * 0.1) * 0.03 + Math.cos(i * 0.07) * 0.02;
+            lossData.train.push(baseLoss + noise);
+            lossData.val.push(baseLoss * 1.08 + noise * 0.5 + 0.05);
+        }
+
+        // Fixed gradient values
+        const gradientValues = [0.35, 0.42, 0.38, 0.45, 0.40];
+
+        const steps = ['zero_grad', 'forward', 'backward', 'step'];
+        
+        const stepData = {
+            zero_grad: {
+                title: 'Step 1: Reset Gradients',
+                icon: '🔄',
+                iconClass: 'step-1',
+                content: '<p><strong>What it does:</strong> Clears gradient values from previous iteration.</p><p><strong>Why:</strong> PyTorch accumulates gradients by default. Without reset, gradients add up incorrectly.</p><p><strong>Analogy:</strong> Discarding the previous throw\'s adjustments to start fresh for the current throw.</p>',
+                code: '<span class="fn">optimizer</span>.<span class="kw">zero_grad</span>()',
+                tooltipCode: 'optimizer.zero_grad()',
+                tooltipDesc: 'Resets all gradient values to zero'
+            },
+            forward: {
+                title: 'Step 2: Forward Pass',
+                icon: '📊',
+                iconClass: 'step-2',
+                content: '<p><strong>What it does:</strong> Feed input through model, calculate loss (how wrong predictions are).</p><p><strong>Why:</strong> Quantify model error so we can systematically reduce it.</p><p><strong>Analogy:</strong> Measure distance from dart to bullseye.</p>',
+                code: '<span class="var">loss</span> = <span class="fn">calc_loss_batch</span>(<span class="var">input</span>, <span class="var">target</span>, <span class="var">model</span>, <span class="var">device</span>)',
+                tooltipCode: 'loss = calc_loss_batch(...)',
+                tooltipDesc: 'Computes predictions and loss'
+            },
+            backward: {
+                title: 'Step 3: Backpropagation',
+                icon: '⬅️',
+                iconClass: 'step-3',
+                content: '<p><strong>What it does:</strong> Calculate how much each weight contributed to the loss (gradients).</p><p><strong>Why:</strong> Know which weights to adjust and by how much.</p><p><strong>Analogy:</strong> Figure out exactly how to adjust your arm to hit bullseye.</p>',
+                code: '<span class="var">loss</span>.<span class="kw">backward</span>()',
+                tooltipCode: 'loss.backward()',
+                tooltipDesc: 'Computes gradients via backpropagation'
+            },
+            step: {
+                title: 'Step 4: Update Weights',
+                icon: '✅',
+                iconClass: 'step-4',
+                content: '<p><strong>What it does:</strong> Actually modify model weights based on gradients.</p><p><strong>Why:</strong> This is where learning happens! Weights change to improve model.</p><p><strong>Analogy:</strong> Actually adjust your dart throw based on what you learned.</p>',
+                code: '<span class="fn">optimizer</span>.<span class="kw">step</span>()',
+                tooltipCode: 'optimizer.step()',
+                tooltipDesc: 'Updates weights using gradients'
+            }
+        };
+
+        const lineMapping = {
+            zero_grad: [{ start: 17, end: 18, class: 'purple' }],
+            forward: [
+                { start: 20, end: 24, class: 'orange' },
+                { start: 47, end: 54, class: 'orange' }
+            ],
+            backward: [{ start: 26, end: 27, class: 'purple-light' }],
+            step: [{ start: 29, end: 30, class: 'teal' }]
+        };
+
+        const fullCode = `<span class="code-line" data-line="1"><span class="ln"> 1</span><span class="kw">def</span> <span class="fn">train_model_simple</span>(<span class="var">model</span>, <span class="var">train_loader</span>, <span class="var">val_loader</span>,</span>
+<span class="code-line" data-line="2"><span class="ln"> 2</span>                        <span class="var">optimizer</span>, <span class="var">device</span>, <span class="var">num_epochs</span>,</span>
+<span class="code-line" data-line="3"><span class="ln"> 3</span>                        <span class="var">eval_freq</span>, <span class="var">eval_iter</span>, <span class="var">start_context</span>,</span>
+<span class="code-line" data-line="4"><span class="ln"> 4</span>                        <span class="var">tokenizer</span>):</span>
+<span class="code-line" data-line="5"><span class="ln"> 5</span></span>
+<span class="code-line" data-line="6"><span class="ln"> 6</span>    <span class="cmt"># Initialize tracking variables</span></span>
+<span class="code-line" data-line="7"><span class="ln"> 7</span>    <span class="var">train_losses</span>, <span class="var">val_losses</span>, <span class="var">track_tokens_seen</span> = [], [], []</span>
+<span class="code-line" data-line="8"><span class="ln"> 8</span>    <span class="var">tokens_seen</span>, <span class="var">global_step</span> = <span class="num">0</span>, <span class="num">-1</span></span>
+<span class="code-line" data-line="9"><span class="ln"> 9</span></span>
+<span class="code-line" data-line="10"><span class="ln">10</span>    <span class="cmt"># OUTER LOOP - Epochs</span></span>
+<span class="code-line" data-line="11"><span class="ln">11</span>    <span class="kw">for</span> <span class="var">epoch</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="var">num_epochs</span>):</span>
+<span class="code-line" data-line="12"><span class="ln">12</span>        <span class="var">model</span>.<span class="fn">train</span>()  <span class="cmt"># Set to training mode</span></span>
+<span class="code-line" data-line="13"><span class="ln">13</span></span>
+<span class="code-line" data-line="14"><span class="ln">14</span>        <span class="cmt"># INNER LOOP - Batches</span></span>
+<span class="code-line" data-line="15"><span class="ln">15</span>        <span class="kw">for</span> <span class="var">input_batch</span>, <span class="var">target_batch</span> <span class="kw">in</span> <span class="var">train_loader</span>:</span>
+<span class="code-line" data-line="16"><span class="ln">16</span></span>
+<span class="code-line" data-line="17"><span class="ln">17</span>            <span class="cmt"># ═══ STEP 1: Reset gradients ═══</span></span>
+<span class="code-line" data-line="18"><span class="ln">18</span>            <span class="var">optimizer</span>.<span class="fn">zero_grad</span>()</span>
+<span class="code-line" data-line="19"><span class="ln">19</span></span>
+<span class="code-line" data-line="20"><span class="ln">20</span>            <span class="cmt"># ═══ STEP 2: Forward pass & loss ═══</span></span>
+<span class="code-line" data-line="21"><span class="ln">21</span>            <span class="var">loss</span> = <span class="fn">calc_loss_batch</span>(</span>
+<span class="code-line" data-line="22"><span class="ln">22</span>                <span class="var">input_batch</span>, <span class="var">target_batch</span>,</span>
+<span class="code-line" data-line="23"><span class="ln">23</span>                <span class="var">model</span>, <span class="var">device</span></span>
+<span class="code-line" data-line="24"><span class="ln">24</span>            )</span>
+<span class="code-line" data-line="25"><span class="ln">25</span></span>
+<span class="code-line" data-line="26"><span class="ln">26</span>            <span class="cmt"># ═══ STEP 3: Backpropagation ═══</span></span>
+<span class="code-line" data-line="27"><span class="ln">27</span>            <span class="var">loss</span>.<span class="fn">backward</span>()</span>
+<span class="code-line" data-line="28"><span class="ln">28</span></span>
+<span class="code-line" data-line="29"><span class="ln">29</span>            <span class="cmt"># ═══ STEP 4: Update weights ═══</span></span>
+<span class="code-line" data-line="30"><span class="ln">30</span>            <span class="var">optimizer</span>.<span class="fn">step</span>()</span>
+<span class="code-line" data-line="31"><span class="ln">31</span></span>
+<span class="code-line" data-line="32"><span class="ln">32</span>            <span class="cmt"># Track progress</span></span>
+<span class="code-line" data-line="33"><span class="ln">33</span>            <span class="var">tokens_seen</span> += <span class="var">input_batch</span>.<span class="fn">numel</span>()</span>
+<span class="code-line" data-line="34"><span class="ln">34</span>            <span class="var">global_step</span> += <span class="num">1</span></span>
+<span class="code-line" data-line="35"><span class="ln">35</span></span>
+<span class="code-line" data-line="36"><span class="ln">36</span>            <span class="cmt"># Periodic evaluation</span></span>
+<span class="code-line" data-line="37"><span class="ln">37</span>            <span class="kw">if</span> <span class="var">global_step</span> % <span class="var">eval_freq</span> == <span class="num">0</span>:</span>
+<span class="code-line" data-line="38"><span class="ln">38</span>                <span class="var">train_loss</span>, <span class="var">val_loss</span> = <span class="fn">evaluate_model</span>(...)</span>
+<span class="code-line" data-line="39"><span class="ln">39</span>                <span class="var">train_losses</span>.<span class="fn">append</span>(<span class="var">train_loss</span>)</span>
+<span class="code-line" data-line="40"><span class="ln">40</span>                <span class="var">val_losses</span>.<span class="fn">append</span>(<span class="var">val_loss</span>)</span>
+<span class="code-line" data-line="41"><span class="ln">41</span></span>
+<span class="code-line" data-line="42"><span class="ln">42</span>        <span class="cmt"># Generate sample after each epoch</span></span>
+<span class="code-line" data-line="43"><span class="ln">43</span>        <span class="fn">generate_and_print_sample</span>(...)</span>
+<span class="code-line" data-line="44"><span class="ln">44</span></span>
+<span class="code-line" data-line="45"><span class="ln">45</span>    <span class="kw">return</span> <span class="var">train_losses</span>, <span class="var">val_losses</span>, <span class="var">track_tokens_seen</span></span>
+<span class="code-line" data-line="46"><span class="ln">46</span></span>
+<span class="code-line" data-line="47"><span class="ln">47</span><span class="kw">def</span> <span class="fn">calc_loss_batch</span>(<span class="var">input_batch</span>, <span class="var">target_batch</span>, <span class="var">model</span>, <span class="var">device</span>):</span>
+<span class="code-line" data-line="48"><span class="ln">48</span>    <span class="var">input_batch</span> = <span class="var">input_batch</span>.<span class="fn">to</span>(<span class="var">device</span>)</span>
+<span class="code-line" data-line="49"><span class="ln">49</span>    <span class="var">target_batch</span> = <span class="var">target_batch</span>.<span class="fn">to</span>(<span class="var">device</span>)</span>
+<span class="code-line" data-line="50"><span class="ln">50</span>    <span class="var">logits</span> = <span class="var">model</span>(<span class="var">input_batch</span>)</span>
+<span class="code-line" data-line="51"><span class="ln">51</span>    <span class="var">loss</span> = <span class="var">torch</span>.<span class="var">nn</span>.<span class="var">functional</span>.<span class="fn">cross_entropy</span>(</span>
+<span class="code-line" data-line="52"><span class="ln">52</span>        <span class="var">logits</span>.<span class="fn">flatten</span>(<span class="num">0</span>, <span class="num">1</span>), <span class="var">target_batch</span>.<span class="fn">flatten</span>()</span>
+<span class="code-line" data-line="53"><span class="ln">53</span>    )</span>
+<span class="code-line" data-line="54"><span class="ln">54</span>    <span class="kw">return</span> <span class="var">loss</span></span>`;
+
+        // DOM Elements
+        const el = {};
+        const ids = ['epochViewBtn','batchViewBtn','epochView','batchView','playBtn','pauseBtn','resetBtn','prevStepBtn','nextStepBtn',
+            'speedSlider','speedValue','viewFullCodeBtn','viewInContextBtn','modalBackdrop','codeModal','closeModalBtn',
+            'codeContainer','codeBlock','epochsGrid','currentEpochLabel','currentBatchLabel','totalBatchesLabel','epochProgress',
+            'statEpoch','statBatch','statStep','statLoss','batchStepName','batchNum','batchLoss','explanationIcon',
+            'explanationTitle','explanationContent','explanationCode','correctBars','incorrectBars','warningBadge',
+            'trainLossPath','valLossPath','trainDot','valDot','tooltip','tooltipCode','tooltipDesc','flowDiagram',
+            'trainingProgressPanel','stepDetailsPanel','trainingEpoch','trainingLoss'];
+        ids.forEach(id => el[id] = document.getElementById(id));
+
+        // View Toggle
+        el.epochViewBtn.onclick = () => {
+            el.epochViewBtn.classList.add('active');
+            el.batchViewBtn.classList.remove('active');
+            el.epochView.classList.add('active');
+            el.batchView.classList.remove('active');
+        };
+        el.batchViewBtn.onclick = () => {
+            el.batchViewBtn.classList.add('active');
+            el.epochViewBtn.classList.remove('active');
+            el.batchView.classList.add('active');
+            el.epochView.classList.remove('active');
+        };
+
+        // Speed Control
+        el.speedSlider.oninput = () => {
+            state.speed = parseInt(el.speedSlider.value);
+            el.speedValue.textContent = state.speed + 'x';
+        };
+
+        // Step boxes
+        const stepBoxes = el.flowDiagram.querySelectorAll('.step-box');
+        stepBoxes.forEach(box => {
+            box.onmouseenter = (e) => {
+                const d = stepData[box.dataset.step];
+                el.tooltipCode.textContent = d.tooltipCode;
+                el.tooltipDesc.textContent = d.tooltipDesc;
+                const r = box.getBoundingClientRect();
+                el.tooltip.style.left = (r.left + r.width/2 - 130) + 'px';
+                el.tooltip.style.top = (r.bottom + 10) + 'px';
+                el.tooltip.classList.add('visible');
+            };
+            box.onmouseleave = () => el.tooltip.classList.remove('visible');
+            box.onclick = () => {
+                state.currentStepIndex = steps.indexOf(box.dataset.step);
+                updateStepDisplay();
+                showStepDetails();
+            };
+        });
+
+        function showTrainingProgress() {
+            el.trainingProgressPanel.classList.add('active');
+            el.stepDetailsPanel.classList.add('hidden');
+        }
+
+        function showStepDetails() {
+            el.trainingProgressPanel.classList.remove('active');
+            el.stepDetailsPanel.classList.remove('hidden');
+        }
+
+        function updateStepDisplay() {
+            const step = steps[state.currentStepIndex];
+            const d = stepData[step];
+            
+            stepBoxes.forEach((b, i) => {
+                b.classList.remove('active', 'completed');
+                if (i < state.currentStepIndex) b.classList.add('completed');
+                else if (i === state.currentStepIndex) b.classList.add('active');
+            });
+            
+            el.explanationIcon.textContent = d.icon;
+            el.explanationIcon.className = 'explanation-icon ' + d.iconClass;
+            el.explanationTitle.textContent = d.title;
+            el.explanationContent.innerHTML = d.content;
+            el.explanationCode.innerHTML = d.code;
+            el.batchStepName.textContent = (state.currentStepIndex + 1) + ' / 4';
+        }
+
+        function updateTrainingPanel() {
+            el.trainingEpoch.textContent = state.currentEpoch + ' / ' + state.totalEpochs;
+            el.trainingLoss.textContent = state.loss.toFixed(2);
+        }
+
+        // Modal
+        function openModal(step) {
+            el.codeBlock.innerHTML = fullCode;
+            el.modalBackdrop.classList.add('visible');
+            el.codeModal.classList.add('visible');
+            setTimeout(() => {
+                if (step && lineMapping[step]) highlightLines(step);
+            }, 100);
+        }
+
+        function highlightLines(step) {
+            el.codeBlock.querySelectorAll('[data-line]').forEach(l => 
+                l.classList.remove('highlighted', 'purple', 'orange', 'purple-light', 'teal'));
+            
+            if (!step || !lineMapping[step]) return;
+            
+            const ranges = Array.isArray(lineMapping[step]) ? lineMapping[step] : [lineMapping[step]];
+            let firstLine = null;
+
+            ranges.forEach(range => {
+                for (let i = range.start; i <= range.end; i++) {
+                    const ln = el.codeBlock.querySelector(`[data-line="${i}"]`);
+                    if (ln) {
+                        ln.classList.add('highlighted', range.class);
+                        if (!firstLine) firstLine = ln;
+                    }
+                }
+            });
+
+            if (firstLine) {
+                el.codeContainer.scrollTo({
+                    top: Math.max(0, firstLine.offsetTop - el.codeContainer.clientHeight/2 + 50),
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        function closeModal() {
+            el.modalBackdrop.classList.remove('visible');
+            el.codeModal.classList.remove('visible');
+        }
+
+        el.viewFullCodeBtn.onclick = () => openModal(steps[state.currentStepIndex]);
+        el.viewInContextBtn.onclick = () => openModal(steps[state.currentStepIndex]);
+        el.closeModalBtn.onclick = closeModal;
+        el.modalBackdrop.onclick = closeModal;
+        document.onkeydown = (e) => { if (e.key === 'Escape') closeModal(); };
+
+        // Playback
+        el.playBtn.onclick = startAnimation;
+        el.pauseBtn.onclick = pauseAnimation;
+        el.resetBtn.onclick = resetAnimation;
+        el.prevStepBtn.onclick = prevStep;
+        el.nextStepBtn.onclick = nextStep;
+
+        function prevStep() {
+            pauseAnimation();
+            showStepDetails();
+            if (state.currentStepIndex > 0) {
+                state.currentStepIndex--;
+            } else if (state.currentBatch > 0 || state.currentEpoch > 1) {
+                state.currentStepIndex = 3;
+                if (state.currentBatch > 0) {
+                    state.currentBatch--;
+                } else {
+                    state.currentEpoch--;
+                    state.currentBatch = state.totalBatches - 1;
+                }
+                state.globalStep = Math.max(0, state.globalStep - 1);
+            }
+            state.loss = lossData.train[state.globalStep] || 4.5;
+            updateStepDisplay();
+            updateUI();
+            updateGradientBars();
+            updateLossCurve();
+        }
+
+        function nextStep() {
+            pauseAnimation();
+            showStepDetails();
+            advanceOneStep();
+            updateStepDisplay();
+            updateUI();
+            updateGradientBars();
+            updateLossCurve();
+        }
+
+        function advanceOneStep() {
+            state.currentStepIndex++;
+            if (state.currentStepIndex >= 4) {
+                state.currentStepIndex = 0;
+                state.currentBatch++;
+                state.globalStep++;
+                
+                if (state.currentBatch >= state.totalBatches) {
+                    state.currentBatch = 0;
+                    state.currentEpoch++;
+                    if (state.currentEpoch > state.totalEpochs) {
+                        pauseAnimation();
+                        state.currentEpoch = state.totalEpochs;
+                        state.currentBatch = state.totalBatches;
+                        return false;
+                    }
+                }
+                state.loss = lossData.train[state.globalStep] || 0.3;
+            }
+            return true;
+        }
+
+        function startAnimation() {
+            if (state.isPlaying) return;
+            state.isPlaying = true;
+            el.playBtn.style.display = 'none';
+            el.pauseBtn.style.display = 'flex';
+            state.lastTime = performance.now();
+            showTrainingProgress();
+            animate();
+        }
+
+        function pauseAnimation() {
+            state.isPlaying = false;
+            el.playBtn.style.display = 'flex';
+            el.pauseBtn.style.display = 'none';
+            if (state.animationId) cancelAnimationFrame(state.animationId);
+            showStepDetails();
+            updateStepDisplay();
+        }
+
+        function resetAnimation() {
+            pauseAnimation();
+            state.currentEpoch = 1;
+            state.currentBatch = 0;
+            state.globalStep = 0;
+            state.loss = 4.5;
+            state.currentStepIndex = 0;
+            state.lastGradientUpdate = 0;
+            state.lastLossUpdate = 0;
+            updateStepDisplay();
+            updateUI();
+            updateGradientBars();
+            updateLossCurve();
+        }
+
+        function animate(timestamp) {
+            if (!state.isPlaying) return;
+            
+            const stepDuration = 200 / state.speed;
+            if (timestamp - state.lastTime >= stepDuration) {
+                state.lastTime = timestamp;
+                if (!advanceOneStep()) return;
+                updateUI();
+                updateTrainingPanel();
+                
+                // Update gradient bars every 10 batches to reduce jumpiness
+                if (state.globalStep - state.lastGradientUpdate >= 10) {
+                    state.lastGradientUpdate = state.globalStep;
+                    updateGradientBars();
+                }
+                
+                // Update loss curve every 5 batches for smooth drawing
+                if (state.globalStep - state.lastLossUpdate >= 5) {
+                    state.lastLossUpdate = state.globalStep;
+                    updateLossCurve();
+                }
+            }
+            state.animationId = requestAnimationFrame(animate);
+        }
+
+        function updateUI() {
+            const progress = (state.currentBatch / state.totalBatches) * 100;
+            
+            el.currentEpochLabel.textContent = state.currentEpoch;
+            el.currentBatchLabel.textContent = state.currentBatch;
+            el.totalBatchesLabel.textContent = state.totalBatches;
+            el.epochProgress.style.width = progress + '%';
+            
+            el.statEpoch.textContent = state.currentEpoch;
+            el.statBatch.textContent = state.currentBatch;
+            el.statStep.textContent = state.globalStep;
+            el.statLoss.textContent = state.loss.toFixed(2);
+            
+            el.batchNum.textContent = state.currentBatch;
+            el.batchLoss.textContent = state.loss.toFixed(2);
+            
+            updateEpochsGrid();
+        }
+
+        function updateEpochsGrid() {
+            let html = '';
+            for (let i = 1; i <= state.totalEpochs; i++) {
+                let cls = 'epoch-box';
+                if (i < state.currentEpoch) cls += ' completed';
+                else if (i === state.currentEpoch) cls += ' current';
+                html += `<div class="${cls}"><div class="epoch-num">${i}</div><div class="epoch-label">Epoch</div></div>`;
+            }
+            el.epochsGrid.innerHTML = html;
+        }
+
+        function updateGradientBars() {
+            // Use batch modulo 5 for cycling through the demo
+            const displayBatch = Math.floor(state.globalStep / 25) % 5 + 1;
+            
+            let correctHTML = '';
+            let incorrectHTML = '';
+            let accumulated = 0;
+            
+            for (let i = 0; i < 5; i++) {
+                const grad = gradientValues[i];
+                accumulated += grad;
+                const isActive = i < displayBatch;
+                const opacity = isActive ? '1' : '0.4';
+                const isWarning = accumulated > 1.2 && isActive;
+                
+                correctHTML += `<div class="gradient-bar-row" style="opacity:${opacity}">
+                    <span class="gradient-bar-label">B${i+1}:</span>
+                    <div class="gradient-bar" style="width:${grad * 140}px">${grad.toFixed(2)}</div>
+                </div>`;
+                
+                const accWidth = isActive ? Math.min(accumulated * 90, 180) : (gradientValues.slice(0, i+1).reduce((a,b)=>a+b,0)) * 90;
+                incorrectHTML += `<div class="gradient-bar-row" style="opacity:${opacity}">
+                    <span class="gradient-bar-label">B${i+1}:</span>
+                    <div class="gradient-bar ${isWarning ? 'warning' : ''}" style="width:${isActive ? Math.min(accumulated * 90, 180) : 0}px">${isActive ? accumulated.toFixed(2) : ''}</div>
+                </div>`;
+            }
+
+            // Ellipsis separator
+            const ellipsis = `<div class="gradient-bar-row" style="justify-content:center; opacity:0.6; margin: 4px 0;"><span style="letter-spacing:3px">...</span></div>`;
+            correctHTML += ellipsis;
+            incorrectHTML += ellipsis;
+
+            // Batch 125
+            // Correct: Just normal gradient
+            correctHTML += `<div class="gradient-bar-row">
+                <span class="gradient-bar-label">B125:</span>
+                <div class="gradient-bar" style="width:${0.4 * 140}px">0.40</div>
+            </div>`;
+
+            // Incorrect: Exploded
+            incorrectHTML += `<div class="gradient-bar-row">
+                <span class="gradient-bar-label">B125:</span>
+                <div class="gradient-bar warning" style="width:180px; background: linear-gradient(90deg, #ef4444, #b91c1c);">~50.0</div>
+            </div>`;
+            
+            el.correctBars.innerHTML = correctHTML;
+            el.incorrectBars.innerHTML = incorrectHTML;
+            el.warningBadge.classList.add('visible');
+        }
+
+        function updateLossCurve() {
+            const W = 350, H = 230, X = 40, Y = 10;
+            const maxL = 5;
+            const step = Math.min(state.globalStep, maxSteps);
+            
+            if (step < 1) {
+                el.trainLossPath.setAttribute('d', '');
+                el.valLossPath.setAttribute('d', '');
+                el.trainDot.setAttribute('cx', X);
+                el.trainDot.setAttribute('cy', Y + (1 - 4.5/maxL) * H);
+                el.valDot.setAttribute('cx', X);
+                el.valDot.setAttribute('cy', Y + (1 - 4.8/maxL) * H);
+                return;
+            }
+            
+            // Build paths - sample every few points to keep it smooth
+            let trainPath = '';
+            let valPath = '';
+            const sampleRate = Math.max(1, Math.floor(step / 200));
+            
+            for (let i = 0; i <= step; i += sampleRate) {
+                const x = X + (i / maxSteps) * W;
+                const yTrain = Y + (1 - lossData.train[i] / maxL) * H;
+                const yVal = Y + (1 - Math.min(lossData.val[i], maxL) / maxL) * H;
+                trainPath += (trainPath === '' ? 'M' : 'L') + x.toFixed(1) + ',' + yTrain.toFixed(1);
+                valPath += (valPath === '' ? 'M' : 'L') + x.toFixed(1) + ',' + yVal.toFixed(1);
+            }
+            
+            // Always include the last point
+            const lastX = X + (step / maxSteps) * W;
+            const lastYTrain = Y + (1 - lossData.train[step] / maxL) * H;
+            const lastYVal = Y + (1 - Math.min(lossData.val[step], maxL) / maxL) * H;
+            if (step % sampleRate !== 0) {
+                trainPath += 'L' + lastX.toFixed(1) + ',' + lastYTrain.toFixed(1);
+                valPath += 'L' + lastX.toFixed(1) + ',' + lastYVal.toFixed(1);
+            }
+            
+            el.trainLossPath.setAttribute('d', trainPath);
+            el.valLossPath.setAttribute('d', valPath);
+            
+            el.trainDot.setAttribute('cx', lastX);
+            el.trainDot.setAttribute('cy', lastYTrain);
+            el.valDot.setAttribute('cx', lastX);
+            el.valDot.setAttribute('cy', lastYVal);
+        }
+
+        // Initialize
+        function init() {
+            updateEpochsGrid();
+            updateStepDisplay();
+            updateUI();
+            updateGradientBars();
+            updateLossCurve();
+        }
+
+        init();
+    </script>
+</body>
+</html>

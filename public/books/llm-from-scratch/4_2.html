@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Layer Normalization: A Visual Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            color: #1e293b;
+            line-height: 1.7;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .intro {
+            text-align: center;
+            font-size: 20px;
+            color: #64748b;
+            margin-bottom: 50px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .section {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 4px 20px rgba(99, 102, 241, 0.08));
+        }
+
+        .section-title {
+            font-size: 32px;
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: #8b5cf6;
+            color: white;
+            border-radius: 50%;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .section-description {
+            font-size: 18px;
+            color: #64748b;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #e2e8f0;
+            z-index: 0;
+        }
+
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .progress-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .progress-circle:hover {
+            background: #c4b5fd;
+            color: white;
+            transform: scale(1.15);
+        }
+
+        .progress-circle.active {
+            background: #8b5cf6;
+            color: white;
+            transform: scale(1.2);
+        }
+
+        .progress-circle.active:hover {
+            background: #7c3aed;
+        }
+
+        .progress-label {
+            font-size: 13px;
+            color: #64748b;
+            text-align: center;
+            max-width: 100px;
+        }
+
+        /* Token Selector */
+        .token-selector {
+            background: linear-gradient(135deg, #fef3c7 0%, #fefce8 100%);
+            border: 3px solid #fcd34d;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+
+        .token-selector-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .token-grid {
+            display: grid;
+            grid-template-columns: auto repeat(5, 1fr);
+            gap: 10px;
+            align-items: center;
+            max-width: 650px;
+            margin: 0 auto;
+        }
+
+        .token-label {
+            font-weight: 600;
+            color: #92400e;
+            padding-right: 15px;
+            font-size: 14px;
+        }
+
+        .token-value {
+            background: white;
+            border: 3px solid #fcd34d;
+            border-radius: 8px;
+            padding: 14px 8px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 70px;
+        }
+
+        .token-value:hover {
+            transform: scale(1.05);
+            border-color: #f97316;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+
+        .token-value.selected {
+            border-color: #f97316;
+            background: #fff7ed;
+            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+        }
+
+        .dim-label {
+            font-size: 12px;
+            color: #78350f;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Math Steps */
+        .math-step {
+            background: white;
+            border-left: 5px solid #8b5cf6;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .math-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #5b21b6;
+            margin-bottom: 15px;
+        }
+
+        .formula-box {
+            background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+            border: 2px solid #e9d5ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .formula {
+            font-family: 'Georgia', serif;
+            font-size: 24px;
+            color: #5b21b6;
+            font-style: italic;
+            margin: 10px 0;
+        }
+
+        .formula-explanation {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 10px;
+        }
+
+        .calculation-steps {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            line-height: 2;
+        }
+
+        .calculation-line {
+            margin: 8px 0;
+        }
+
+        .calculation-line.highlight {
+            background: #fef3c7;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 4px solid #f59e0b;
+            font-weight: 600;
+        }
+
+        .result-box {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 3px solid #6ee7b7;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .result-label {
+            font-size: 16px;
+            color: #065f46;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .result-value {
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            color: #047857;
+            font-weight: 700;
+        }
+
+        /* Bar Chart Container */
+        .chart-container {
+            margin: 40px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .chart-box {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            border: 3px solid #e2e8f0;
+        }
+
+        .chart-box.orange {
+            border-color: #fcd34d;
+        }
+
+        .chart-box.purple {
+            border-color: #c4b5fd;
+        }
+
+        .chart-box.teal {
+            border-color: #6ee7b7;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .chart-title.orange {
+            color: #f97316;
+        }
+
+        .chart-title.purple {
+            color: #8b5cf6;
+        }
+
+        .chart-title.teal {
+            color: #14b8a6;
+        }
+
+        .chart-subtitle {
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 15px;
+        }
+
+        .values-display {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            text-align: center;
+            margin: 15px 0;
+            font-weight: 600;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+
+        .values-display.orange {
+            color: #f97316;
+            background: #fff7ed;
+        }
+
+        .values-display.purple {
+            color: #8b5cf6;
+            background: #f3f0ff;
+        }
+
+        .values-display.teal {
+            color: #14b8a6;
+            background: #ecfdf5;
+        }
+
+        /* Canvas Charts */
+        .bar-chart-canvas {
+            display: block;
+            width: 100%;
+            margin: 20px auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .stats-box {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .stat-value {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+        }
+
+        .stat-value.orange {
+            color: #f97316;
+        }
+
+        .stat-value.purple {
+            color: #8b5cf6;
+        }
+
+        .stat-value.teal {
+            color: #14b8a6;
+        }
+
+        .chart-note {
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .chart-note.orange {
+            background: #fef3c7;
+            color: #78350f;
+        }
+
+        .chart-note.purple {
+            background: #f3f0ff;
+            color: #5b21b6;
+        }
+
+        .chart-note.teal {
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        /* PyTorch Code Display */
+        .code-container {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .code-title {
+            color: #94a3b8;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .code-lang {
+            background: #8b5cf6;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        pre {
+            margin: 0;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .code-comment {
+            color: #94a3b8;
+        }
+
+        .code-keyword {
+            color: #c4b5fd;
+        }
+
+        .code-function {
+            color: #6ee7b7;
+        }
+
+        .code-string {
+            color: #fcd34d;
+        }
+
+        .code-number {
+            color: #f9a8d4;
+        }
+
+        /* Controls */
+        .controls-section {
+            background: linear-gradient(135deg, #f3f0ff 0%, #faf5ff 100%);
+            border: 3px solid #c4b5fd;
+            border-radius: 12px;
+            padding: 35px;
+            margin: 30px 0;
+        }
+
+        .controls-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #5b21b6;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .controls-description {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+
+        .param-display {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px solid #e9d5ff;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .param-item {
+            text-align: center;
+        }
+
+        .param-label {
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .param-value {
+            color: #8b5cf6;
+            font-weight: 700;
+            font-size: 28px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .slider-group {
+            margin: 25px 0;
+        }
+
+        .slider-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: #e9d5ff;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(139, 92, 246, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.6);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 3px 10px rgba(139, 92, 246, 0.5);
+        }
+
+        .slider-hint {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        /* Insight Boxes */
+        .insight-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+            border-left: 6px solid #f59e0b;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .insight-box.blue {
+            background: linear-gradient(135deg, #e0e7ff 0%, #e0f2fe 100%);
+            border-left-color: #3b82f6;
+        }
+
+        .insight-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .insight-box.blue .insight-title {
+            color: #1e40af;
+        }
+
+        .insight-icon {
+            font-size: 28px;
+        }
+
+        .insight-content {
+            color: #78350f;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .insight-box.blue .insight-content {
+            color: #1e3a8a;
+        }
+
+        .insight-content strong {
+            color: #92400e;
+        }
+
+        .insight-box.blue .insight-content strong {
+            color: #1e40af;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 25px 0;
+        }
+
+        button {
+            padding: 14px 28px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #7c3aed;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #1e293b;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            border-color: #8b5cf6;
+            color: #8b5cf6;
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Comparison Layout */
+        .three-panel {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 20px;
+            align-items: center;
+            margin: 30px 0;
+        }
+
+        .arrow-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+        }
+
+        .arrow {
+            font-size: 48px;
+            color: #8b5cf6;
+            font-weight: bold;
+        }
+
+        .arrow-label {
+            font-size: 13px;
+            color: #64748b;
+            text-align: center;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 968px) {
+
+            .chart-container,
+            .three-panel {
+                grid-template-columns: 1fr;
+            }
+
+            .arrow-panel {
+                transform: rotate(90deg);
+                margin: 20px 0;
+            }
+
+            h1 {
+                font-size: 36px;
+            }
+
+            .token-grid {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Understanding Layer Normalization</h1>
+        <p class="intro">
+            A step-by-step visual guide to how Layer Normalization works in transformers.
+        </p>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+            <div class="progress-step">
+                <div class="progress-circle active" id="progress-0" onclick="goToStep(0)">0</div>
+                <div class="progress-label">Understanding<br>the Data</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle" id="progress-1" onclick="goToStep(1)">1</div>
+                <div class="progress-label">Calculate<br>Mean</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle" id="progress-2" onclick="goToStep(2)">2</div>
+                <div class="progress-label">Calculate<br>Variance</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle" id="progress-3" onclick="goToStep(3)">3</div>
+                <div class="progress-label">Normalize</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle" id="progress-4" onclick="goToStep(4)">4</div>
+                <div class="progress-label">Scale &<br>Shift</div>
+            </div>
+        </div>
+
+        <!-- Section 0 -->
+        <div class="section" id="section-0">
+            <h2 class="section-title">
+                <span class="step-number">0</span>
+                What Are We Normalizing?
+            </h2>
+            <p class="section-description">
+                In a transformer, we have shape <strong>[batch_size, sequence_length, embedding_dim]</strong>.
+                Layer Normalization operates on the <strong>embedding dimension</strong> (last dimension).
+            </p>
+
+            <div class="insight-box">
+                <div class="insight-title">
+                    <span class="insight-icon">💡</span>
+                    Key Insight: Per-Token Independence
+                </div>
+                <div class="insight-content">
+                    Layer Normalization normalizes <strong>each token independently</strong> across its embedding
+                    dimensions.
+                    For each token, we calculate statistics across the 5 embedding values and normalize them.
+                </div>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <div class="code-title">PyTorch: Input Tensor</div>
+                    <div class="code-lang">Python</div>
+                </div>
+                <pre><code><span class="code-keyword">import</span> torch
+<span class="code-keyword">import</span> torch.nn <span class="code-keyword">as</span> nn
+
+<span class="code-comment"># Input: [batch=2, seq_len=3, emb_dim=5]</span>
+x = torch.<span class="code-function">tensor</span>([
+    [[<span class="code-number">0.42</span>, <span class="code-number">-1.23</span>, <span class="code-number">0.89</span>, <span class="code-number">-0.34</span>, <span class="code-number">1.10</span>],
+     [<span class="code-number">-0.67</span>, <span class="code-number">0.91</span>, <span class="code-number">-1.45</span>, <span class="code-number">0.78</span>, <span class="code-number">0.23</span>],
+     [<span class="code-number">1.34</span>, <span class="code-number">-0.45</span>, <span class="code-number">0.12</span>, <span class="code-number">-0.89</span>, <span class="code-number">0.56</span>]],
+    [[<span class="code-number">0.15</span>, <span class="code-number">-0.82</span>, <span class="code-number">1.24</span>, <span class="code-number">-0.56</span>, <span class="code-number">0.73</span>],
+     [<span class="code-number">-1.12</span>, <span class="code-number">0.45</span>, <span class="code-number">-0.23</span>, <span class="code-number">0.91</span>, <span class="code-number">-0.34</span>],
+     [<span class="code-number">0.78</span>, <span class="code-number">-1.56</span>, <span class="code-number">0.34</span>, <span class="code-number">0.12</span>, <span class="code-number">-0.67</span>]]
+])</code></pre>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="goToStep(1)">Next: Calculate Mean →</button>
+            </div>
+        </div>
+
+        <!-- Section 1 -->
+        <div class="section hidden" id="section-1">
+            <h2 class="section-title">
+                <span class="step-number">1</span>
+                Step 1: Calculate the Mean
+            </h2>
+            <p class="section-description">
+                First, we calculate the <strong>mean (average)</strong> of the token's embedding values.
+                Click on a token below to see the calculation.
+            </p>
+
+            <div class="token-selector">
+                <div class="token-selector-title">📌 Select a Token to Analyze</div>
+                <div id="token-selector-grid"></div>
+            </div>
+
+            <div id="mean-calculation" class="hidden">
+                <div class="math-step">
+                    <div class="math-title">Mean Formula</div>
+                    <div class="formula-box">
+                        <div class="formula">μ = (1/d) × Σᵢ₌₁ᵈ xᵢ</div>
+                        <div class="formula-explanation">where <em>d</em> = 5 (embedding dimension)</div>
+                    </div>
+                    <div class="calculation-steps" id="mean-steps"></div>
+                    <div class="result-box">
+                        <div class="result-label">Mean (μ)</div>
+                        <div class="result-value" id="mean-result">-</div>
+                    </div>
+                </div>
+
+                <div class="code-container">
+                    <div class="code-header">
+                        <div class="code-title">PyTorch: Calculate Mean</div>
+                        <div class="code-lang">Python</div>
+                    </div>
+                    <pre><code>mean = x.<span class="code-function">mean</span>(dim=<span class="code-number">-1</span>, keepdims=<span class="code-keyword">True</span>)
+token = x[<span class="code-number" id="code-batch-1">0</span>, <span class="code-number" id="code-token-1">0</span>]
+token_mean = token.<span class="code-function">mean</span>()</code></pre>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="goToStep(0)">← Back</button>
+                    <button class="btn-primary" onclick="goToStep(2)">Next: Variance →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2 -->
+        <div class="section hidden" id="section-2">
+            <h2 class="section-title">
+                <span class="step-number">2</span>
+                Step 2: Calculate the Variance
+            </h2>
+            <p class="section-description">
+                Next, we calculate the <strong>variance</strong> - how spread out the values are.
+            </p>
+
+            <div class="math-step">
+                <div class="math-title">Variance Formula</div>
+                <div class="formula-box">
+                    <div class="formula">σ² = (1/d) × Σᵢ₌₁ᵈ (xᵢ - μ)²</div>
+                </div>
+                <div class="calculation-steps" id="variance-steps"></div>
+                <div class="result-box">
+                    <div class="result-label">Variance (σ²)</div>
+                    <div class="result-value" id="variance-result">-</div>
+                </div>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <div class="code-title">PyTorch: Calculate Variance</div>
+                    <div class="code-lang">Python</div>
+                </div>
+                <pre><code>var = x.<span class="code-function">var</span>(dim=<span class="code-number">-1</span>, keepdims=<span class="code-keyword">True</span>, unbiased=<span class="code-keyword">False</span>)</code></pre>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-secondary" onclick="goToStep(1)">← Back</button>
+                <button class="btn-primary" onclick="goToStep(3)">Next: Normalize →</button>
+            </div>
+        </div>
+
+        <!-- Section 3 -->
+        <div class="section hidden" id="section-3">
+            <h2 class="section-title">
+                <span class="step-number">3</span>
+                Step 3: Normalize the Values
+            </h2>
+            <p class="section-description">
+                Now we <strong>normalize</strong>: subtract mean, divide by standard deviation.
+                This gives us mean = 0 and variance = 1.
+            </p>
+
+            <div class="math-step">
+                <div class="math-title">Normalization Formula</div>
+                <div class="formula-box">
+                    <div class="formula">x̂ᵢ = (xᵢ - μ) / √(σ² + ε)</div>
+                    <div class="formula-explanation">ε = 1e-5 prevents division by zero</div>
+                </div>
+                <div class="calculation-steps" id="normalize-steps"></div>
+                <div class="result-box">
+                    <div class="result-label">Normalized Values</div>
+                    <div class="result-value" id="normalize-result">-</div>
+                </div>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <div class="code-title">PyTorch: Normalize</div>
+                    <div class="code-lang">Python</div>
+                </div>
+                <pre><code>eps = <span class="code-number">1e-5</span>
+norm_x = (x - mean) / torch.<span class="code-function">sqrt</span>(var + eps)</code></pre>
+            </div>
+
+            <!-- Bar Charts -->
+            <h3 style="text-align: center; color: #1e293b; margin: 40px 0 20px 0; font-size: 24px;">
+                📊 Visual Comparison: Before vs After Normalization
+            </h3>
+
+            <div class="chart-container">
+                <div class="chart-box orange">
+                    <div class="chart-title orange">Before Normalization</div>
+                    <div class="values-display orange" id="before-values">-</div>
+                    <canvas class="bar-chart-canvas" id="chart-before" width="500" height="300"></canvas>
+                    <div class="stats-box">
+                        <div class="stat-row">
+                            <span class="stat-label">Mean (μ):</span>
+                            <span class="stat-value orange" id="stat-before-mean">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Variance (σ²):</span>
+                            <span class="stat-value orange" id="stat-before-var">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-box purple">
+                    <div class="chart-title purple">After Normalization</div>
+                    <div class="values-display purple" id="after-values">-</div>
+                    <canvas class="bar-chart-canvas" id="chart-after" width="500" height="300"></canvas>
+                    <div class="stats-box">
+                        <div class="stat-row">
+                            <span class="stat-label">Mean (μ):</span>
+                            <span class="stat-value purple" id="stat-after-mean">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Variance (σ²):</span>
+                            <span class="stat-value purple" id="stat-after-var">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-box">
+                <div class="insight-title">
+                    <span class="insight-icon">📏</span>
+                    Understanding the Bar Charts
+                </div>
+                <div class="insight-content">
+                    <strong>Each bar = one embedding dimension (d0, d1, d2, d3, d4).</strong><br><br>
+                    <strong>Dashed line = zero.</strong> Bars above = positive, bars below = negative.<br>
+                    <strong>Left (Orange):</strong> Original values (arbitrary mean and variance)<br>
+                    <strong>Right (Purple):</strong> Normalized (mean ≈ 0, variance ≈ 1)
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-secondary" onclick="goToStep(2)">← Back</button>
+                <button class="btn-primary" onclick="goToStep(4)">Next: Scale & Shift →</button>
+            </div>
+        </div>
+
+        <!-- Section 4 -->
+        <div class="section hidden" id="section-4">
+            <h2 class="section-title">
+                <span class="step-number">4</span>
+                Step 4: Apply Scale (γ) and Shift (β)
+            </h2>
+            <p class="section-description">
+                <strong>γ (gamma)</strong> and <strong>β (beta)</strong> are <strong>learnable parameters</strong>
+                that the model adjusts during training.
+            </p>
+
+            <div class="insight-box blue">
+                <div class="insight-title">
+                    <span class="insight-icon">🎓</span>
+                    What Are "Learnable Parameters"?
+                </div>
+                <div class="insight-content">
+                    <strong>γ and β are NOT manually set</strong> - they're learned during training!<br><br>
+                    <strong>Initial:</strong> γ = 1.0, β = 0.0 (no change)<br>
+                    <strong>During training:</strong> Network adjusts them via backpropagation<br>
+                    <strong>The sliders below</strong> let you explore their effect
+                </div>
+            </div>
+
+            <div class="math-step">
+                <div class="math-title">Scale and Shift Formula</div>
+                <div class="formula-box">
+                    <div class="formula">yᵢ = γ × x̂ᵢ + β</div>
+                </div>
+                <div class="calculation-steps" id="scale-steps"></div>
+                <div class="result-box">
+                    <div class="result-label">Final Output</div>
+                    <div class="result-value" id="final-result">-</div>
+                </div>
+            </div>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <div class="code-title">PyTorch: Complete LayerNorm</div>
+                    <div class="code-lang">Python</div>
+                </div>
+                <pre><code><span class="code-keyword">class</span> <span class="code-function">LayerNorm</span>(nn.Module):
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(<span class="code-keyword">self</span>, emb_dim):
+        <span class="code-keyword">super</span>().<span class="code-function">__init__</span>()
+        <span class="code-keyword">self</span>.eps = <span class="code-number">1e-5</span>
+        <span class="code-keyword">self</span>.scale = nn.<span class="code-function">Parameter</span>(torch.<span class="code-function">ones</span>(emb_dim))   <span class="code-comment"># γ</span>
+        <span class="code-keyword">self</span>.shift = nn.<span class="code-function">Parameter</span>(torch.<span class="code-function">zeros</span>(emb_dim))  <span class="code-comment"># β</span>
+    
+    <span class="code-keyword">def</span> <span class="code-function">forward</span>(<span class="code-keyword">self</span>, x):
+        mean = x.<span class="code-function">mean</span>(dim=<span class="code-number">-1</span>, keepdims=<span class="code-keyword">True</span>)
+        var = x.<span class="code-function">var</span>(dim=<span class="code-number">-1</span>, keepdims=<span class="code-keyword">True</span>, unbiased=<span class="code-keyword">False</span>)
+        norm_x = (x - mean) / torch.<span class="code-function">sqrt</span>(var + <span class="code-keyword">self</span>.eps)
+        <span class="code-keyword">return</span> <span class="code-keyword">self</span>.scale * norm_x + <span class="code-keyword">self</span>.shift</code></pre>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls-section">
+                <div class="controls-title">🔬 Interactive Exploration</div>
+                <div class="controls-description">
+                    Adjust γ and β to see their effect
+                </div>
+
+                <div class="param-display">
+                    <div class="param-item">
+                        <div class="param-label">Scale (γ)</div>
+                        <div class="param-value" id="gamma-display">1.0</div>
+                    </div>
+                    <div class="param-item">
+                        <div class="param-label">Shift (β)</div>
+                        <div class="param-value" id="beta-display">0.0</div>
+                    </div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">Scale (γ) - Multiplies each value</div>
+                    <input type="range" id="gamma-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+                    <div class="slider-hint">
+                        <strong>γ > 1:</strong> Bars get TALLER (spreads values) |
+                        <strong>γ < 1:</strong> Bars get SHORTER (compresses values)
+                    </div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">Shift (β) - Adds to each value</div>
+                    <input type="range" id="beta-slider" min="-1.0" max="1.0" step="0.1" value="0.0">
+                    <div class="slider-hint">
+                        <strong>β > 0:</strong> Bars shift UP |
+                        <strong>β < 0:</strong> Bars shift DOWN
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="resetParameters()">Reset (γ=1, β=0)</button>
+                </div>
+            </div>
+
+            <!-- Three Panel -->
+            <h3 style="text-align: center; color: #1e293b; margin: 40px 0 20px 0; font-size: 24px;">
+                📊 Effect of γ and β on the Distribution
+            </h3>
+
+            <div class="three-panel">
+                <div class="chart-box purple">
+                    <div class="chart-title purple">Normalized (Before γ, β)</div>
+                    <div class="values-display purple" id="normalized-values">-</div>
+                    <canvas class="bar-chart-canvas" id="chart-normalized" width="400" height="280"></canvas>
+                    <div class="stats-box">
+                        <div class="stat-row">
+                            <span class="stat-label">Mean:</span>
+                            <span class="stat-value purple" id="stat-norm-mean">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow-panel">
+                    <div class="arrow">→</div>
+                    <div class="arrow-label">γ × x̂ + β</div>
+                </div>
+
+                <div class="chart-box teal">
+                    <div class="chart-title teal">Final Output (After γ, β)</div>
+                    <div class="values-display teal" id="final-values">-</div>
+                    <canvas class="bar-chart-canvas" id="chart-final" width="400" height="280"></canvas>
+                    <div class="stats-box">
+                        <div class="stat-row">
+                            <span class="stat-label">Mean:</span>
+                            <span class="stat-value teal" id="stat-final-mean">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-box teal">
+                <div class="insight-title">
+                    <span class="insight-icon">📊</span>
+                    Watch the Transformation!
+                </div>
+                <div class="insight-content">
+                    <strong>Move the γ slider:</strong><br>
+                    • γ = 1.5 → Right bars become 1.5× TALLER than left (values spread 50% more)<br>
+                    • γ = 0.5 → Right bars become 0.5× SHORTER than left (values compress by 50%)<br><br>
+
+                    <strong>Move the β slider:</strong><br>
+                    • β = 0.5 → ALL right bars shift UP by 0.5<br>
+                    • β = -0.5 → ALL right bars shift DOWN by 0.5
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-secondary" onclick="goToStep(3)">← Back</button>
+                <button class="btn-primary" onclick="goToStep(0)">Start Over</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const inputData = [
+            [[0.42, -1.23, 0.89, -0.34, 1.10],
+            [-0.67, 0.91, -1.45, 0.78, 0.23],
+            [1.34, -0.45, 0.12, -0.89, 0.56]],
+            [[0.15, -0.82, 1.24, -0.56, 0.73],
+            [-1.12, 0.45, -0.23, 0.91, -0.34],
+            [0.78, -1.56, 0.34, 0.12, -0.67]]
+        ];
+
+        let selectedBatch = null;
+        let selectedToken = null;
+        let gamma = 1.0;
+        let beta = 0.0;
+        const epsilon = 1e-5;
+
+        // Store normalized values globally so Step 4 charts use same scale
+        let globalNormalizedValues = null;
+
+        function init() {
+            renderTokenSelector();
+            setupEventListeners();
+        }
+
+        function renderTokenSelector() {
+            const grid = document.getElementById('token-selector-grid');
+            grid.innerHTML = '';
+
+            const headerGrid = document.createElement('div');
+            headerGrid.className = 'token-grid';
+            headerGrid.innerHTML = `
+                <div></div>
+                <div class="dim-label">d0</div>
+                <div class="dim-label">d1</div>
+                <div class="dim-label">d2</div>
+                <div class="dim-label">d3</div>
+                <div class="dim-label">d4</div>
+            `;
+            grid.appendChild(headerGrid);
+
+            inputData.forEach((batch, batchIdx) => {
+                batch.forEach((token, tokenIdx) => {
+                    const tokenGrid = document.createElement('div');
+                    tokenGrid.className = 'token-grid';
+
+                    const label = document.createElement('div');
+                    label.className = 'token-label';
+                    label.textContent = `B${batchIdx}T${tokenIdx}:`;
+                    tokenGrid.appendChild(label);
+
+                    token.forEach((value) => {
+                        const cell = document.createElement('div');
+                        cell.className = 'token-value';
+                        cell.textContent = value.toFixed(2);
+                        cell.dataset.batch = batchIdx;
+                        cell.dataset.token = tokenIdx;
+                        cell.onclick = () => selectToken(batchIdx, tokenIdx);
+                        tokenGrid.appendChild(cell);
+                    });
+
+                    grid.appendChild(tokenGrid);
+                });
+            });
+        }
+
+        function selectToken(batchIdx, tokenIdx) {
+            selectedBatch = batchIdx;
+            selectedToken = tokenIdx;
+
+            document.querySelectorAll('.token-value').forEach(cell => {
+                cell.classList.remove('selected');
+            });
+            document.querySelectorAll(
+                `.token-value[data-batch="${batchIdx}"][data-token="${tokenIdx}"]`
+            ).forEach(cell => {
+                cell.classList.add('selected');
+            });
+
+            ['code-batch-1'].forEach(id => {
+                const elem = document.getElementById(id);
+                if (elem) elem.textContent = batchIdx;
+            });
+            ['code-token-1'].forEach(id => {
+                const elem = document.getElementById(id);
+                if (elem) elem.textContent = tokenIdx;
+            });
+
+            document.getElementById('mean-calculation').classList.remove('hidden');
+            calculateMean();
+            calculateVariance();
+            calculateNormalization();
+            calculateFinal();
+        }
+
+        function calculateMean() {
+            if (selectedBatch === null) return;
+
+            const token = inputData[selectedBatch][selectedToken];
+            const sum = token.reduce((a, b) => a + b, 0);
+            const mean = sum / token.length;
+
+            const steps = `<div class="calculation-line">sum = ${token.map(v => v.toFixed(2)).join(' + ')} = ${sum.toFixed(3)}</div>
+<div class="calculation-line highlight">mean = ${sum.toFixed(3)} / 5 = ${mean.toFixed(3)}</div>`;
+
+            document.getElementById('mean-steps').innerHTML = steps;
+            document.getElementById('mean-result').textContent = mean.toFixed(3);
+        }
+
+        function calculateVariance() {
+            if (selectedBatch === null) return;
+
+            const token = inputData[selectedBatch][selectedToken];
+            const mean = token.reduce((a, b) => a + b, 0) / token.length;
+            const squaredDiffs = token.map(x => Math.pow(x - mean, 2));
+            const variance = squaredDiffs.reduce((a, b) => a + b, 0) / token.length;
+
+            const steps = `<div class="calculation-line">Squared differences: ${squaredDiffs.map(v => v.toFixed(3)).join(', ')}</div>
+<div class="calculation-line highlight">variance = ${squaredDiffs.reduce((a, b) => a + b, 0).toFixed(3)} / 5 = ${variance.toFixed(3)}</div>`;
+
+            document.getElementById('variance-steps').innerHTML = steps;
+            document.getElementById('variance-result').textContent = variance.toFixed(3);
+        }
+
+        function calculateNormalization() {
+            if (selectedBatch === null) return;
+
+            const token = inputData[selectedBatch][selectedToken];
+            const mean = token.reduce((a, b) => a + b, 0) / token.length;
+            const variance = token.reduce((sum, x) => sum + Math.pow(x - mean, 2), 0) / token.length;
+            const std = Math.sqrt(variance + epsilon);
+            const normalized = token.map(x => (x - mean) / std);
+
+            // Store globally for Step 4
+            globalNormalizedValues = normalized;
+
+            const steps = `<div class="calculation-line">std = √(${variance.toFixed(3)} + ${epsilon}) = ${std.toFixed(3)}</div>
+<div class="calculation-line highlight">normalized = [(x - ${mean.toFixed(3)}) / ${std.toFixed(3)} for each x]</div>
+<div class="calculation-line">${normalized.map(v => v.toFixed(3)).join(', ')}</div>`;
+
+            document.getElementById('normalize-steps').innerHTML = steps;
+            document.getElementById('normalize-result').textContent =
+                `[${normalized.map(v => v.toFixed(3)).join(', ')}]`;
+
+            document.getElementById('before-values').textContent =
+                `[${token.map(v => v.toFixed(2)).join(', ')}]`;
+            document.getElementById('after-values').textContent =
+                `[${normalized.map(v => v.toFixed(3)).join(', ')}]`;
+
+            drawBarChart('chart-before', token, '#f97316');
+            drawBarChart('chart-after', normalized, '#8b5cf6');
+
+            updateStats('stat-before', token);
+            updateStats('stat-after', normalized);
+        }
+
+        function calculateFinal() {
+            if (selectedBatch === null || !globalNormalizedValues) return;
+
+            const normalized = globalNormalizedValues;
+            const output = normalized.map(x => gamma * x + beta);
+
+            const steps = `<div class="calculation-line">γ = ${gamma.toFixed(1)}, β = ${beta.toFixed(1)}</div>
+<div class="calculation-line highlight">output = ${gamma.toFixed(1)} × normalized + ${beta.toFixed(1)}</div>
+<div class="calculation-line">${output.map(v => v.toFixed(3)).join(', ')}</div>`;
+
+            document.getElementById('scale-steps').innerHTML = steps;
+            document.getElementById('final-result').textContent =
+                `[${output.map(v => v.toFixed(3)).join(', ')}]`;
+
+            document.getElementById('normalized-values').textContent =
+                `[${normalized.map(v => v.toFixed(2)).join(', ')}]`;
+            document.getElementById('final-values').textContent =
+                `[${output.map(v => v.toFixed(2)).join(', ')}]`;
+
+            // CRITICAL FIX: Use FIXED scale based on max possible value
+            // Both charts use the same scale so we can visually compare them
+            drawBarChartWithFixedScale('chart-normalized', normalized, '#8b5cf6', 3.0);
+            drawBarChartWithFixedScale('chart-final', output, '#14b8a6', 3.0);
+
+            updateStats('stat-norm', normalized);
+            updateStats('stat-final', output);
+        }
+
+        function drawBarChart(canvasId, values, color) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const padding = { top: 20, right: 20, bottom: 50, left: 40 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+
+            const maxAbs = Math.max(...values.map(Math.abs), 0.1);
+            const barWidth = (chartWidth / values.length) * 0.7;
+            const barSpacing = chartWidth / values.length;
+            const zeroY = padding.top + chartHeight / 2;
+
+            const pixelsPerUnit = (chartHeight / 2) / (maxAbs * 1.15);
+
+            // Zero line
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(padding.left, zeroY);
+            ctx.lineTo(padding.left + chartWidth, zeroY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw bars
+            values.forEach((value, i) => {
+                const x = padding.left + i * barSpacing + (barSpacing - barWidth) / 2;
+                const barHeight = Math.abs(value) * pixelsPerUnit;
+                const y = value >= 0 ? zeroY - barHeight : zeroY;
+
+                ctx.fillStyle = color + '80';
+                ctx.fillRect(x, y, barWidth, barHeight);
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.strokeRect(x, y, barWidth, barHeight);
+
+                ctx.fillStyle = '#1e293b';
+                ctx.font = 'bold 11px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(value.toFixed(2), x + barWidth / 2, height - 25);
+
+                ctx.fillStyle = '#64748b';
+                ctx.font = '10px system-ui';
+                ctx.fillText(`d${i}`, x + barWidth / 2, height - 10);
+            });
+
+            // Y-axis labels
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px system-ui';
+            ctx.textAlign = 'right';
+            ctx.fillText('0', padding.left - 5, zeroY + 3);
+            ctx.fillText(maxAbs.toFixed(1), padding.left - 5, padding.top + 10);
+            ctx.fillText((-maxAbs).toFixed(1), padding.left - 5, height - padding.bottom - 5);
+        }
+
+        // CRITICAL FIX: Use fixed maximum scale so bars are comparable
+        function drawBarChartWithFixedScale(canvasId, values, color, fixedMaxAbs) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const padding = { top: 20, right: 20, bottom: 50, left: 40 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+
+            const barWidth = (chartWidth / values.length) * 0.7;
+            const barSpacing = chartWidth / values.length;
+            const zeroY = padding.top + chartHeight / 2;
+
+            // CRITICAL: Use FIXED scale, not dynamic
+            const pixelsPerUnit = (chartHeight / 2) / fixedMaxAbs;
+
+            // Zero line
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(padding.left, zeroY);
+            ctx.lineTo(padding.left + chartWidth, zeroY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw bars - bar height is now truly proportional
+            values.forEach((value, i) => {
+                const x = padding.left + i * barSpacing + (barSpacing - barWidth) / 2;
+
+                // Bar height is value × constant scale
+                const barHeight = Math.abs(value) * pixelsPerUnit;
+                const y = value >= 0 ? zeroY - barHeight : zeroY;
+
+                ctx.fillStyle = color + '80';
+                ctx.fillRect(x, y, barWidth, barHeight);
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.strokeRect(x, y, barWidth, barHeight);
+
+                ctx.fillStyle = '#1e293b';
+                ctx.font = 'bold 11px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(value.toFixed(2), x + barWidth / 2, height - 25);
+
+                ctx.fillStyle = '#64748b';
+                ctx.font = '10px system-ui';
+                ctx.fillText(`d${i}`, x + barWidth / 2, height - 10);
+            });
+
+            // Y-axis labels with fixed scale
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px system-ui';
+            ctx.textAlign = 'right';
+            ctx.fillText('0', padding.left - 5, zeroY + 3);
+            ctx.fillText(fixedMaxAbs.toFixed(1), padding.left - 5, padding.top + 10);
+            ctx.fillText((-fixedMaxAbs).toFixed(1), padding.left - 5, height - padding.bottom - 5);
+        }
+
+        function updateStats(prefix, values) {
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const variance = values.reduce((sum, x) => sum + Math.pow(x - mean, 2), 0) / values.length;
+
+            const meanElem = document.getElementById(`${prefix}-mean`);
+            const varElem = document.getElementById(`${prefix}-var`);
+
+            if (meanElem) meanElem.textContent = mean.toFixed(4);
+            if (varElem) varElem.textContent = variance.toFixed(4);
+        }
+
+        function setupEventListeners() {
+            document.getElementById('gamma-slider').addEventListener('input', (e) => {
+                gamma = parseFloat(e.target.value);
+                document.getElementById('gamma-display').textContent = gamma.toFixed(1);
+                calculateFinal();
+            });
+
+            document.getElementById('beta-slider').addEventListener('input', (e) => {
+                beta = parseFloat(e.target.value);
+                document.getElementById('beta-display').textContent = beta.toFixed(1);
+                calculateFinal();
+            });
+        }
+
+        function resetParameters() {
+            gamma = 1.0;
+            beta = 0.0;
+            document.getElementById('gamma-slider').value = 1.0;
+            document.getElementById('beta-slider').value = 0.0;
+            document.getElementById('gamma-display').textContent = '1.0';
+            document.getElementById('beta-display').textContent = '0.0';
+            calculateFinal();
+        }
+
+        function goToStep(step) {
+            for (let i = 0; i <= 4; i++) {
+                const section = document.getElementById(`section-${i}`);
+                if (section) section.classList.add('hidden');
+
+                const progress = document.getElementById(`progress-${i}`);
+                if (progress) progress.classList.remove('active');
+            }
+
+            const currentSection = document.getElementById(`section-${step}`);
+            if (currentSection) {
+                currentSection.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            const currentProgress = document.getElementById(`progress-${step}`);
+            if (currentProgress) currentProgress.classList.add('active');
+
+            if (step === 1 && selectedBatch === null) {
+                selectToken(0, 0);
+            }
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+
+</html>

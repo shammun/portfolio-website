@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three Approaches to Fine-tuning LLMs</title>
+    <!-- Prism.js for Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        /* =========================================
+           CSS VARIABLES & RESET
+           ========================================= */
+        :root {
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f5f7ff;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            
+            /* Frozen Palette (Orange) */
+            --frozen-bg: #fff7ed;
+            --frozen-border: #f97316;
+            --frozen-text: #c2410c;
+            
+            /* Trainable Palette (Teal) */
+            --trainable-bg: #ecfdf5;
+            --trainable-border: #14b8a6;
+            --trainable-text: #047857;
+            
+            /* UI Accents (Purple) */
+            --accent-primary: #8b5cf6;
+            --accent-hover: #7c3aed;
+            --accent-light: #c4b5fd;
+            --shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(to bottom, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 10px; /* COMPACT: Reduced from 20px */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* =========================================
+           MAIN LAYOUT
+           ========================================= */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 85vh; /* COMPACT: Reduced from 90vh */
+            max-height: 680px; /* COMPACT: Reduced from 800px */
+        }
+
+        /* Header */
+        header {
+            padding: 12px 24px; /* COMPACT: Reduced from 20px 32px */
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .header-text h1 {
+            font-size: 18px; /* COMPACT: Reduced from 22px */
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .header-text p {
+            color: var(--text-secondary);
+            font-size: 13px; /* COMPACT: Reduced from 14px */
+        }
+
+        .step-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 6px 12px; /* COMPACT: Reduced from 8px 16px */
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px; /* COMPACT: Reduced from 14px */
+            transition: all 0.2s;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: var(--bg-gradient-end);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            color: white;
+        }
+        
+        .play-btn {
+            min-width: 70px;
+            border-color: var(--accent-light);
+            color: var(--accent-primary);
+        }
+
+        .step-indicator {
+            font-size: 13px; /* COMPACT: Reduced from 14px */
+            font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .progress-dots {
+            display: flex;
+            gap: 5px; /* COMPACT: Reduced from 6px */
+            margin-left: 8px;
+        }
+
+        .dot {
+            width: 6px; /* COMPACT: Reduced from 8px */
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border-color);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .dot.active {
+            background: var(--accent-primary);
+            transform: scale(1.2);
+        }
+
+        /* =========================================
+           SPLIT VIEW CONTENT
+           ========================================= */
+        .main-content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Equal split */
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        /* --- Left Column: Visualization --- */
+        .visual-column {
+            background: #f8fafc;
+            padding: 16px; /* COMPACT: Reduced from 32px */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-right: 1px solid var(--border-color);
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .approach-card {
+            width: 300px; /* COMPACT: Reduced from 340px */
+            background: white;
+            border-radius: 16px;
+            padding: 16px; /* COMPACT: Reduced from 24px */
+            box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+            animation: fadeIn 0.4s ease;
+        }
+
+        .approach-card.active-view {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-title {
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 12px; /* COMPACT: Reduced from 20px */
+            color: var(--text-main);
+            font-size: 16px; /* COMPACT: Reduced from 18px */
+        }
+
+        /* Neural Network Diagram */
+        .network-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px; /* COMPACT: Reduced from 12px */
+            flex-grow: 1;
+        }
+
+        .layer {
+            width: 100%;
+            height: 36px; /* COMPACT: Reduced from 44px */
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px; /* COMPACT: Reduced from 13px */
+            font-weight: 500;
+            transition: all 0.4s ease;
+            position: relative;
+            background: #f1f5f9;
+            border: 2px solid #cbd5e1;
+            color: #64748b;
+            cursor: help;
+        }
+
+        .layer:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            bottom: -10px; /* COMPACT: Adjusted for gap */
+            left: 50%;
+            transform: translateX(-50%);
+            height: 10px; /* COMPACT: Reduced from 12px */
+            width: 0;
+            border-left: 2px dashed #cbd5e1;
+            transition: all 0.4s ease;
+            z-index: 1;
+        }
+
+        .layer:last-child {
+            margin-bottom: 0;
+            height: 42px; /* COMPACT: Reduced from 52px */
+        }
+
+        .layer.frozen {
+            background: var(--frozen-bg);
+            border-color: var(--frozen-border);
+            color: var(--frozen-text);
+        }
+        .layer.frozen::before { content: '🔒'; margin-right: 6px; font-size: 11px; }
+        
+        .layer.trainable {
+            background: var(--trainable-bg);
+            border-color: var(--trainable-border);
+            color: var(--trainable-text);
+        }
+        .layer.trainable::before { content: '✏️'; margin-right: 6px; font-size: 11px; }
+
+        .layer.frozen:not(:last-child)::after { border-left: 2px dotted var(--frozen-border); }
+        .layer.trainable:not(:last-child)::after { border-left: 2px solid var(--trainable-border); }
+        
+        /* Tooltip */
+        .layer-info {
+            position: absolute;
+            right: -90px;
+            background: #1e293b;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+        .layer:hover .layer-info { opacity: 1; right: -100px; }
+
+        /* --- Right Column: Info & Code --- */
+        .info-column {
+            padding: 20px; /* COMPACT: Reduced from 32px */
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px; /* COMPACT: Reduced from 24px */
+            background: white;
+        }
+
+        .text-content h2 {
+            font-size: 17px; /* COMPACT: Reduced from 20px */
+            margin-bottom: 8px; /* COMPACT: Reduced from 12px */
+            color: var(--accent-primary);
+        }
+
+        .text-content p {
+            color: var(--text-main);
+            line-height: 1.45; /* COMPACT: Reduced from 1.6 */
+            margin-bottom: 10px; /* COMPACT: Reduced from 16px */
+            font-size: 14px; /* COMPACT: Reduced from 15px */
+        }
+        
+        .text-content ul {
+            padding-left: 20px;
+            margin-bottom: 10px; /* COMPACT: Reduced from 16px */
+            color: var(--text-secondary);
+            font-size: 13px; /* COMPACT: Reduced from 14px */
+            line-height: 1.4;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #f8fafc;
+            padding: 12px; /* COMPACT: Reduced from 16px */
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .metric-label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-value { font-size: 13px; font-weight: 600; color: var(--text-main); }
+
+        /* Relevant Code Block */
+        .code-preview-container {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 12px; /* COMPACT: Reduced from 16px */
+            position: relative;
+            flex-grow: 1; /* Fill remaining space if needed */
+            display: flex;
+            flex-direction: column;
+            min-height: 120px; /* Ensure some height for code */
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px; /* COMPACT: Reduced from 12px */
+            color: #94a3b8;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .code-snippet {
+            font-family: 'Fira Code', monospace;
+            font-size: 12px; /* COMPACT: Reduced from 13px */
+            color: #e2e8f0;
+            overflow-x: auto;
+            background: transparent;
+            margin: 0;
+        }
+
+        /* Summary View (Step 9) */
+        .summary-view {
+            width: 100%;
+            max-width: 500px;
+            display: none;
+            flex-direction: column;
+            gap: 12px; /* COMPACT: Reduced from 16px */
+            animation: fadeIn 0.4s ease;
+        }
+        .summary-view.active-view { display: flex; }
+
+        .summary-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px; /* COMPACT: Reduced from 16px */
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .summary-card h4 { color: var(--accent-primary); font-size: 13px; margin: 0; }
+        .summary-card ul { font-size: 11px; padding-left: 20px; color: var(--text-secondary); margin: 0; }
+
+        /* =========================================
+           CODE MODAL
+           ========================================= */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .modal-content {
+            width: 90%;
+            max-width: 900px;
+            height: 85vh;
+            background: #1e1e1e;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 16px 24px;
+            background: #2d2d2d;
+            border-bottom: 1px solid #3f3f3f;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #e2e8f0;
+        }
+
+        .modal-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0;
+            position: relative;
+        }
+
+        .line-highlight {
+            position: absolute;
+            left: 0;
+            right: 0;
+            background: rgba(139, 92, 246, 0.15);
+            border-left: 4px solid var(--accent-primary);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        pre { margin: 0 !important; padding: 20px !important; background: transparent !important; position: relative; z-index: 1; }
+
+        /* =========================================
+           RESPONSIVE
+           ========================================= */
+        @media (max-width: 900px) {
+            .container { height: auto; max-height: none; }
+            .main-content-grid { grid-template-columns: 1fr; }
+            .visual-column { min-height: 400px; border-right: none; border-bottom: 1px solid var(--border-color); }
+            .info-column { height: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-text">
+            <h1>Fine-tuning Approaches</h1>
+            <p>Step-by-step Visual Guide</p>
+        </div>
+        <div class="step-controls">
+            <button class="btn play-btn" id="playBtn">▶ Play</button>
+            <div style="width: 1px; height: 20px; background: var(--border-color); margin: 0 8px;"></div>
+            <button class="btn" id="prevBtn" disabled>Previous</button>
+            <div class="step-indicator" id="stepIndicator">Step 0 of 9</div>
+            <button class="btn btn-primary" id="nextBtn">Next</button>
+            <div class="progress-dots" id="dotsContainer"></div>
+        </div>
+    </header>
+
+    <div class="main-content-grid">
+        <!-- LEFT: VISUALIZATION AREA -->
+        <div class="visual-column">
+            
+            <!-- Card 1: Feature Extraction (Steps 0-3) -->
+            <div class="approach-card" id="card-fe">
+                <div class="card-title">Feature Extraction</div>
+                <div class="network-diagram">
+                    <div class="layer" data-params="Input Embeddings">Input</div>
+                    <div class="layer" data-id="fe-1" data-params="~7M params">Block 1</div>
+                    <div class="layer" data-id="fe-2" data-params="~7M params">Block 2</div>
+                    <div class="layer" data-id="fe-3" data-params="~7M params">Block 3</div>
+                    <div class="layer" data-id="fe-4" data-params="~7M params">Block 4</div>
+                    <div class="layer" data-id="fe-5" data-params="~7M params">Block 5</div>
+                    <div class="layer" data-id="fe-out" data-params="~1.5K params">Output Head</div>
+                </div>
+            </div>
+
+            <!-- Card 2: Partial Fine-tuning (Steps 4-6) -->
+            <div class="approach-card" id="card-partial">
+                <div class="card-title">Partial Fine-tuning</div>
+                <div class="network-diagram">
+                    <div class="layer" data-params="Input Embeddings">Input</div>
+                    <div class="layer" data-id="pft-1" data-params="~7M params">Block 1</div>
+                    <div class="layer" data-id="pft-2" data-params="~7M params">Block 2</div>
+                    <div class="layer" data-id="pft-3" data-params="~7M params">Block 3</div>
+                    <div class="layer" data-id="pft-4" data-params="~7M params">Block 4</div>
+                    <div class="layer" data-id="pft-5" data-params="~7M params">Block 5</div>
+                    <div class="layer" data-id="pft-out" data-params="~1.5K params">Output Head</div>
+                </div>
+            </div>
+
+            <!-- Card 3: Full Fine-tuning (Steps 7-8) -->
+            <div class="approach-card" id="card-full">
+                <div class="card-title">Full Fine-tuning</div>
+                <div class="network-diagram">
+                    <div class="layer" data-params="Input Embeddings">Input</div>
+                    <div class="layer" data-id="fft-1" data-params="~7M params">Block 1</div>
+                    <div class="layer" data-id="fft-2" data-params="~7M params">Block 2</div>
+                    <div class="layer" data-id="fft-3" data-params="~7M params">Block 3</div>
+                    <div class="layer" data-id="fft-4" data-params="~7M params">Block 4</div>
+                    <div class="layer" data-id="fft-5" data-params="~7M params">Block 5</div>
+                    <div class="layer" data-id="fft-out" data-params="~1.5K params">Output Head</div>
+                </div>
+            </div>
+
+            <!-- Summary View (Step 9) -->
+            <div class="summary-view" id="summary-view">
+                <div class="summary-card" style="border-left: 4px solid var(--frozen-border);">
+                    <h4>🎯 Feature Extraction</h4>
+                    <ul>
+                        <li><strong>Use when:</strong> < 1k examples</li>
+                        <li><strong>Cost:</strong> Lowest</li>
+                        <li><strong>Updates:</strong> Output layer only</li>
+                    </ul>
+                </div>
+                <div class="summary-card" style="border-left: 4px solid #8b5cf6;">
+                    <h4>📊 Partial Fine-tuning</h4>
+                    <ul>
+                        <li><strong>Use when:</strong> 1k - 10k examples</li>
+                        <li><strong>Cost:</strong> Moderate</li>
+                        <li><strong>Updates:</strong> Last blocks + Head</li>
+                    </ul>
+                </div>
+                <div class="summary-card" style="border-left: 4px solid var(--trainable-border);">
+                    <h4>🚀 Full Fine-tuning</h4>
+                    <ul>
+                        <li><strong>Use when:</strong> > 10k examples and strong domain shift</li>
+                        <li><strong>Cost:</strong> High</li>
+                        <li><strong>Updates:</strong> All layers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: INFO & CODE AREA -->
+        <div class="info-column">
+            <div class="text-content" id="explanationText">
+                <!-- Content injected by JS -->
+            </div>
+            
+            <div class="metrics-grid" id="metricsDisplay">
+                <!-- Metrics injected by JS -->
+            </div>
+
+            <!-- Relevant Code Snippet -->
+            <div class="code-preview-container">
+                <div class="code-header">
+                    <span>Relevant Code</span>
+                    <button class="btn" id="viewCodeBtn" style="padding: 2px 8px; font-size: 11px;">View Full File</button>
+                </div>
+                <pre class="code-snippet"><code class="language-python" id="inlineCodeBlock"># Code for this step will appear here...</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full Code Modal -->
+<div class="modal-overlay" id="codeModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span>PyTorch Implementation (Full File)</span>
+            <button class="btn" id="closeModal" style="background: transparent; border: none; color: white; font-size: 20px;">✕</button>
+        </div>
+        <div class="modal-body" id="codeContainer">
+            <pre><code class="language-python" id="fullCodeBlock"></code></pre>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+<script>
+    // =========================================
+    // FULL CODE SOURCE
+    // =========================================
+    const fullSourceCode = `# ============================================
+# SECTION 1: Feature Extraction
+# ============================================
+import torch
+from previous_chapters import GPTModel
+
+# Load pretrained model
+model = GPTModel(GPT_CONFIG_124M)
+model.load_state_dict(torch.load("model.pth"))
+model.eval()
+
+# STEP 2: Freeze all pretrained layers
+for param in model.parameters():
+    param.requires_grad = False  # <--- Step 2 Focus
+
+# STEP 3: Replace output layer
+torch.manual_seed(123)
+model.out_head = torch.nn.Linear(in_features=768, out_features=2) # <--- Step 3 Focus
+
+# Verify frozen status
+for name, param in model.named_parameters():
+    print(f"{name}: requires_grad = {param.requires_grad}")
+
+# Training (only output layer updates)
+optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5, weight_decay=0.1)
+
+
+# ============================================
+# SECTION 2: Partial Fine-tuning
+# ============================================
+# Start from pretrained model
+model = GPTModel(GPT_CONFIG_124M)
+model.load_state_dict(torch.load("model.pth"))
+
+# STEP 5: Freeze all layers first
+for param in model.parameters():
+    param.requires_grad = False
+
+# STEP 5: Unfreeze last 2 transformer blocks
+for param in model.trf_blocks[-2:].parameters():  # <--- Step 5 Focus
+    param.requires_grad = True
+
+# Unfreeze final normalization layer
+for param in model.final_norm.parameters():
+    param.requires_grad = True
+
+# Replace and unfreeze output layer
+model.out_head = torch.nn.Linear(in_features=768, out_features=2) # <--- Step 5 Focus
+
+# Verify which layers are trainable
+for name, param in model.named_parameters():
+    if param.requires_grad:
+        print(f"Trainable: {name}")
+
+# Training (last blocks + output layer update)
+optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5, weight_decay=0.1) # <--- Step 6 Focus
+
+
+# ============================================
+# SECTION 3: Full Fine-tuning
+# ============================================
+# Start from pretrained model
+model = GPTModel(GPT_CONFIG_124M)
+model.load_state_dict(torch.load("model.pth"))
+
+# STEP 8: Make all parameters trainable
+for param in model.parameters():
+    param.requires_grad = True  # <--- Step 8 Focus
+
+# Replace output layer (already trainable)
+model.out_head = torch.nn.Linear(in_features=768, out_features=2)
+
+# Count parameters
+total_params = sum(p.numel() for p in model.parameters())
+trainable_params = sum(p.numel() for p in model.parameters() 
+                       if p.requires_grad)
+
+print(f"Total parameters: {total_params:,}")
+print(f"Trainable parameters: {trainable_params:,}")
+
+# Training (all layers update)
+# Use smaller learning rate for full fine-tuning!
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5, weight_decay=0.1)`;
+
+    // =========================================
+    // DATA DEFINITION
+    // =========================================
+    const stepsData = [
+        {
+            title: "Introduction",
+            content: `
+                <p>When adapting a pretrained Large Language Model (LLM) to a new task, you have three fundamental strategies. Each represents a different trade-off between computational cost, data requirements, and adaptation capability.</p>
+                <p>We will explore the progression from minimal adaptation (<strong>Feature Extraction</strong>) to selective adaptation (<strong>Partial Fine-tuning</strong>) and finally complete retraining (<strong>Full Fine-tuning</strong>).</p>
+            `,
+            metrics: [
+                { label: "Goal", value: "Adapt pretrained model" },
+                { label: "Cost", value: "Variable" }
+            ],
+            visualState: {
+                view: 'card-fe', // Start with first card as placeholder
+                feLayers: [], // neutral
+            },
+            codeHighlight: { start: 1, end: 5 } // Just show imports/setup
+        },
+        {
+            title: "Feature Extraction: The Concept",
+            content: `
+                <p><strong>FEATURE EXTRACTION (Transfer Learning)</strong></p>
+                <p>In this approach, we treat the pretrained model as a fixed "feature extractor." The model has already learned useful representations from massive pretraining (e.g., GPT-2 trained on web text). We leverage these features without modifying them.</p>
+            `,
+            metrics: [
+                { label: "Trainable Params", value: "~0.5-1%" },
+                { label: "Training Speed", value: "⚡ Fast" }
+            ],
+            visualState: {
+                view: 'card-fe',
+                feLayers: [], // neutral
+            },
+            codeHighlight: { start: 7, end: 9 }
+        },
+        {
+            title: "Feature Extraction: Freezing Layers",
+            content: `
+                <p><strong>FREEZING THE PRETRAINED LAYERS</strong></p>
+                <p>We "freeze" the parameters of the transformer blocks. In PyTorch, we set <code>requires_grad = False</code>.</p>
+                <p>No gradients are computed for these layers, leading to huge memory savings.</p>
+            `,
+            metrics: [
+                { label: "Status", value: "🔒 Layers 1-5 Frozen" },
+                { label: "Gradient Calc", value: "None for body" }
+            ],
+            visualState: {
+                view: 'card-fe',
+                feLayers: ['frozen', 'frozen', 'frozen', 'frozen', 'frozen', 'neutral'],
+            },
+            codeHighlight: { start: 12, end: 13 }
+        },
+        {
+            title: "Feature Extraction: New Head",
+            content: `
+                <p><strong>TRAINING ONLY THE CLASSIFICATION HEAD</strong></p>
+                <p>We replace the old output layer with a new, randomly initialized layer specific to our task (e.g., 2 classes for spam vs. not spam). Only these few parameters are updated.</p>
+            `,
+            metrics: [
+                { label: "Trainable Params", value: "1,538 (0.001%)" },
+                { label: "Backprop", value: "Output layer only" }
+            ],
+            visualState: {
+                view: 'card-fe',
+                feLayers: ['frozen', 'frozen', 'frozen', 'frozen', 'frozen', 'trainable'],
+            },
+            codeHighlight: { start: 16, end: 17 }
+        },
+        {
+            title: "Partial Fine-tuning: Introduction",
+            content: `
+                <p><strong>PARTIAL FINE-TUNING</strong></p>
+                <p>This middle-ground approach unfreezes some of the last layers while keeping earlier layers frozen.</p>
+                <p>To implement this, we must first <strong>reload the pretrained model and freeze everything</strong> (similar to feature extraction), establishing a clean state before we selectively unfreeze layers.</p>
+            `,
+            metrics: [
+                { label: "Trainable Params", value: "~5-15%" },
+                { label: "Ideal Data", value: "1k-10k examples" }
+            ],
+            visualState: {
+                view: 'card-partial',
+                pftLayers: ['frozen', 'frozen', 'frozen', 'frozen', 'frozen', 'trainable'], // Start same as FE
+            },
+            codeHighlight: { start: 30, end: 36 } // Header + Load + Freeze
+        },
+        {
+            title: "Partial Fine-tuning: Selective Unfreezing",
+            content: `
+                <p><strong>UNFREEZING LAST BLOCKS</strong></p>
+                <p>We keep layers 1-3 frozen (general knowledge) but unfreeze layers 4-5 (task specific). The new output head is also trainable.</p>
+                <p>In code, we target specific indices: <code>model.trf_blocks[-2:]</code>.</p>
+            `,
+            metrics: [
+                { label: "Frozen", value: "Layers 1-3" },
+                { label: "Trainable", value: "Layers 4-5 + Head" }
+            ],
+            visualState: {
+                view: 'card-partial',
+                pftLayers: ['frozen', 'frozen', 'frozen', 'trainable', 'trainable', 'trainable'],
+            },
+            codeHighlight: { start: 38, end: 47 }
+        },
+        {
+            title: "Partial Fine-tuning: Gradient Flow",
+            content: `
+                <p><strong>GRADIENT FLOW</strong></p>
+                <p>During backpropagation, gradients flow from the output backwards. They update the Head, Block 5, and Block 4, but stop when they hit the frozen Block 3.</p>
+                <p>This saves 40-50% memory compared to full fine-tuning.</p>
+            `,
+            metrics: [
+                { label: "Speed", value: "2x vs Full FT" },
+                { label: "Memory", value: "4-6 GB" }
+            ],
+            visualState: {
+                view: 'card-partial',
+                pftLayers: ['frozen', 'frozen', 'frozen', 'trainable', 'trainable', 'trainable'],
+            },
+            codeHighlight: { start: 54, end: 55 }
+        },
+        {
+            title: "Full Fine-tuning: Introduction",
+            content: `
+                <p><strong>FULL FINE-TUNING</strong></p>
+                <p>We unfreeze <strong>ALL</strong> layers. Every parameter in the model (124 Million for GPT-2 small) is updated.</p>
+                <p>This offers maximum adaptation capability but requires the most data to avoid overfitting.</p>
+            `,
+            metrics: [
+                { label: "Trainable Params", value: "100% (124M)" },
+                { label: "Data Need", value: "10k+ examples" }
+            ],
+            visualState: {
+                view: 'card-full',
+                fftLayers: ['frozen', 'frozen', 'frozen', 'frozen', 'frozen', 'trainable'], // Visual reset before showing unfreeze
+            },
+            codeHighlight: { start: 61, end: 63 }
+        },
+        {
+            title: "Full Fine-tuning: Total Update",
+            content: `
+                <p><strong>UPDATING ALL PARAMETERS</strong></p>
+                <p>We set <code>requires_grad = True</code> for everything. The optimizer must track states for every single weight in the network.</p>
+                <p>This is necessary when your new task is significantly different from the pretraining data.</p>
+            `,
+            metrics: [
+                { label: "Params", value: "124,000,000" },
+                { label: "Memory", value: "8-10 GB" }
+            ],
+            visualState: {
+                view: 'card-full',
+                fftLayers: ['trainable', 'trainable', 'trainable', 'trainable', 'trainable', 'trainable']
+            },
+            codeHighlight: { start: 65, end: 67 }
+        },
+        {
+            title: "Comparison & Key Takeaways",
+            content: `
+                <p>The choice depends on your constraints:</p>
+                <p><strong>Feature Extraction:</strong> Best for small datasets and low resources.</p>
+                <p><strong>Partial Fine-tuning:</strong> A balanced approach for moderate data.</p>
+                <p><strong>Full Fine-tuning:</strong> Maximum performance for large datasets and different domains.</p>
+            `,
+            metrics: [
+                { label: "Approach", value: "Trade-off dependent" },
+                { label: "Rec.", value: "Start simple" }
+            ],
+            visualState: {
+                view: 'summary-view',
+                feLayers: [], pftLayers: [], fftLayers: []
+            },
+            codeHighlight: null
+        }
+    ];
+
+    // =========================================
+    // STATE MANAGEMENT & DOM
+    // =========================================
+    let currentStep = 0;
+    let isPlaying = false;
+    let playInterval = null;
+
+    const playBtn = document.getElementById('playBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const stepIndicator = document.getElementById('stepIndicator');
+    const dotsContainer = document.getElementById('dotsContainer');
+    const explanationText = document.getElementById('explanationText');
+    const metricsDisplay = document.getElementById('metricsDisplay');
+    const inlineCodeBlock = document.getElementById('inlineCodeBlock');
+    
+    // Cards
+    const cards = {
+        'card-fe': document.getElementById('card-fe'),
+        'card-partial': document.getElementById('card-partial'),
+        'card-full': document.getElementById('card-full'),
+        'summary-view': document.getElementById('summary-view')
+    };
+
+    const getLayers = (cardId) => document.getElementById(cardId).querySelectorAll('.layer');
+
+    // =========================================
+    // INITIALIZATION
+    // =========================================
+    function init() {
+        document.getElementById('fullCodeBlock').textContent = fullSourceCode;
+        
+        stepsData.forEach((_, index) => {
+            const dot = document.createElement('div');
+            dot.className = 'dot';
+            dot.addEventListener('click', () => manualGoToStep(index));
+            dotsContainer.appendChild(dot);
+        });
+
+        document.querySelectorAll('.layer').forEach(layer => {
+            const info = document.createElement('div');
+            info.className = 'layer-info';
+            info.textContent = layer.getAttribute('data-params');
+            layer.appendChild(info);
+        });
+
+        updateUI();
+    }
+
+    // =========================================
+    // AUTOMATION LOGIC
+    // =========================================
+    playBtn.addEventListener('click', togglePlay);
+
+    function togglePlay() {
+        if (isPlaying) {
+            stopPlay();
+        } else {
+            startPlay();
+        }
+    }
+
+    function startPlay() {
+        isPlaying = true;
+        playBtn.textContent = '⏸ Pause';
+        playBtn.style.background = 'var(--bg-gradient-end)';
+        
+        // If at end, loop to start
+        if(currentStep === stepsData.length - 1) {
+            goToStep(0);
+        }
+
+        playInterval = setInterval(() => {
+            if (currentStep < stepsData.length - 1) {
+                goToStep(currentStep + 1);
+            } else {
+                stopPlay(); // Reached end
+            }
+        }, 4000); // 4 seconds per step
+    }
+
+    function stopPlay() {
+        isPlaying = false;
+        playBtn.textContent = '▶ Play';
+        playBtn.style.background = 'white';
+        if (playInterval) {
+            clearInterval(playInterval);
+            playInterval = null;
+        }
+    }
+
+    function manualGoToStep(index) {
+        stopPlay(); // Stop animation if user interacts
+        goToStep(index);
+    }
+
+    // =========================================
+    // UI UPDATES
+    // =========================================
+    function goToStep(index) {
+        if(index < 0 || index >= stepsData.length) return;
+        currentStep = index;
+        updateUI();
+    }
+
+    function updateUI() {
+        const data = stepsData[currentStep];
+
+        // 1. Controls
+        stepIndicator.textContent = `Step ${currentStep} of ${stepsData.length - 1}`;
+        prevBtn.disabled = currentStep === 0;
+        nextBtn.disabled = currentStep === stepsData.length - 1;
+        document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentStep));
+
+        // 2. Info Panel
+        explanationText.innerHTML = `<h2>${data.title}</h2>` + data.content;
+        metricsDisplay.innerHTML = data.metrics.map(m => `
+            <div class="metric-item">
+                <span class="metric-label">${m.label}</span>
+                <span class="metric-value">${m.value}</span>
+            </div>
+        `).join('');
+
+        // 3. Inline Code Snippet
+        if (data.codeHighlight) {
+            const lines = fullSourceCode.split('\n');
+            // Array slice is 0-indexed, line numbers are usually 1-indexed.
+            // Highlight object uses 0-indexed lines for simplicity relative to string split.
+            const snippet = lines.slice(data.codeHighlight.start, data.codeHighlight.end + 1).join('\n');
+            inlineCodeBlock.textContent = snippet;
+        } else {
+            inlineCodeBlock.textContent = "# No specific code for this overview step.";
+        }
+        Prism.highlightElement(inlineCodeBlock);
+
+        // 4. Visual View Switching
+        Object.keys(cards).forEach(key => {
+            if (key === data.visualState.view) {
+                cards[key].classList.add('active-view');
+            } else {
+                cards[key].classList.remove('active-view');
+            }
+        });
+
+        // 5. Layer Coloring
+        updateLayers('card-fe', data.visualState.feLayers);
+        updateLayers('card-partial', data.visualState.pftLayers);
+        updateLayers('card-full', data.visualState.fftLayers);
+    }
+
+    function updateLayers(cardId, layerStates) {
+        if (!layerStates || !cards[cardId]) return;
+        const layers = getLayers(cardId);
+        // skip input at index 0
+        for(let i=1; i < layers.length; i++) {
+            const layer = layers[i];
+            layer.className = 'layer'; // reset
+            if(layerStates[i-1]) {
+                layer.classList.add(layerStates[i-1]);
+            }
+        }
+    }
+
+    // =========================================
+    // MODAL LOGIC
+    // =========================================
+    const modal = document.getElementById('codeModal');
+    const openBtn = document.getElementById('viewCodeBtn');
+    const closeBtn = document.getElementById('closeModal');
+    const codeContainer = document.getElementById('codeContainer');
+    const fullCodeBlock = document.getElementById('fullCodeBlock');
+
+    openBtn.addEventListener('click', () => {
+        // Pause if playing
+        stopPlay();
+        
+        modal.classList.add('open');
+        Prism.highlightElement(fullCodeBlock);
+        
+        // Scroll to relevant section
+        const data = stepsData[currentStep];
+        if (data.codeHighlight) {
+            setTimeout(() => {
+                const lineHeight = 21; 
+                const scrollPos = (data.codeHighlight.start * lineHeight) - 50;
+                codeContainer.scrollTo({ top: scrollPos, behavior: 'smooth' });
+                
+                // Add highlight overlay
+                const existing = document.querySelectorAll('.dynamic-highlight');
+                existing.forEach(e => e.remove());
+                
+                const overlay = document.createElement('div');
+                overlay.className = 'line-highlight dynamic-highlight';
+                overlay.style.top = `${(data.codeHighlight.start * lineHeight) + 20}px`;
+                overlay.style.height = `${(data.codeHighlight.end - data.codeHighlight.start + 1) * lineHeight}px`;
+                fullCodeBlock.parentElement.appendChild(overlay);
+            }, 100);
+        }
+    });
+
+    closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+    modal.addEventListener('click', (e) => {
+        if(e.target === modal) modal.classList.remove('open');
+    });
+
+    // Listeners
+    nextBtn.addEventListener('click', () => manualGoToStep(currentStep + 1));
+    prevBtn.addEventListener('click', () => manualGoToStep(currentStep - 1));
+    document.addEventListener('keydown', (e) => {
+        if(e.key === 'ArrowRight') manualGoToStep(currentStep + 1);
+        if(e.key === 'ArrowLeft') manualGoToStep(currentStep - 1);
+        if(e.key === 'Escape') modal.classList.remove('open');
+    });
+
+    init();
+
+</script>
+</body>
+</html>

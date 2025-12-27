@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GELU Activation Function Visualization</title>
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root {
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f5f7ff;
+            --text-heading: #1e293b;
+            --text-body: #64748b;
+            --card-bg: #ffffff;
+            --card-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
+            --border-radius: 16px;
+            --inner-radius: 8px;
+
+            /* Function Colors */
+            --color-gelu: #14b8a6;
+            /* Teal */
+            --color-relu: #f97316;
+            /* Orange */
+            --color-sigmoid: #8b5cf6;
+            /* Purple */
+            --grid-color: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(to bottom, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-body);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: var(--text-heading);
+            margin-bottom: 0.5em;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-top: 40px;
+        }
+
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 1em;
+            font-size: 15px;
+        }
+
+        /* --- LAYOUT CONTAINERS --- */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: var(--inner-radius);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-heading);
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--color-gelu);
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot.gelu {
+            background: var(--color-gelu);
+        }
+
+        .dot.relu {
+            background: var(--color-relu);
+        }
+
+        .dot.sigmoid {
+            background: var(--color-sigmoid);
+        }
+
+        /* --- CANVAS --- */
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            background: #fff;
+            border: 1px solid var(--grid-color);
+            border-radius: var(--inner-radius);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .annotation {
+            position: absolute;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border-left: 3px solid;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            transition: opacity 0.3s;
+            max-width: 150px;
+        }
+
+        /* --- MATH FORMULA --- */
+        .math-block {
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            text-align: center;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: var(--inner-radius);
+            margin: 20px 0;
+            color: var(--text-heading);
+            font-size: 1.1em;
+        }
+
+        /* --- CODE BLOCKS --- */
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: var(--inner-radius);
+            overflow-x: auto;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+        }
+
+        .code-keyword {
+            color: #569cd6;
+        }
+
+        .code-comment {
+            color: #6a9955;
+        }
+
+        .code-number {
+            color: #b5cea8;
+        }
+
+        /* --- NEURON DEMO --- */
+        .neuron-demo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: var(--inner-radius);
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+            /* For tooltip positioning */
+        }
+
+        .neuron-demo:hover {
+            transform: translateY(-2px);
+            background: #f1f5f9;
+        }
+
+        .neuron-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 24px;
+            color: #94a3b8;
+            transition: all 0.5s;
+        }
+
+        .neuron-active.relu-mode {
+            background: #ffe4e6;
+            border-color: var(--color-relu);
+            color: var(--color-relu);
+        }
+
+        .neuron-active.gelu-mode {
+            background: #ccfbf1;
+            border-color: var(--color-gelu);
+            color: var(--color-gelu);
+        }
+
+        /* Animations for Dying vs Living */
+        @keyframes pulse-gelu {
+            0% {
+                box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(20, 184, 166, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(20, 184, 166, 0);
+            }
+        }
+
+        .gelu-animate {
+            animation: pulse-gelu 2s infinite;
+        }
+
+        .relu-dead {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        .code-tooltip {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            z-index: 10;
+            margin-top: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .neuron-demo:hover .code-tooltip {
+            display: block;
+        }
+
+        /* --- TABLE --- */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .comparison-table th {
+            text-align: left;
+            padding: 12px;
+            background: #f1f5f9;
+            color: var(--text-heading);
+        }
+
+        .comparison-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--grid-color);
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* --- DATA CARD FOR GRADIENT PLOT --- */
+        .data-card {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
+            border: 1px solid #e2e8f0;
+            pointer-events: none;
+            display: none;
+            /* Hidden by default */
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .data-val {
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        /* --- EXPERIMENT SECTION --- */
+        .experiment-box {
+            background: #fff;
+            border: 1px solid var(--grid-color);
+            padding: 20px;
+            border-radius: var(--inner-radius);
+            margin-top: 15px;
+        }
+
+        /* New Simulation CSS */
+        .sim-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+
+        .sim-label {
+            width: 60px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .sim-track {
+            flex-grow: 1;
+            height: 24px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+        }
+
+        .sim-bar {
+            height: 100%;
+            transition: width 0.1s linear, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 5px;
+            font-size: 11px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .sim-status {
+            width: 140px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .center-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #cbd5e1;
+            z-index: 2;
+        }
+
+        .sim-explanation {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #166534;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class-="container">
+        <div class="card">
+            <h1>GELU Activation Visualization</h1>
+            <p>Interactive companion for Section 4.3: Implementing feed forward networks with Gaussian Error Linear
+                Units.</p>
+
+            <!-- COMPONENT 1: MAIN PLOT -->
+            <h2>1. Activation Function Comparison</h2>
+            <div class="controls">
+                <label for="rangeSlider">Input Range (x): <span id="rangeVal">±5</span></label>
+                <input type="range" id="rangeSlider" min="2" max="10" value="5" step="1">
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="dot gelu"></div> GELU
+                    </div>
+                    <div class="legend-item">
+                        <div class="dot relu"></div> ReLU
+                    </div>
+                    <div class="legend-item">
+                        <div class="dot sigmoid"></div> Sigmoid
+                    </div>
+                </div>
+            </div>
+
+            <div class="canvas-wrapper" id="mainPlotWrapper">
+                <canvas id="mainCanvas"></canvas>
+                <!-- Annotations will be injected here via JS -->
+                <div id="annot-relu" class="annotation" style="border-color: var(--color-relu); display:none;">Hard
+                    cutoff: Negative values become 0</div>
+                <div id="annot-gelu" class="annotation" style="border-color: var(--color-gelu); display:none;">Smooth
+                    transition: Small negative signals flow</div>
+                <div id="annot-sig" class="annotation" style="border-color: var(--color-sigmoid); display:none;">
+                    Saturation: Gradients vanish at extremes</div>
+            </div>
+
+            <div class="math-block">
+                GELU(x) = 0.5x(1 + tanh(&radic;(2/&pi;)(x + 0.044715x&sup3;)))
+            </div>
+        </div>
+
+        <!-- COMPONENT 2: DERIVATIVES -->
+        <div class="card">
+            <h2>2. Gradient (Derivative) Visualization</h2>
+            <p>Click anywhere on the graph to inspect exact values. Notice how GELU maintains a gradient for negative
+                inputs.</p>
+
+            <div class="legend" style="margin-bottom: 15px;">
+                <div class="legend-item">
+                    <div class="dot gelu"></div> GELU Derivative
+                </div>
+                <div class="legend-item">
+                    <div class="dot relu"></div> ReLU Derivative
+                </div>
+                <div class="legend-item">
+                    <div class="dot sigmoid"></div> Sigmoid Derivative
+                </div>
+            </div>
+
+            <div class="canvas-wrapper">
+                <canvas id="derivCanvas"></canvas>
+                <div class="data-card" id="derivDataCard">
+                    <div style="border-bottom:1px solid #eee; margin-bottom:5px; font-weight:bold;">x = <span
+                            id="dc-x">0.00</span></div>
+                    <div class="data-row" style="color:var(--color-gelu)"><span>GELU f'(x):</span> <span
+                            class="data-val" id="dc-gelu">0.00</span></div>
+                    <div class="data-row" style="color:var(--color-relu)"><span>ReLU f'(x):</span> <span
+                            class="data-val" id="dc-relu">0.00</span></div>
+                    <div class="data-row" style="color:var(--color-sigmoid)"><span>Sigmoid f'(x):</span> <span
+                            class="data-val" id="dc-sig">0.00</span></div>
+                    <div style="margin-top:5px; font-style:italic; color:#666;" id="dc-insight"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPONENT 3: DYING NEURON DEMO -->
+        <div class="card">
+            <h2>3. The "Dying Neuron" Problem</h2>
+            <p>Hover over the panels below to see code and simulation.</p>
+
+            <div class="grid-2">
+                <!-- ReLU Panel -->
+                <div class="neuron-demo" id="panel-relu">
+                    <h3>ReLU Neuron</h3>
+                    <div class="neuron-circle relu-mode" id="vis-relu">0</div>
+                    <p style="text-align:center; font-size:13px;">Input: -2.0 &rarr; Gradient: 0<br><span
+                            style="color:#ef4444; font-weight:bold;">Signal Blocked</span></p>
+
+                    <!-- Code Tooltip -->
+                    <div class="code-tooltip">
+                        <pre><code><span class="code-comment"># ReLU blocks negative values</span>
+relu = nn.ReLU()
+x = torch.tensor([-2.0, -1.0, 0.0])
+y = relu(x)
+<span class="code-comment"># Output: [0., 0., 0.]</span>
+<span class="code-comment"># Gradient: 0 (Dead)</span></code></pre>
+                    </div>
+                </div>
+
+                <!-- GELU Panel -->
+                <div class="neuron-demo" id="panel-gelu">
+                    <h3>GELU Neuron</h3>
+                    <div class="neuron-circle gelu-mode gelu-animate">~</div>
+                    <p style="text-align:center; font-size:13px;">Input: -2.0 &rarr; Gradient: -0.04<br><span
+                            style="color:#10b981; font-weight:bold;">Signal Flows (Recoverable)</span></p>
+
+                    <!-- Code Tooltip -->
+                    <div class="code-tooltip">
+                        <pre><code><span class="code-comment"># GELU allows flow</span>
+gelu = GELU()
+x = torch.tensor([-2.0, -1.0, 0.0])
+y = gelu(x)
+<span class="code-comment"># Output: [-0.04, -0.15, 0.0]</span>
+<span class="code-comment"># Gradient: Non-zero (Alive)</span></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPONENT 4: EDUCATIONAL TEXT -->
+        <div class="card">
+            <h2>4. Why use GELU?</h2>
+            <div class="grid-2">
+                <div>
+                    <h3>Key Differences</h3>
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>ReLU</th>
+                                <th>GELU</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Negative Inputs</td>
+                                <td>0 (Hard cut)</td>
+                                <td>Non-linear dip</td>
+                            </tr>
+                            <tr>
+                                <td>Gradient < 0</td>
+                                <td>0</td>
+                                <td>Small non-zero</td>
+                            </tr>
+                            <tr>
+                                <td>Smoothness</td>
+                                <td>Sharp corner</td>
+                                <td>Smooth everywhere</td>
+                            </tr>
+                            <tr>
+                                <td>Primary Use</td>
+                                <td>CNNS, Simple Nets</td>
+                                <td>Transformers (BERT, GPT)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <h3>Context</h3>
+                    <p><strong>Probabilistic Gating:</strong> Unlike ReLU's binary "fire or don't fire" decision, GELU
+                        weights inputs by their value relative to a Gaussian distribution.</p>
+                    <p><strong>Transformers:</strong> GELU is standard in BERT, GPT-3, and other LLMs because the
+                        smoothness aids optimization in very deep networks.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPONENT 5: EXPERIMENT -->
+        <div class="card">
+            <h2>5. Experiment: Signal Transmission Simulator</h2>
+            <div class="experiment-box">
+                <p><strong>Goal:</strong> Drag the slider to send a signal into a neuron. Observe what happens to the
+                    output when the input is negative.</p>
+
+                <div class="controls">
+                    <label>Input Signal Strength: <span id="expInputVal"
+                            style="font-family:monospace; font-size:16px;">-2.0</span></label>
+                    <input type="range" id="expSlider" min="-3" max="3" step="0.1" value="-2.0">
+                </div>
+
+                <div class="simulation-container">
+                    <!-- Visual Track -->
+                    <div style="margin-bottom:20px;">
+                        <!-- RELU ROW -->
+                        <div class="sim-row">
+                            <div class="sim-label">ReLU</div>
+                            <div class="sim-track">
+                                <div class="center-line"></div>
+                                <div id="relu-bar" class="sim-bar" style="width: 50%; background: #ccc;"></div>
+                            </div>
+                            <div class="sim-status" id="relu-status">Blocked</div>
+                        </div>
+
+                        <!-- GELU ROW -->
+                        <div class="sim-row">
+                            <div class="sim-label">GELU</div>
+                            <div class="sim-track">
+                                <div class="center-line"></div>
+                                <div id="gelu-bar" class="sim-bar" style="width: 50%; background: #ccc;"></div>
+                            </div>
+                            <div class="sim-status" id="gelu-status">Leaking</div>
+                        </div>
+                    </div>
+
+                    <div id="exp-explanation" class="sim-explanation">
+                        Move the slider to start the simulation.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- MATH FUNCTIONS --- */
+        const MathUtils = {
+            gelu: (x) => {
+                // Approx: 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
+                const sqrt2OverPi = Math.sqrt(2.0 / Math.PI);
+                const coeff = 0.044715;
+                return 0.5 * x * (1 + Math.tanh(sqrt2OverPi * (x + coeff * Math.pow(x, 3))));
+            },
+            geluDerivative: (x) => {
+                // Numerical derivative for simplicity and robustness in visualization
+                const h = 0.0001;
+                const fxh = MathUtils.gelu(x + h);
+                const fx = MathUtils.gelu(x);
+                return (fxh - fx) / h;
+            },
+            relu: (x) => Math.max(0, x),
+            reluDerivative: (x) => x > 0 ? 1 : 0,
+            sigmoid: (x) => 1 / (1 + Math.exp(-x)),
+            sigmoidDerivative: (x) => {
+                const s = MathUtils.sigmoid(x);
+                return s * (1 - s);
+            }
+        };
+
+        /* --- CANVAS PLOTTING ENGINE --- */
+        class Plotter {
+            constructor(canvasId, type = 'activation') {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.type = type;
+                this.range = 5;
+
+                // Layout constants
+                this.padding = { top: 20, right: 20, bottom: 30, left: 40 };
+
+                // Colors
+                this.colors = {
+                    gelu: getComputedStyle(document.documentElement).getPropertyValue('--color-gelu').trim(),
+                    relu: getComputedStyle(document.documentElement).getPropertyValue('--color-relu').trim(),
+                    sigmoid: getComputedStyle(document.documentElement).getPropertyValue('--color-sigmoid').trim(),
+                    grid: '#e2e8f0',
+                    text: '#64748b'
+                };
+
+                this.resize();
+                window.addEventListener('resize', () => { this.resize(); this.draw(); });
+            }
+
+            resize() {
+                // Handle high DPI displays
+                const dpr = window.devicePixelRatio || 1;
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+
+                this.canvas.width = rect.width * dpr;
+                this.canvas.height = rect.height * dpr;
+
+                this.ctx.scale(dpr, dpr);
+
+                this.width = rect.width;
+                this.height = rect.height;
+                this.draw();
+            }
+
+            // Coordinate transformation
+            toScreenX(x) {
+                const effectiveWidth = this.width - this.padding.left - this.padding.right;
+                const percent = (x + this.range) / (this.range * 2);
+                return this.padding.left + (percent * effectiveWidth);
+            }
+
+            toScreenY(y) {
+                const effectiveHeight = this.height - this.padding.top - this.padding.bottom;
+                // Y range: -1 to 5 for activation, -0.5 to 1.5 for derivative usually fits well
+                // Let's make it dynamic based on type, but fixed scaling for stability
+                let yMin = -1, yMax = this.range;
+                if (this.type === 'derivative') { yMin = -0.2; yMax = 1.2; }
+
+                const yRange = yMax - yMin;
+                const percent = (y - yMin) / yRange;
+                return this.height - this.padding.bottom - (percent * effectiveHeight);
+            }
+
+            toMathX(screenX) {
+                const effectiveWidth = this.width - this.padding.left - this.padding.right;
+                const percent = (screenX - this.padding.left) / effectiveWidth;
+                return (percent * (this.range * 2)) - this.range;
+            }
+
+            drawGrid() {
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = this.colors.grid;
+                this.ctx.lineWidth = 1;
+
+                // X axis (y=0)
+                const y0 = this.toScreenY(0);
+                this.ctx.moveTo(this.padding.left, y0);
+                this.ctx.lineTo(this.width - this.padding.right, y0);
+
+                // Y axis (x=0)
+                const x0 = this.toScreenX(0);
+                this.ctx.moveTo(x0, this.padding.top);
+                this.ctx.lineTo(x0, this.height - this.padding.bottom);
+
+                this.ctx.stroke();
+
+                // Labels
+                this.ctx.fillStyle = this.colors.text;
+                this.ctx.font = '12px system-ui';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText("0", x0, y0 + 15);
+            }
+
+            drawCurve(func, color, width = 2) {
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = width;
+
+                const step = (this.range * 2) / 200; // Resolution
+                let first = true;
+
+                for (let x = -this.range; x <= this.range; x += step) {
+                    const y = func(x);
+                    const sx = this.toScreenX(x);
+                    const sy = this.toScreenY(y);
+
+                    if (first) {
+                        this.ctx.moveTo(sx, sy);
+                        first = false;
+                    } else {
+                        this.ctx.lineTo(sx, sy);
+                    }
+                }
+                this.ctx.stroke();
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                this.drawGrid();
+
+                if (this.type === 'activation') {
+                    this.drawCurve(MathUtils.relu, this.colors.relu, 2);
+                    this.drawCurve(MathUtils.sigmoid, this.colors.sigmoid, 2);
+                    this.drawCurve(MathUtils.gelu, this.colors.gelu, 3); // Make GELU slightly thicker
+                    this.updateAnnotations();
+                } else if (this.type === 'derivative') {
+                    this.drawCurve(MathUtils.reluDerivative, this.colors.relu, 2);
+                    this.drawCurve(MathUtils.sigmoidDerivative, this.colors.sigmoid, 2);
+                    this.drawCurve(MathUtils.geluDerivative, this.colors.gelu, 3);
+                }
+            }
+
+            updateAnnotations() {
+                if (this.type !== 'activation') return;
+
+                // Position HTML annotations over the canvas based on coordinates
+                const moveAnnot = (id, x, y) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+
+                    // Only show annotations if they are within visible range
+                    if (Math.abs(x) > this.range) {
+                        el.style.display = 'none';
+                        return;
+                    }
+
+                    el.style.display = 'block';
+                    const sx = this.toScreenX(x);
+                    const sy = this.toScreenY(y);
+                    el.style.left = `${sx + 10}px`;
+                    el.style.top = `${sy - 20}px`;
+                };
+
+                moveAnnot('annot-relu', 0.2, 0.2); // Pointing to zero/corner
+                moveAnnot('annot-gelu', -1.5, -0.1); // Pointing to the dip
+                moveAnnot('annot-sig', this.range - 1, 0.95); // Pointing to saturation
+            }
+        }
+
+        /* --- INITIALIZATION & INTERACTIVITY --- */
+
+        // 1. Setup Plots
+        const mainPlot = new Plotter('mainCanvas', 'activation');
+        const derivPlot = new Plotter('derivCanvas', 'derivative');
+
+        // 2. Slider Logic
+        const slider = document.getElementById('rangeSlider');
+        const rangeLabel = document.getElementById('rangeVal');
+
+        slider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            rangeLabel.textContent = `±${val}`;
+            mainPlot.range = val;
+            mainPlot.draw();
+
+            // Update derivative plot range too, but keep Y fixed
+            derivPlot.range = val;
+            derivPlot.draw();
+        });
+
+        // 3. Derivative Interaction
+        const derivCanvas = document.getElementById('derivCanvas');
+        const dataCard = document.getElementById('derivDataCard');
+
+        // Elements in data card
+        const dcX = document.getElementById('dc-x');
+        const dcGelu = document.getElementById('dc-gelu');
+        const dcRelu = document.getElementById('dc-relu');
+        const dcSig = document.getElementById('dc-sig');
+        const dcInsight = document.getElementById('dc-insight');
+
+        derivCanvas.addEventListener('mousemove', (e) => {
+            const rect = derivCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+
+            // Convert screen X to Math X
+            const mathX = derivPlot.toMathX(mouseX);
+
+            // Clamp to range
+            if (mathX < -derivPlot.range || mathX > derivPlot.range) return;
+
+            // Redraw to clear previous line
+            derivPlot.draw();
+
+            // Draw vertical line
+            const ctx = derivPlot.ctx;
+            ctx.beginPath();
+            ctx.strokeStyle = '#94a3b8';
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(mouseX, derivPlot.padding.top);
+            ctx.lineTo(mouseX, derivPlot.height - derivPlot.padding.bottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Update Data Card
+            dataCard.style.display = 'block';
+
+            const gPrime = MathUtils.geluDerivative(mathX);
+            const rPrime = MathUtils.reluDerivative(mathX);
+            const sPrime = MathUtils.sigmoidDerivative(mathX);
+
+            dcX.textContent = mathX.toFixed(2);
+            dcGelu.textContent = gPrime.toFixed(4);
+            dcRelu.textContent = rPrime.toFixed(4);
+            dcSig.textContent = sPrime.toFixed(4);
+
+            // Generate Insight
+            if (mathX < -0.1 && mathX > -3) {
+                const ratio = (gPrime * 100).toFixed(1);
+                dcInsight.textContent = `At x=${mathX.toFixed(1)}, GELU allows ${ratio}% signal flow vs ReLU's 0%.`;
+                dcInsight.style.color = 'var(--color-gelu)';
+            } else if (mathX > 3) {
+                dcInsight.textContent = "Both GELU and ReLU allow full gradient flow here.";
+                dcInsight.style.color = '#64748b';
+            } else if (mathX > -0.1 && mathX < 0.1) {
+                dcInsight.textContent = "Transition zone.";
+                dcInsight.style.color = '#64748b';
+            } else {
+                dcInsight.textContent = "Gradients vanishing for Sigmoid.";
+                dcInsight.style.color = 'var(--color-sigmoid)';
+            }
+        });
+
+        derivCanvas.addEventListener('mouseleave', () => {
+            derivPlot.draw();
+            dataCard.style.display = 'none';
+        });
+
+        // 4. Signal Simulator Logic (Section 5)
+        const expSlider = document.getElementById('expSlider');
+        const expInputVal = document.getElementById('expInputVal');
+        const reluBar = document.getElementById('relu-bar');
+        const geluBar = document.getElementById('gelu-bar');
+        const reluStatus = document.getElementById('relu-status');
+        const geluStatus = document.getElementById('gelu-status');
+        const expExplanation = document.getElementById('exp-explanation');
+
+        function updateSimulation() {
+            const input = parseFloat(expSlider.value);
+            expInputVal.textContent = input.toFixed(1);
+
+            // Calculate outputs
+            const reluOut = MathUtils.relu(input);
+            const geluOut = MathUtils.gelu(input);
+
+            // Update visuals (Map -3 to 3 range to 0 to 100% width)
+            // Center is 50%. 
+            // Logic: 0 is center. +3 extends right. -3 extends left.
+            // We will simplify: All bars grow from left (0) to right (Max). 
+            // Actually, creating "positive" vs "negative" growth from center is clearer.
+
+            const setBar = (el, val) => {
+                // Map value (-3 to 3) to percent relative to center
+                // Max magnitude is 3. 
+                const mag = Math.min(Math.abs(val), 3);
+                const percent = (mag / 3) * 50;
+
+                el.style.width = percent + '%';
+
+                if (val >= 0) {
+                    el.style.left = '50%';
+                    el.style.background = (val > 0) ? '#10b981' : '#ccc'; // Green for pos
+                    el.style.transform = 'scaleX(1)';
+                    el.style.transformOrigin = 'left';
+                } else {
+                    el.style.left = (50 - percent) + '%';
+                    el.style.background = '#ef4444'; // Red for neg
+                    el.style.transform = 'scaleX(1)'; // handled by left/width
+                    el.style.transformOrigin = 'right';
+                }
+
+                // Special styling for GELU small negative curve
+                if (val < 0 && val > -3) {
+                    // For GELU negative, it's actually teal in our scheme usually, but let's keep red/green for +/-
+                    // Wait, GELU output is negative for negative input? 
+                    // GELU(x) = x * P(X<=x). If x is neg, P is pos, result is neg.
+                    // So GELU output is negative.
+                }
+            };
+
+            // Relu Output is always >= 0
+            // Gelu Output is negative for neg input (down to approx -0.17) then goes back to 0.
+            // Wait, for x=-2, GELU is -0.04. It is negative.
+
+            setBar(reluBar, reluOut);
+
+            // For GELU, the negative values are tiny. To visualize them we might need to exaggerate 
+            // or just rely on the text status.
+            // Let's amplify the visual width of GELU negative values just for visibility? 
+            // No, let's keep it accurate but change color/status.
+
+            // We need to handle the bar positioning manually for standard CSS left/width logic
+            if (geluOut >= 0) {
+                geluBar.style.left = '50%';
+                geluBar.style.width = ((geluOut / 3) * 50) + '%';
+                geluBar.style.background = '#14b8a6'; // Teal
+            } else {
+                // Negative GELU. It's very small (max dip is -0.17).
+                // To make it visible, we might scale it up visually or just show it as a small blip.
+                // Let's use a min-width if it's non-zero
+                const width = (Math.abs(geluOut) / 3) * 50;
+                const visibleWidth = Math.max(width, 2); // Ensure at least 2% visible if non-zero
+                geluBar.style.left = (50 - visibleWidth) + '%';
+                geluBar.style.width = visibleWidth + '%';
+                geluBar.style.background = '#14b8a6';
+            }
+
+            // Relu Bar logic cleanup
+            if (reluOut == 0) {
+                reluBar.style.width = '0px';
+            } else {
+                reluBar.style.left = '50%';
+                reluBar.style.width = ((reluOut / 3) * 50) + '%';
+                reluBar.style.background = '#f97316'; // Orange
+            }
+
+            // Status Text
+            if (input < 0) {
+                reluStatus.innerHTML = "<span style='color:#ef4444'>❌ BLOCKED (0.0)</span>";
+                geluStatus.innerHTML = `<span style='color:#14b8a6'>✅ LEAKING (${geluOut.toFixed(3)})</span>`;
+
+                expExplanation.innerHTML = `
+                <strong>Negative Input Detected:</strong><br>
+                ReLU outputs exactly 0. Gradients die here.<br>
+                GELU preserves a tiny negative signal (${geluOut.toFixed(3)}). This "leak" allows the neuron to eventually recover during training.
+            `;
+                expExplanation.style.background = "#eff6ff";
+                expExplanation.style.borderColor = "#bfdbfe";
+                expExplanation.style.color = "#1e40af";
+
+            } else if (input == 0) {
+                reluStatus.textContent = "0.0";
+                geluStatus.textContent = "0.0";
+                expExplanation.innerHTML = "At exactly 0, both functions output 0.";
+            } else {
+                reluStatus.textContent = `Active (${reluOut.toFixed(1)})`;
+                geluStatus.textContent = `Active (${geluOut.toFixed(1)})`;
+                expExplanation.innerHTML = "<strong>Positive Input:</strong> Both functions behave similarly, passing the signal through linearly.";
+                expExplanation.style.background = "#f0fdf4";
+                expExplanation.style.borderColor = "#bbf7d0";
+                expExplanation.style.color = "#166534";
+            }
+        }
+
+        expSlider.addEventListener('input', updateSimulation);
+        // Init
+        updateSimulation();
+
+        // Initial draw
+        mainPlot.draw();
+        derivPlot.draw();
+
+    </script>
+
+</body>
+
+</html>

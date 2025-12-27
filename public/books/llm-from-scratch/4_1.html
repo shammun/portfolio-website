@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Token & Positional Embeddings in GPT</title>
+    <style>
+        :root {
+            --bg-start: #fafbff;
+            --bg-end: #f5f7ff;
+            --token-bg: #fff7ed;
+            --token-border: #fb923c;
+            --token-text: #ea580c;
+            --pos-bg: #f0fdfa;
+            --pos-border: #2dd4bf;
+            --pos-text: #0f766e;
+            --combined-bg: #f5f3ff;
+            --combined-border: #a78bfa;
+            --combined-text: #7c3aed;
+            --heading: #1e293b;
+            --body: #64748b;
+            --muted: #94a3b8;
+            --card-bg: #ffffff;
+            --shadow-color: rgba(99, 102, 241, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: var(--body);
+            line-height: 1.7;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--heading);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: var(--body);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .step-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px var(--shadow-color);
+            margin-bottom: 2rem;
+        }
+
+        .step-number {
+            display: inline-block;
+            background: var(--combined-border);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 1rem;
+        }
+
+        .step-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--heading);
+            margin-bottom: 1rem;
+        }
+
+        .explanation {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--body);
+            margin-bottom: 1.5rem;
+        }
+
+        .explanation strong {
+            color: var(--heading);
+            font-weight: 600;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+            border-left: 4px solid #f59e0b;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            font-size: 15px;
+            color: var(--heading);
+        }
+
+        .interactive-demo {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .demo-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--heading);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .word-selector {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .word-button {
+            background: white;
+            border: 3px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--heading);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .word-button:hover {
+            border-color: var(--token-border);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(251, 146, 60, 0.2);
+        }
+
+        .word-button.selected {
+            background: var(--token-bg);
+            border-color: var(--token-border);
+            color: var(--token-text);
+        }
+
+        .embedding-showcase {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .embedding-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .embedding-word {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--token-text);
+            margin-bottom: 0.5rem;
+        }
+
+        .embedding-meta {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .vector-visualization {
+            margin: 2rem 0;
+        }
+
+        .vector-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--heading);
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+        }
+
+        .vector-label.token {
+            background: var(--token-bg);
+            color: var(--token-text);
+            border-left: 4px solid var(--token-border);
+        }
+
+        .vector-label.position {
+            background: var(--pos-bg);
+            color: var(--pos-text);
+            border-left: 4px solid var(--pos-border);
+        }
+
+        .vector-label.combined {
+            background: var(--combined-bg);
+            color: var(--combined-text);
+            border-left: 4px solid var(--combined-border);
+        }
+
+        .vector-table {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .vector-cell {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .vector-cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .vector-cell.token {
+            border-color: var(--token-border);
+            background: var(--token-bg);
+        }
+
+        .vector-cell.position {
+            border-color: var(--pos-border);
+            background: var(--pos-bg);
+        }
+
+        .vector-cell.combined {
+            border-color: var(--combined-border);
+            background: var(--combined-bg);
+        }
+
+        .cell-index {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cell-value {
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .vector-cell.token .cell-value {
+            color: var(--token-text);
+        }
+
+        .vector-cell.position .cell-value {
+            color: var(--pos-text);
+        }
+
+        .vector-cell.combined .cell-value {
+            color: var(--combined-text);
+        }
+
+        .position-selector {
+            margin: 2rem 0;
+        }
+
+        .position-grid {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .position-box {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid #e5e7eb;
+            background: white;
+        }
+
+        .position-box:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+        }
+
+        .position-box.selected {
+            border-color: var(--pos-border);
+            background: var(--pos-bg);
+        }
+
+        .position-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .position-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--pos-text);
+        }
+
+        .code-display {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-label {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: var(--combined-border);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .code-display pre {
+            margin: 0;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .code-display .keyword {
+            color: #c792ea;
+        }
+
+        .code-display .function {
+            color: #82aaff;
+        }
+
+        .code-display .string {
+            color: #c3e88d;
+        }
+
+        .code-display .number {
+            color: #f78c6c;
+        }
+
+        .code-display .comment {
+            color: #546e7a;
+            font-style: italic;
+        }
+
+        .code-display .variable {
+            color: #ffcb6b;
+        }
+
+        .addition-visual {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .addition-header {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--heading);
+            margin-bottom: 2rem;
+        }
+
+        .addition-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .addition-cell {
+            text-align: center;
+        }
+
+        .addition-value {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .addition-cell.token .addition-value {
+            background: var(--token-bg);
+            border-color: var(--token-border);
+            color: var(--token-text);
+        }
+
+        .addition-cell.position .addition-value {
+            background: var(--pos-bg);
+            border-color: var(--pos-border);
+            color: var(--pos-text);
+        }
+
+        .addition-cell.combined .addition-value {
+            background: var(--combined-bg);
+            border-color: var(--combined-border);
+            color: var(--combined-text);
+        }
+
+        .addition-label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .operator-row {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--heading);
+            margin: 1rem 0;
+        }
+
+        .sentence-tokens {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .sentence-token {
+            cursor: pointer;
+        }
+
+        .token-box {
+            background: white;
+            border: 3px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .token-box:hover {
+            border-color: var(--combined-border);
+            transform: translateY(-2px);
+        }
+
+        .token-box.active {
+            background: var(--combined-bg);
+            border-color: var(--combined-border);
+        }
+
+        .token-word {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--heading);
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .token-box.active .token-word {
+            color: var(--combined-text);
+        }
+
+        .token-position {
+            font-size: 12px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .aha-moment {
+            background: linear-gradient(135deg, var(--combined-bg) 0%, var(--pos-bg) 100%);
+            border: 3px solid var(--combined-border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .aha-icon {
+            font-size: 48px;
+            margin-bottom: 1rem;
+        }
+
+        .aha-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--heading);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .aha-text {
+            font-size: 17px;
+            line-height: 1.8;
+            color: var(--heading);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .comparison-table {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .comparison-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .comparison-item h4 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--heading);
+            margin-bottom: 0.5rem;
+        }
+
+        .comparison-item p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--body);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.02);
+            }
+        }
+
+        .pulse {
+            animation: pulse 0.6s ease-in-out;
+        }
+
+        .key-point {
+            background: white;
+            border-left: 4px solid var(--combined-border);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .key-point-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--combined-text);
+            margin-bottom: 0.5rem;
+        }
+
+        .same-word-demo {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .demo-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 2px solid #e2e8f0;
+        }
+
+        .demo-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--heading);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .legend {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            border: 2px solid;
+        }
+
+        .legend-box.token {
+            background: var(--token-bg);
+            border-color: var(--token-border);
+        }
+
+        .legend-box.position {
+            background: var(--pos-bg);
+            border-color: var(--pos-border);
+        }
+
+        .legend-box.combined {
+            background: var(--combined-bg);
+            border-color: var(--combined-border);
+        }
+
+        .legend-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--heading);
+        }
+
+        @media (max-width: 768px) {
+            .vector-table {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .comparison-row,
+            .same-word-demo {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .addition-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Understanding Token & Positional Embeddings in GPT</h1>
+            <p class="subtitle">A step-by-step interactive guide with clear numerical values</p>
+        </header>
+
+        <!-- Color Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box token"></div>
+                <div class="legend-text">Token Embedding (WHAT the word means)</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box position"></div>
+                <div class="legend-text">Positional Embedding (WHERE it appears)</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box combined"></div>
+                <div class="legend-text">Final Embedding (Token + Position)</div>
+            </div>
+        </div>
+
+        <!-- Step 1: The Problem -->
+        <div class="step-container animate-in">
+            <div class="step-number">1</div>
+            <div class="step-title">The Problem: Neural Networks Don't Understand Words</div>
+
+            <div class="explanation">
+                Neural networks can only process numbers, not text. When you type <strong>"Hello, I am
+                    learning"</strong> into GPT, the model needs to convert these words into numerical representations.
+                But here's the challenge: the numbers need to capture two different things:
+            </div>
+
+            <div class="comparison-table">
+                <div class="comparison-row">
+                    <div class="comparison-item">
+                        <h4>❓ WHAT does each word mean?</h4>
+                        <p>The word "cat" has a different meaning than "dog" or "happy". We need numbers that capture
+                            this semantic meaning.</p>
+                    </div>
+                    <div class="comparison-item">
+                        <h4>📍 WHERE does each word appear?</h4>
+                        <p>"The cat chased the dog" means something very different from "The dog chased the cat" — same
+                            words, different positions!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight-box">
+                <strong>The Solution:</strong> GPT uses TWO separate embedding systems that work together — Token
+                Embeddings (for meaning) and Positional Embeddings (for location).
+            </div>
+        </div>
+
+        <!-- Step 2: Token Embeddings -->
+        <div class="step-container animate-in">
+            <div class="step-number">2</div>
+            <div class="step-title">Token Embeddings: Converting Words to Vectors</div>
+
+            <div class="explanation">
+                A <strong>token embedding</strong> is like a dictionary that maps each unique word to a unique vector of
+                numbers. Think of it as a lookup table with 50,257 rows (one for each word in GPT-2's vocabulary) and
+                768 columns (the embedding dimension).
+            </div>
+
+            <div class="interactive-demo">
+                <div class="demo-title">👆 Click a word to see its token embedding (shown as numbers)</div>
+
+                <div class="word-selector">
+                    <button class="word-button" data-word="cat" data-id="9246">cat</button>
+                    <button class="word-button" data-word="dog" data-id="9703">dog</button>
+                    <button class="word-button" data-word="Hello" data-id="15496">Hello</button>
+                    <button class="word-button" data-word="beautiful" data-id="4950">beautiful</button>
+                </div>
+
+                <div class="embedding-showcase" id="tokenEmbeddingDisplay" style="display: none;">
+                    <div class="embedding-header">
+                        <div class="embedding-word" id="selectedWord">cat</div>
+                        <div class="embedding-meta">Token ID: <span id="selectedTokenId">9246</span></div>
+                    </div>
+
+                    <div class="vector-visualization">
+                        <div class="vector-label token">Token Embedding Vector (first 8 of 768 dimensions)</div>
+                        <div class="vector-table" id="tokenVectorTable"></div>
+                    </div>
+
+                    <div class="key-point">
+                        <div class="key-point-title">🔑 Key Insight</div>
+                        The word "<span id="repeatWord">cat</span>" ALWAYS gets these exact same numbers, no matter
+                        where it appears in a sentence. Position 0? Same numbers. Position 100? Same numbers.
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-display">
+                <div class="code-label">PyTorch Code</div>
+                <pre><code><span class="keyword">import</span> torch.nn <span class="keyword">as</span> nn
+
+<span class="comment"># Create token embedding layer</span>
+<span class="variable">token_embedding</span> = nn.<span class="function">Embedding</span>(
+    num_embeddings=<span class="number">50257</span>,  <span class="comment"># vocabulary size</span>
+    embedding_dim=<span class="number">768</span>       <span class="comment"># embedding dimension</span>
+)
+
+<span class="comment"># Input: token IDs</span>
+<span class="variable">token_ids</span> = torch.<span class="function">tensor</span>([<span class="number">9246</span>])  <span class="comment"># "cat" → ID 9246</span>
+
+<span class="comment"># Lookup: get embedding for "cat"</span>
+<span class="variable">cat_embedding</span> = <span class="variable">token_embedding</span>(token_ids)
+<span class="comment"># Output shape: (1, 768) - a vector of 768 numbers</span></code></pre>
+            </div>
+
+            <div class="explanation">
+                This is just a <strong>lookup operation</strong>. When we input token ID 9246 (which represents "cat"),
+                we simply retrieve row 9246 from the embedding matrix. That's it! No complex computation — just a table
+                lookup.
+            </div>
+        </div>
+
+        <!-- Step 3: Positional Embeddings -->
+        <div class="step-container animate-in">
+            <div class="step-number">3</div>
+            <div class="step-title">Positional Embeddings: Encoding Location Information</div>
+
+            <div class="explanation">
+                Token embeddings tell us <strong>WHAT</strong> each word means, but they don't tell us
+                <strong>WHERE</strong> the word appears. This is where positional embeddings come in. Each position (0,
+                1, 2, ...) gets its own learned embedding vector.
+            </div>
+
+            <div class="interactive-demo">
+                <div class="demo-title">👆 Click a position to see its positional embedding (as numbers)</div>
+
+                <div class="position-selector">
+                    <div class="position-grid" id="positionGrid"></div>
+                </div>
+
+                <div class="embedding-showcase" id="posEmbeddingDisplay" style="display: none;">
+                    <div class="embedding-header">
+                        <div class="embedding-word" style="color: var(--pos-text);">Position <span
+                                id="selectedPosition">0</span></div>
+                        <div class="embedding-meta">Index in sequence</div>
+                    </div>
+
+                    <div class="vector-visualization">
+                        <div class="vector-label position">Positional Embedding Vector (first 8 of 768 dimensions)</div>
+                        <div class="vector-table" id="posVectorTable"></div>
+                    </div>
+
+                    <div class="key-point">
+                        <div class="key-point-title">🔑 Key Insight</div>
+                        Position <span id="repeatPosition">0</span> ALWAYS gets these exact same numbers, regardless of
+                        which word is at this position. Put "cat" here? Same positional numbers. Put "dog" here? Same
+                        positional numbers.
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-display">
+                <div class="code-label">PyTorch Code</div>
+                <pre><code><span class="keyword">import</span> torch.nn <span class="keyword">as</span> nn
+
+<span class="comment"># Create positional embedding layer</span>
+<span class="variable">pos_embedding</span> = nn.<span class="function">Embedding</span>(
+    num_embeddings=<span class="number">1024</span>,  <span class="comment"># max sequence length</span>
+    embedding_dim=<span class="number">768</span>     <span class="comment"># same dimension as token embeddings!</span>
+)
+
+<span class="comment"># Input: position indices</span>
+<span class="variable">positions</span> = torch.<span class="function">arange</span>(<span class="number">4</span>)  <span class="comment"># [0, 1, 2, 3] for 4 tokens</span>
+
+<span class="comment"># Lookup: get positional embeddings</span>
+<span class="variable">pos_embeddings</span> = <span class="variable">pos_embedding</span>(positions)
+<span class="comment"># Output shape: (4, 768) - 4 position vectors</span></code></pre>
+            </div>
+
+            <div class="highlight-box">
+                <strong>Critical Detail:</strong> Both token embeddings and positional embeddings have the SAME
+                dimension (768). This is essential because we're going to add them together!
+            </div>
+        </div>
+
+        <!-- Step 4: The Magic - Adding Them Together -->
+        <div class="step-container animate-in">
+            <div class="step-number">4</div>
+            <div class="step-title">The Magic: Combining Content + Position</div>
+
+            <div class="explanation">
+                Now comes the elegant part: we simply <strong>add</strong> the token embedding and positional embedding
+                together, element-wise. This creates a final embedding that contains both WHAT the word means and WHERE
+                it appears.
+            </div>
+
+            <div class="interactive-demo">
+                <div class="demo-title">🎯 Click a token to see the addition (actual numbers!)</div>
+
+                <div class="sentence-tokens" id="sentenceTokens"></div>
+
+                <div class="addition-visual" id="additionVisual" style="display: none;">
+                    <div class="addition-header">
+                        Element-wise Addition: Token + Position = Final
+                    </div>
+
+                    <div id="additionRows"></div>
+
+                    <div
+                        style="text-align: center; margin-top: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+                        <strong>Understanding the Addition:</strong> Each number in the Token Embedding is added to the
+                        corresponding number in the Positional Embedding to create the Final Embedding.
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-display">
+                <div class="code-label">PyTorch Code</div>
+                <pre><code><span class="comment"># Input sentence: "Hello , I am"</span>
+<span class="variable">token_ids</span> = torch.<span class="function">tensor</span>([<span class="number">15496</span>, <span class="number">11</span>, <span class="number">314</span>, <span class="number">716</span>])  <span class="comment"># 4 tokens</span>
+<span class="variable">seq_len</span> = <span class="number">4</span>
+
+<span class="comment"># Step 1: Get token embeddings</span>
+<span class="variable">tok_emb</span> = <span class="variable">token_embedding</span>(token_ids)  <span class="comment"># Shape: (4, 768)</span>
+
+<span class="comment"># Step 2: Get positional embeddings</span>
+<span class="variable">positions</span> = torch.<span class="function">arange</span>(seq_len)  <span class="comment"># [0, 1, 2, 3]</span>
+<span class="variable">pos_emb</span> = <span class="variable">pos_embedding</span>(positions)    <span class="comment"># Shape: (4, 768)</span>
+
+<span class="comment"># Step 3: Add them together (element-wise addition)</span>
+<span class="variable">final_embeddings</span> = <span class="variable">tok_emb</span> + <span class="variable">pos_emb</span>  <span class="comment"># Shape: (4, 768)</span>
+
+<span class="comment"># Example for first dimension:</span>
+<span class="comment"># final[0][0] = tok_emb[0][0] + pos_emb[0][0]</span>
+<span class="comment"># final[0][1] = tok_emb[0][1] + pos_emb[0][1]</span>
+<span class="comment"># ... and so on for all 768 dimensions</span></code></pre>
+            </div>
+        </div>
+
+        <!-- Step 5: The AHA Moment -->
+        <div class="step-container animate-in">
+            <div class="step-number">5</div>
+            <div class="step-title">Why This Matters</div>
+
+            <div class="explanation">
+                Let's see why this two-embedding system is so powerful. Consider these two sentences:
+            </div>
+
+            <div class="same-word-demo">
+                <div class="demo-card">
+                    <div class="demo-card-title">"The cat chased the dog"</div>
+                    <div style="text-align: center; margin: 1rem 0; color: var(--body);">
+                        <div>cat at position 1</div>
+                        <div style="font-size: 13px; margin-top: 0.5rem;">= token_emb(cat) + pos_emb(1)</div>
+                    </div>
+                </div>
+                <div class="demo-card">
+                    <div class="demo-card-title">"The dog chased the cat"</div>
+                    <div style="text-align: center; margin: 1rem 0; color: var(--body);">
+                        <div>cat at position 4</div>
+                        <div style="font-size: 13px; margin-top: 0.5rem;">= token_emb(cat) + pos_emb(4)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="aha-moment">
+                <div class="aha-icon">💡</div>
+                <div class="aha-title">The Key Insight</div>
+                <div class="aha-text">
+                    Even though both sentences contain the word "cat", the final embedding for "cat" is
+                    <strong>different in each sentence</strong> because it appears at different positions! This allows
+                    GPT to understand that these sentences have different meanings, even though they use the exact same
+                    words.
+                </div>
+            </div>
+
+            <div class="comparison-table">
+                <div class="comparison-row">
+                    <div class="comparison-item">
+                        <h4>Without Positional Embeddings ❌</h4>
+                        <p>"The cat chased the dog" and "The dog chased the cat" would look identical to the model —
+                            both would just be a bag of the same word embeddings.</p>
+                    </div>
+                    <div class="comparison-item">
+                        <h4>With Positional Embeddings ✅</h4>
+                        <p>The model can distinguish between these sentences because each word's final embedding
+                            includes information about WHERE it appears in the sequence.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Final Summary -->
+        <div class="step-container animate-in">
+            <div class="step-number">✓</div>
+            <div class="step-title">Summary: How GPT Processes Text</div>
+
+            <div class="explanation">
+                Here's the complete flow of how GPT converts your input text into embeddings:
+            </div>
+
+            <div class="code-display">
+                <div class="code-label">Complete GPT Embedding Process</div>
+                <pre><code><span class="keyword">class</span> <span class="function">GPTEmbedding</span>(nn.Module):
+    <span class="keyword">def</span> <span class="function">__init__</span>(<span class="variable">self</span>, vocab_size, max_len, emb_dim):
+        <span class="keyword">super</span>().<span class="function">__init__</span>()
+        
+        <span class="comment"># Two separate embedding layers</span>
+        <span class="variable">self</span>.tok_emb = nn.<span class="function">Embedding</span>(vocab_size, emb_dim)
+        <span class="variable">self</span>.pos_emb = nn.<span class="function">Embedding</span>(max_len, emb_dim)
+    
+    <span class="keyword">def</span> <span class="function">forward</span>(<span class="variable">self</span>, token_ids):
+        <span class="variable">batch_size</span>, <span class="variable">seq_len</span> = token_ids.<span class="function">shape</span>
+        
+        <span class="comment"># Get token embeddings (WHAT)</span>
+        <span class="variable">tok_embeddings</span> = <span class="variable">self</span>.tok_emb(token_ids)  <span class="comment"># (batch, seq_len, emb_dim)</span>
+        
+        <span class="comment"># Get positional embeddings (WHERE)</span>
+        <span class="variable">positions</span> = torch.<span class="function">arange</span>(seq_len, device=token_ids.device)
+        <span class="variable">pos_embeddings</span> = <span class="variable">self</span>.pos_emb(positions)  <span class="comment"># (seq_len, emb_dim)</span>
+        
+        <span class="comment"># Combine them (element-wise addition)</span>
+        <span class="variable">final_embeddings</span> = tok_embeddings + pos_embeddings
+        
+        <span class="keyword">return</span> final_embeddings  <span class="comment"># (batch, seq_len, emb_dim)</span>
+
+<span class="comment"># Example usage with GPT-2 dimensions</span>
+<span class="variable">embedding_layer</span> = <span class="function">GPTEmbedding</span>(
+    vocab_size=<span class="number">50257</span>,  <span class="comment"># GPT-2 vocabulary</span>
+    max_len=<span class="number">1024</span>,      <span class="comment"># Maximum sequence length</span>
+    emb_dim=<span class="number">768</span>        <span class="comment"># Embedding dimension</span>
+)</code></pre>
+            </div>
+
+            <div class="highlight-box" style="margin-top: 2rem;">
+                <strong>What Happens Next?</strong> These combined embeddings (shape: batch_size × seq_len × 768) flow
+                into the transformer blocks, where self-attention mechanisms process them to generate predictions. But
+                that's a story for another chapter!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function generatePseudoEmbedding(id, dim = 8, seed = 42) {
+            const values = [];
+            for (let i = 0; i < dim; i++) {
+                const val = Math.sin(id * 0.1 + i * 0.3 + seed) * 0.5;
+                values.push(parseFloat(val.toFixed(3)));
+            }
+            return values;
+        }
+
+        function generatePositionalEmbedding(pos, dim = 8, seed = 100) {
+            const values = [];
+            for (let i = 0; i < dim; i++) {
+                const val = Math.cos(pos * 0.2 + i * 0.4 + seed) * 0.5;
+                values.push(parseFloat(val.toFixed(3)));
+            }
+            return values;
+        }
+
+        function displayVectorTable(containerId, values, type = 'token') {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            values.forEach((value, i) => {
+                const cell = document.createElement('div');
+                cell.className = `vector-cell ${type}`;
+                cell.innerHTML = `
+                    <div class="cell-index">Dim ${i}</div>
+                    <div class="cell-value">${value.toFixed(3)}</div>
+                `;
+                container.appendChild(cell);
+            });
+        }
+
+        // Step 2: Token Embeddings
+        const wordButtons = document.querySelectorAll('.word-button');
+        const tokenDisplay = document.getElementById('tokenEmbeddingDisplay');
+
+        wordButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                wordButtons.forEach(b => b.classList.remove('selected'));
+                button.classList.add('selected');
+
+                const word = button.getAttribute('data-word');
+                const id = parseInt(button.getAttribute('data-id'));
+
+                document.getElementById('selectedWord').textContent = word;
+                document.getElementById('selectedTokenId').textContent = id;
+                document.getElementById('repeatWord').textContent = word;
+
+                const embedding = generatePseudoEmbedding(id);
+                displayVectorTable('tokenVectorTable', embedding, 'token');
+
+                tokenDisplay.style.display = 'block';
+                tokenDisplay.classList.add('pulse');
+                setTimeout(() => tokenDisplay.classList.remove('pulse'), 600);
+            });
+        });
+
+        // Step 3: Positional Embeddings
+        const positionGrid = document.getElementById('positionGrid');
+        const posDisplay = document.getElementById('posEmbeddingDisplay');
+
+        for (let i = 0; i < 8; i++) {
+            const box = document.createElement('div');
+            box.className = 'position-box';
+            box.innerHTML = `
+                <div class="position-label">Position</div>
+                <div class="position-number">${i}</div>
+            `;
+
+            box.addEventListener('click', () => {
+                document.querySelectorAll('.position-box').forEach(b => b.classList.remove('selected'));
+                box.classList.add('selected');
+
+                document.getElementById('selectedPosition').textContent = i;
+                document.getElementById('repeatPosition').textContent = i;
+
+                const embedding = generatePositionalEmbedding(i);
+                displayVectorTable('posVectorTable', embedding, 'position');
+
+                posDisplay.style.display = 'block';
+                posDisplay.classList.add('pulse');
+                setTimeout(() => posDisplay.classList.remove('pulse'), 600);
+            });
+
+            positionGrid.appendChild(box);
+        }
+
+        // Step 4: Combined Embeddings
+        const sentenceData = [
+            { word: "Hello", id: 15496, pos: 0 },
+            { word: ",", id: 11, pos: 1 },
+            { word: "I", id: 314, pos: 2 },
+            { word: "am", id: 716, pos: 3 }
+        ];
+
+        const sentenceTokens = document.getElementById('sentenceTokens');
+        const additionVisual = document.getElementById('additionVisual');
+
+        sentenceData.forEach((token) => {
+            const tokenEl = document.createElement('div');
+            tokenEl.className = 'sentence-token';
+            tokenEl.innerHTML = `
+                <div class="token-box">
+                    <div class="token-word">${token.word}</div>
+                    <div class="token-position">Position ${token.pos}</div>
+                </div>
+            `;
+
+            tokenEl.addEventListener('click', () => {
+                document.querySelectorAll('.token-box').forEach(b => b.classList.remove('active'));
+                tokenEl.querySelector('.token-box').classList.add('active');
+
+                const tokEmb = generatePseudoEmbedding(token.id);
+                const posEmb = generatePositionalEmbedding(token.pos);
+                const finalEmb = tokEmb.map((val, i) => val + posEmb[i]);
+
+                // Display addition rows
+                const rowsContainer = document.getElementById('additionRows');
+                rowsContainer.innerHTML = '';
+
+                // Show first 4 dimensions
+                for (let i = 0; i < 4; i++) {
+                    const row = document.createElement('div');
+                    row.className = 'addition-row';
+                    row.innerHTML = `
+                        <div class="addition-cell token">
+                            <div class="addition-value">${tokEmb[i].toFixed(3)}</div>
+                            <div class="addition-label">Token[${i}]</div>
+                        </div>
+                        <div class="addition-cell position">
+                            <div class="addition-value">${posEmb[i].toFixed(3)}</div>
+                            <div class="addition-label">Position[${i}]</div>
+                        </div>
+                        <div class="addition-cell combined">
+                            <div class="addition-value">${finalEmb[i].toFixed(3)}</div>
+                            <div class="addition-label">Final[${i}]</div>
+                        </div>
+                        <div style="text-align: center; align-self: center; font-size: 14px; color: var(--muted);">
+                            ${tokEmb[i].toFixed(3)} + ${posEmb[i].toFixed(3)} = ${finalEmb[i].toFixed(3)}
+                        </div>
+                    `;
+                    rowsContainer.appendChild(row);
+                }
+
+                additionVisual.style.display = 'block';
+                additionVisual.classList.add('pulse');
+                setTimeout(() => additionVisual.classList.remove('pulse'), 600);
+            });
+
+            sentenceTokens.appendChild(tokenEl);
+        });
+
+        // Auto-select first items on load
+        document.addEventListener('DOMContentLoaded', () => {
+            wordButtons[0].click();
+            positionGrid.querySelector('.position-box').click();
+            sentenceTokens.querySelector('.sentence-token').click();
+        });
+    </script>
+</body>
+
+</html>

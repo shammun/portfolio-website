@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Tokenization Flow for LLM Fine-Tuning</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            /* Background */
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f5f7ff;
+            
+            /* Step themes */
+            --orange-theme: #f97316;
+            --purple-theme: #8b5cf6;
+            --teal-theme: #14b8a6;
+            
+            /* Typography */
+            --text-dark: #1e293b;
+            --text-gray: #64748b;
+            --text-muted: #94a3b8;
+            
+            /* UI Elements */
+            --border-light: #e2e8f0;
+            --white: #ffffff;
+            --code-bg: #1e293b;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            color: var(--text-dark);
+            padding-bottom: 80px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 12px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-gray);
+            font-weight: 400;
+        }
+        
+        /* Step Navigation */
+        .step-navigation {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 8px rgba(139, 92, 246, 0.12);
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .step-cards {
+            display: inline-flex;
+            gap: 12px;
+            min-width: min-content;
+        }
+        
+        .step-card {
+            min-width: 140px;
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid var(--border-light);
+            background: var(--white);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .step-card.active {
+            border-color: var(--orange-theme);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+        
+        .step-card.active.theme-purple {
+            border-color: var(--purple-theme);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+        
+        .step-card.active.theme-teal {
+            border-color: var(--teal-theme);
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+        }
+        
+        .step-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .step-number {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        
+        .step-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .zoom-controls {
+            display: flex;
+            gap: 8px;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 2px solid var(--border-light);
+        }
+        
+        .controls button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            background: var(--white);
+            color: var(--text-dark);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+        
+        .controls button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+        }
+        
+        #playBtn {
+            background: var(--purple-theme);
+            color: white;
+        }
+        
+        #playBtn:hover {
+            background: #7c3aed;
+        }
+        
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 24px;
+            min-height: 600px;
+        }
+        
+        /* Visualization Panel */
+        .viz-panel {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 8px rgba(139, 92, 246, 0.12);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #mainViz {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Responsive scaling for SVG content */
+        @media (max-width: 1400px) {
+            #mainViz {
+                transform: scale(0.9);
+                transform-origin: center center;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            #mainViz {
+                transform: scale(0.85);
+                transform-origin: center center;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            #mainViz {
+                transform: scale(0.75);
+                transform-origin: center center;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #mainViz {
+                transform: scale(0.65);
+                transform-origin: center center;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            #mainViz {
+                transform: scale(0.55);
+                transform-origin: center center;
+            }
+        }
+        
+        /* Info Panel */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        .explanation {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 8px rgba(139, 92, 246, 0.12);
+            flex: 1;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+        
+        .explanation h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-dark);
+        }
+        
+        .explanation p {
+            font-size: 14px;
+            margin-bottom: 16px;
+            color: var(--text-gray);
+        }
+        
+        .key-insight {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .key-insight h4 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e40af;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .key-insight p {
+            font-size: 13px;
+            color: #1e40af;
+            margin: 0;
+        }
+        
+        .key-takeaway {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-left: 4px solid #22c55e;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .key-takeaway h4 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #15803d;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .key-takeaway p {
+            font-size: 13px;
+            color: #15803d;
+            margin: 0;
+        }
+        
+        /* Code Section */
+        .code-section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(139, 92, 246, 0.12);
+            max-height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .code-header span {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        
+        #viewFullCodeBtn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--purple-theme);
+            background: transparent;
+            color: var(--purple-theme);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #viewFullCodeBtn:hover {
+            background: var(--purple-theme);
+            color: white;
+        }
+        
+        .code-section pre {
+            margin: 0;
+            overflow-x: auto;
+            flex: 1;
+        }
+        
+        .code-section code {
+            font-size: 13px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--white);
+            border-radius: 16px;
+            max-width: 1000px;
+            width: 90%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+        
+        #closeModal {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            background: var(--text-gray);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        #closeModal:hover {
+            background: var(--text-dark);
+        }
+        
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .modal-body pre {
+            margin: 0;
+        }
+        
+        .modal-body code {
+            font-size: 13px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+        
+        .code-highlight {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%);
+            border-left: 3px solid #8b5cf6;
+            display: block;
+            margin-left: -12px;
+            padding-left: 9px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1199px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .viz-panel {
+                min-height: 400px;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            h1 {
+                font-size: 24px;
+            }
+            
+            .step-card {
+                min-width: 120px;
+            }
+            
+            .controls {
+                flex-wrap: wrap;
+            }
+            
+            .container {
+                padding: 20px 16px;
+            }
+        }
+        
+        /* SVG Styles */
+        .token-box {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .token-box:hover rect {
+            filter: brightness(0.95);
+        }
+        
+        .sequence-label {
+            font-weight: 600;
+            fill: var(--text-dark);
+        }
+        
+        .arrow {
+            stroke: var(--text-muted);
+            stroke-width: 2;
+            fill: none;
+            marker-end: url(#arrowhead);
+        }
+        
+        /* Animation */
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>Interactive Tokenization Flow for LLM Fine-Tuning</h1>
+            <p class="subtitle">Understanding the Custom Collate Function Pipeline</p>
+        </header>
+        
+        <!-- Step Navigation -->
+        <div class="step-navigation">
+            <div class="step-cards" id="stepCards"></div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls">
+            <button id="prevBtn">← Previous</button>
+            <button id="playBtn">▶ Play</button>
+            <button id="nextBtn">Next →</button>
+            <div class="zoom-controls">
+                <button id="zoomOutBtn" title="Zoom Out">🔍−</button>
+                <button id="zoomResetBtn" title="Reset Zoom">100%</button>
+                <button id="zoomInBtn" title="Zoom In">🔍+</button>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left: Visualization -->
+            <div class="viz-panel">
+                <svg id="mainViz" viewBox="0 0 800 500"></svg>
+            </div>
+            
+            <!-- Right: Info -->
+            <div class="info-panel">
+                <!-- Top: Explanation -->
+                <div class="explanation" id="explanation"></div>
+                
+                <!-- Bottom: Code -->
+                <div class="code-section">
+                    <div class="code-header">
+                        <span>💻 PyTorch Logic</span>
+                        <button id="viewFullCodeBtn">View Full Code</button>
+                    </div>
+                    <pre><code class="language-python" id="codeSnippet"></code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal -->
+    <div id="codeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📝 Complete Custom Collate Function</h2>
+                <button id="closeModal">✕ Close</button>
+            </div>
+            <div class="modal-body">
+                <pre><code class="language-python" id="fullCode"></code></pre>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    
+    <script>
+        // State management
+        let currentStep = 0;
+        let isPlaying = false;
+        let playInterval;
+        let zoomLevel = 1.0; // Default zoom level
+        
+        // Full code for modal
+        const fullCode = `# ============================================================
+# COMPLETE CODE: Tokenization Flow for LLM Fine-Tuning
+# ============================================================
+
+import torch
+from torch.utils.data import Dataset, DataLoader
+from functools import partial
+import tiktoken
+
+# ============================================================
+# STEP 1: Raw Dataset
+# ============================================================
+
+# Original instruction-output pairs from training data
+train_data = [
+    {
+        "instruction": "Translate hello to French",
+        "input": "",
+        "output": "bonjour"
+    },
+    {
+        "instruction": "What is 2+2?",
+        "input": "",
+        "output": "4"
+    },
+    {
+        "instruction": "Summarize this text",
+        "input": "The quick brown fox...",
+        "output": "A fox jumped"
+    }
+]
+
+# ============================================================
+# STEP 2: Format Text
+# ============================================================
+
+def format_input(entry):
+    instruction_text = (
+        f"Below is an instruction that describes a task. "
+        f"Write a response that appropriately completes the request."
+        f"\\n\\n### Instruction:\\n{entry['instruction']}"
+    )
+    input_text = (
+        f"\\n\\n### Input:\\n{entry['input']}" if entry["input"] else ""
+    )
+    return instruction_text + input_text
+
+# ============================================================
+# STEP 3: Tokenize - InstructionDataset Class
+# ============================================================
+
+# Initialize tokenizer
+tokenizer = tiktoken.get_encoding("gpt2")
+# The <|endoftext|> token ID is 50256
+
+class InstructionDataset(Dataset):
+    """Dataset class that formats and tokenizes instruction data."""
+    
+    def __init__(self, data, tokenizer):
+        self.data = data
+        self.encoded_texts = []
+        
+        # Process each entry
+        for entry in self.data:
+            # Format the text
+            instruction_plus_input = format_input(entry)
+            response_text = f"\\n\\n### Response: \\n{entry['output']}"
+            full_text = instruction_plus_input + response_text
+            
+            # Tokenize and store
+            self.encoded_texts.append(tokenizer.encode(full_text))
+    
+    def __getitem__(self, index):
+        return self.encoded_texts[index]
+    
+    def __len__(self):
+        return len(self.data)
+
+# ============================================================
+# STEPS 4-7: Custom Collate Function
+# ============================================================
+
+def custom_collate_fn(
+    batch,
+    pad_token_id=50256,        # <|endoftext|> token ID
+    ignore_index=-100,         # Value to ignore in loss calculation
+    allowed_max_length=None,   # Optional maximum sequence length
+    device="cpu"               # Device to load tensors on
+):
+    """
+    Custom collate function for batching variable-length sequences.
+    
+    This function:
+    1. Pads sequences to the same length (STEP 4)
+    2. Creates shifted targets for next-token prediction (STEP 5)
+    3. Masks extra padding tokens to ignore them in loss (STEP 6-7)
+    
+    Args:
+        batch: List of token ID sequences
+        pad_token_id: Token ID for padding (default: 50256)
+        ignore_index: Value to replace extra padding in targets (default: -100)
+        allowed_max_length: Optional maximum sequence length
+        device: Device to place tensors on
+    
+    Returns:
+        inputs_tensor: Padded input sequences (batch_size, seq_len)
+        targets_tensor: Shifted target sequences with masked padding
+    """
+    
+    # STEP 4: Calculate maximum length in this batch (add 1 for EOS token)
+    batch_max_length = max(len(item) + 1 for item in batch)
+    
+    inputs_lst, targets_lst = [], []
+    
+    # Process each sequence in the batch
+    for item in batch:
+        # Add EOS token to the sequence
+        new_item = item.copy()
+        new_item += [pad_token_id]
+        
+        # Pad to batch maximum length
+        padded = new_item + [pad_token_id] * (batch_max_length - len(new_item))
+        
+        # STEP 5: Create inputs and targets (shifted by one position)
+        inputs = torch.tensor(padded[:-1])   # All except last token
+        targets = torch.tensor(padded[1:])   # All except first token
+        
+        # STEP 6: Find padding token positions
+        mask = targets == pad_token_id
+        indices = torch.nonzero(mask).squeeze()
+        
+        # STEP 7: Replace all padding tokens except the first with ignore_index
+        # Keep first EOS token so model learns when to stop generating
+        if indices.numel() > 1:
+            targets[indices[1:]] = ignore_index
+        
+        # Optional truncation to maximum allowed length
+        if allowed_max_length is not None:
+            inputs = inputs[:allowed_max_length]
+            targets = targets[:allowed_max_length]
+        
+        inputs_lst.append(inputs)
+        targets_lst.append(targets)
+    
+    # Stack all sequences and move to device
+    inputs_tensor = torch.stack(inputs_lst).to(device)
+    targets_tensor = torch.stack(targets_lst).to(device)
+    
+    return inputs_tensor, targets_tensor
+
+# ============================================================
+# STEP 8: Using Everything Together
+# ============================================================
+
+# Create dataset
+train_dataset = InstructionDataset(train_data, tokenizer)
+
+# Create customized collate function with device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+customized_collate_fn = partial(
+    custom_collate_fn,
+    device=device,
+    allowed_max_length=1024
+)
+
+# Create DataLoader
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=8,
+    shuffle=True,
+    collate_fn=customized_collate_fn,
+    drop_last=True
+)
+
+# Training loop
+model = YourLanguageModel()  # Your model here
+optimizer = torch.optim.AdamW(model.parameters(), lr=5e-5)
+
+for epoch in range(num_epochs):
+    model.train()
+    
+    for inputs, targets in train_loader:
+        # Forward pass
+        logits = model(inputs)
+        
+        # Calculate loss (ignores -100 tokens automatically)
+        loss = torch.nn.functional.cross_entropy(
+            logits.view(-1, model.vocab_size),
+            targets.view(-1),
+            ignore_index=-100
+        )
+        
+        # Backward pass
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+        
+        print(f"Epoch {epoch}, Loss: {loss.item():.4f}")`;
+        
+        // Step data
+        const steps = [
+            {
+                id: 1,
+                title: "Raw Input Examples",
+                icon: "📝",
+                theme: "orange",
+                explanation: `
+                    <h2>Step 1: Raw Input Examples</h2>
+                    <p>In instruction fine-tuning, we start with raw text examples consisting of instructions and their corresponding responses. Each training example contains an <strong>instruction</strong> (what we want the model to do) and a <strong>response</strong> (what the model should generate). Some instructions may also include additional input context.</p>
+                    
+                    <p>Unlike classification tasks where we only need the final output, instruction fine-tuning requires the model to learn to generate entire response sequences token by token.</p>
+                    
+                    <p><strong>Teaching Connection:</strong> Think of this as your raw training data before any processing. Just like how you need to prepare ingredients before cooking, we need to format this data before the model can learn from it.</p>
+                `,
+                code: `# Example training data structure
+train_data = [
+    {
+        "instruction": "Translate hello to French",
+        "input": "",
+        "output": "bonjour"
+    },
+    {
+        "instruction": "What is 2+2?",
+        "input": "",
+        "output": "4"
+    },
+    {
+        "instruction": "Summarize this text",
+        "input": "The quick brown fox...",
+        "output": "A fox jumped"
+    }
+]`,
+                visualizationFn: renderStep1,
+                codeHighlightLines: [15, 31] // Raw dataset lines in full code
+            },
+            {
+                id: 2,
+                title: "Format with Template",
+                icon: "📋",
+                theme: "orange",
+                explanation: `
+                    <h2>Step 2: Format with Template</h2>
+                    <p>The custom collate function first formats each training example using a standardized template. This template structure (with '### Instruction:', '### Input:', '### Response:' markers) helps the model understand the different components of each training example. The formatting is consistent across all examples, teaching the model to recognize and respond to instructions.</p>
+                    
+                    <p>The template structure is crucial for instruction-following models. The consistent format helps the model learn to distinguish between what it's being asked to do (instruction) and what it should generate (response).</p>
+                    
+                    <p><strong>Teaching Connection:</strong> This is similar to filling out a form with specific sections. The consistent structure helps the model learn patterns: when it sees '### Instruction:', it knows what's coming is the task description.</p>
+                `,
+                code: `def format_input(entry):
+    instruction_text = (
+        f"Below is an instruction that describes a task. "
+        f"Write a response that appropriately completes the request."
+        f"\\n\\n### Instruction:\\n{entry['instruction']}"
+    )
+    input_text = (
+        f"\\n\\n### Input:\\n{entry['input']}" if entry["input"] else ""
+    )
+    return instruction_text + input_text
+
+# Example usage:
+# entry = {"instruction": "Translate hello to French", "input": "", "output": "bonjour"}
+# formatted = format_input(entry)
+# Then add response: formatted + f"\\n\\n### Response:\\n{entry['output']}"`,
+                visualizationFn: renderStep2,
+                codeHighlightLines: [35, 44] // Format input function
+            },
+            {
+                id: 3,
+                title: "Tokenize Text",
+                icon: "🔢",
+                theme: "orange",
+                explanation: `
+                    <h2>Step 3: Tokenize Text</h2>
+                    <p>The formatted text is converted into token IDs using the model's tokenizer (GPT-2 BPE tokenizer in this case). Each word or subword is mapped to a unique numerical ID that the model can process. For example, the word 'instruction' might be split into multiple tokens like ['inst', 'ruction'] and converted to IDs [12064, 326]. This tokenization is reversible - we can convert token IDs back to text.</p>
+                    
+                    <p>Tokenization is how we bridge human-readable text and machine-processable numbers. The GPT-2 tokenizer uses Byte-Pair Encoding (BPE), which can break words into smaller pieces, allowing it to handle any word, even ones it's never seen before.</p>
+                    
+                    <p><strong>Teaching Connection:</strong> Think of tokenization like translating English to numbers. Just as 'A=1, B=2, C=3' is a simple code, tokenization is a more sophisticated mapping where each token (word piece) gets a unique number.</p>
+                `,
+                code: `import tiktoken
+
+# Initialize tokenizer
+tokenizer = tiktoken.get_encoding("gpt2")
+# The <|endoftext|> token ID is 50256
+
+class InstructionDataset(Dataset):
+    """Dataset class that formats and tokenizes instruction data."""
+    
+    def __init__(self, data, tokenizer):
+        self.data = data
+        self.encoded_texts = []
+        
+        # Process each entry
+        for entry in self.data:
+            # Format the text
+            instruction_plus_input = format_input(entry)
+            response_text = f"\\n\\n### Response: \\n{entry['output']}"
+            full_text = instruction_plus_input + response_text
+            
+            # Tokenize and store
+            self.encoded_texts.append(tokenizer.encode(full_text))
+    
+    def __getitem__(self, index):
+        return self.encoded_texts[index]
+    
+    def __len__(self):
+        return len(self.data)`,
+                visualizationFn: renderStep3,
+                codeHighlightLines: [48, 76] // InstructionDataset class with tokenization
+            },
+            {
+                id: 4,
+                title: "Add Padding Tokens",
+                icon: "📦",
+                theme: "purple",
+                explanation: `
+                    <h2>Step 4: Add Padding Tokens</h2>
+                    <p>Neural networks require all examples in a batch to have the same shape. Since our tokenized sequences have different lengths, we pad shorter sequences with a special padding token (ID 50256, which is the end-of-text token in GPT-2). Each batch is padded to match the length of the longest sequence in that batch. This is more efficient than padding all sequences in the entire dataset to the global maximum length.</p>
+                    
+                    <p>Batch-level padding (padding to the longest sequence in each batch) is smarter than dataset-level padding (padding everything to the global maximum). It minimizes unnecessary padding, saving memory and computation. A batch of short sequences won't be padded as much as a batch with one very long sequence.</p>
+                    
+                    <p><strong>Teaching Connection:</strong> Imagine trying to stack books of different heights on a shelf. To make them fit neatly, you'd add spacers under the shorter books. Padding tokens are like those spacers - they're not real content, just placeholders to make everything line up for efficient processing.</p>
+                `,
+                code: `def custom_collate_draft_1(batch, pad_token_id=50256):
+    # Find the maximum length in this batch
+    batch_max_length = max(len(item)+1 for item in batch)
+    inputs_lst = []
+
+    for item in batch:
+        new_item = item.copy()
+        new_item += [pad_token_id]  # Add one padding
+        
+        # Pad to batch_max_length
+        padded = new_item + [pad_token_id] * \\
+                 (batch_max_length - len(new_item))
+        inputs = torch.tensor(padded[:-1])
+        inputs_lst.append(inputs)
+
+    return torch.stack(inputs_lst)`,
+                visualizationFn: renderStep4,
+                codeHighlightLines: [110, 120] // Padding logic in custom_collate_fn
+            },
+            {
+                id: 5,
+                title: "Create Target Sequences",
+                icon: "➡️",
+                theme: "purple",
+                explanation: `
+                    <h2>Step 5: Create Target Sequences</h2>
+                    <p>For language modeling, we create target sequences by shifting the input sequence by one position to the right. This teaches the model next-token prediction: given tokens [0, 1, 2, 3], the model learns to predict [1, 2, 3, 4]. At each position, the model sees all previous tokens and predicts the next one. The last token in the target sequence is a padding token (50256), which will later be masked out during training.</p>
+                    
+                    <p>Next-token prediction is the core mechanism of autoregressive language models. By learning to predict each token from previous context, the model learns language patterns, grammar, and even reasoning. During inference, we repeatedly predict the next token and add it to the sequence, generating text one token at a time.</p>
+                    
+                    <p><strong>Teaching Connection:</strong> This is like teaching someone to complete sentences. You show them 'The cat sat on the...' and they learn to predict 'mat'. By shifting inputs to create targets, we create thousands of these prediction tasks from a single sequence. The model learns: token 0 → predict token 1, tokens [0,1] → predict token 2, and so on.</p>
+                `,
+                code: `# Inside custom_collate_fn, after padding:
+
+# STEP 5: Create inputs and targets (shifted by one position)
+inputs = torch.tensor(padded[:-1])   # All except last token
+targets = torch.tensor(padded[1:])   # All except first token
+
+# Example:
+# If padded = [0, 1, 2, 3, 4, 50256]
+# Then:
+#   inputs  = [0, 1, 2, 3, 4]      (predict next token)
+#   targets = [1, 2, 3, 4, 50256]  (what to predict)
+#
+# This creates next-token prediction:
+#   - Given token 0, predict token 1
+#   - Given token 1, predict token 2
+#   - Given token 4, predict token 50256 (EOS - stop)`,
+                visualizationFn: renderStep5,
+                codeHighlightLines: [124, 126] // Creating shifted targets
+            },
+            {
+                id: 6,
+                title: "Replace Padding with -100",
+                icon: "🎭",
+                theme: "teal",
+                explanation: `
+                    <h2>Step 6: Replace Padding with -100 in Targets</h2>
+                    <p>We replace all but the first padding token (50256) in each target sequence with -100. This special value tells PyTorch's loss function to ignore these positions when calculating the training loss. Why? Because padding tokens are artificial - they're not real content the model should learn to predict. However, we keep the first end-of-text token because we want the model to learn when to stop generating (i.e., when to produce the end-of-text token).</p>
+                    
+                    <p>The -100 token is PyTorch's special 'ignore index' for loss calculation. When computing cross-entropy loss, any target positions with -100 are completely excluded from the gradient calculation. This ensures the model only learns from real content, not from artificial padding. Without this masking, the model would waste capacity trying to predict padding tokens.</p>
+                    
+                    <p><strong>Teaching Connection:</strong> Imagine grading a test where some questions are just filler. You wouldn't count those toward the student's score. Similarly, -100 tells the model 'don't learn from this' - it's excluded from the loss calculation, so the model's weights aren't updated based on these positions.</p>
+                `,
+                code: `# Inside custom_collate_fn, after creating targets:
+
+# STEP 6: Find padding token positions
+mask = targets == pad_token_id
+indices = torch.nonzero(mask).squeeze()
+
+# STEP 7: Replace all but the first occurrence with -100
+# Keep first EOS token so model learns when to stop generating
+if indices.numel() > 1:
+    targets[indices[1:]] = ignore_index
+
+# Example result:
+# Before: [6, 50256, 50256, 50256, 50256]
+# After:  [6, 50256, -100,  -100,  -100]
+#            ↑      ↑        ↑ masked (ignored in loss)
+#         learns  learns
+#         token   to stop`,
+                visualizationFn: renderStep6,
+                codeHighlightLines: [128, 135] // Masking padding tokens with -100
+            },
+            {
+                id: 7,
+                title: "Why Keep First EOS?",
+                icon: "🛑",
+                theme: "teal",
+                explanation: `
+                    <h2>Step 7: Why Keep the First End-of-Text Token?</h2>
+                    <p>The first occurrence of the end-of-text token (50256) in each target sequence represents the natural end of the response. We keep this token (not replace with -100) so the model learns to generate it at the appropriate time. This is crucial for instruction fine-tuning: the model needs to know when its response is complete. Without learning to generate end-of-text tokens, the model would continue generating indefinitely during inference.</p>
+                    
+                    <p>Teaching the model to generate end-of-text tokens is teaching it 'conversation boundaries.' Just like humans know when to stop talking, the model learns when its answer is complete. The subsequent padding tokens (replaced with -100) are artificial - they only exist to make batch dimensions match, not to teach stopping behavior.</p>
+                    
+                    <p><strong>Teaching Connection:</strong> Think of writing an essay. You need to learn where to put the period at the end - that's the first end-of-text token. But if the teacher adds extra blank lines after your essay to make all papers the same length, you shouldn't learn to write blank lines. Those extra spaces (subsequent padding) are administrative, marked with -100 to be ignored.</p>
+                `,
+                code: `# During inference:
+model.generate(..., eos_token_id=50256)
+# Generation stops when model produces 50256
+
+# Without learning EOS:
+# "bonjour merci oui non ..." → NEVER STOPS ✗
+
+# With learning EOS:
+# "bonjour" → (generates 50256) → STOPS ✓
+
+# First 50256: Natural end → model learns
+# Subsequent 50256: Artificial padding → ignored`,
+                visualizationFn: renderStep7,
+                codeHighlightLines: [128, 135] // Same masking logic - shows why we keep first EOS
+            },
+            {
+                id: 8,
+                title: "Final Input-Target Pairs",
+                icon: "✅",
+                theme: "teal",
+                explanation: `
+                    <h2>Step 8: Final Input-Target Pairs Ready for Training</h2>
+                    <p>The final input-target pairs are now ready for training. Each batch contains padded input sequences and corresponding target sequences where artificial padding is masked with -100. When these batches are fed to the model:</p>
+                    <p><strong>Forward Pass:</strong> The model sees the input tokens and predicts the next token at each position<br>
+                    <strong>Loss Calculation:</strong> Cross-entropy loss is computed only for positions where target ≠ -100<br>
+                    <strong>Backward Pass:</strong> Gradients are calculated and weights updated based only on real content<br>
+                    <strong>Efficiency:</strong> By padding at the batch level, we minimize wasted computation</p>
+                    
+                    <p>The custom collate function is the bridge between raw text and trainable batches. It handles three critical responsibilities: (1) formatting data with templates, (2) padding sequences for efficient batch processing, and (3) masking padding tokens to prevent the model from learning spurious patterns. This pipeline enables efficient instruction fine-tuning at scale.</p>
+                    
+                    <p><strong>Teaching Connection:</strong> This is like the final meal prep before serving. We've chopped the ingredients (tokenization), arranged them on plates (padding), marked which items are just garnish (masking), and now the plates are ready to be served to the model. The model 'eats' the inputs, 'digests' them (forward pass), and 'learns' from the real food (targets), ignoring the garnish (padding).</p>
+                `,
+                code: `# Training loop integration
+for batch_idx, (inputs, targets) in enumerate(train_loader):
+    # inputs: (batch_size, seq_len) - padded sequences
+    # targets: (batch_size, seq_len) - shifted with -100 masking
+    
+    # Forward pass
+    logits = model(inputs)
+    
+    # Loss calculation (ignores -100 positions)
+    loss = torch.nn.functional.cross_entropy(
+        logits.view(-1, logits.size(-1)),
+        targets.view(-1),
+        ignore_index=-100  # Positions with -100 ignored
+    )
+    
+    # Backward pass and optimization
+    loss.backward()
+    optimizer.step()
+    optimizer.zero_grad()`,
+                visualizationFn: renderStep8,
+                codeHighlightLines: [158, 197] // Complete DataLoader setup and training loop
+            }
+        ];
+        
+        // Initialize
+        function init() {
+            renderStepCards();
+            renderCurrentStep();
+            setupEventListeners();
+        }
+        
+        // Render step cards
+        function renderStepCards() {
+            const container = document.getElementById('stepCards');
+            container.innerHTML = steps.map((step, idx) => `
+                <div class="step-card ${idx === currentStep ? 'active' : ''} theme-${step.theme}" data-step="${idx}">
+                    <div class="step-icon">${step.icon}</div>
+                    <div class="step-number">STEP ${step.id}</div>
+                    <div class="step-title">${step.title}</div>
+                </div>
+            `).join('');
+        }
+        
+        // Render current step
+        function renderCurrentStep() {
+            const step = steps[currentStep];
+            
+            // Update active step card
+            document.querySelectorAll('.step-card').forEach((card, idx) => {
+                card.classList.toggle('active', idx === currentStep);
+            });
+            
+            // Update explanation
+            const explanation = document.getElementById('explanation');
+            explanation.innerHTML = step.explanation;
+            explanation.classList.add('fade-in');
+            setTimeout(() => explanation.classList.remove('fade-in'), 500);
+            
+            // Update code
+            const codeSnippet = document.getElementById('codeSnippet');
+            codeSnippet.textContent = step.code;
+            Prism.highlightElement(codeSnippet);
+            
+            // Update visualization
+            const svg = document.getElementById('mainViz');
+            svg.innerHTML = '';
+            step.visualizationFn(svg);
+            
+            // Update button states
+            document.getElementById('prevBtn').disabled = currentStep === 0;
+            document.getElementById('nextBtn').disabled = currentStep === steps.length - 1;
+        }
+        
+        // Navigation
+        function nextStep() {
+            if (currentStep < steps.length - 1) {
+                currentStep++;
+                renderCurrentStep();
+            } else if (isPlaying) {
+                stopAutoPlay();
+            }
+        }
+        
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                renderCurrentStep();
+                if (isPlaying) stopAutoPlay();
+            }
+        }
+        
+        function goToStep(stepIndex) {
+            if (stepIndex >= 0 && stepIndex < steps.length) {
+                currentStep = stepIndex;
+                renderCurrentStep();
+                if (isPlaying) stopAutoPlay();
+            }
+        }
+        
+        // Auto-play
+        function toggleAutoPlay() {
+            if (isPlaying) {
+                stopAutoPlay();
+            } else {
+                startAutoPlay();
+            }
+        }
+        
+        function startAutoPlay() {
+            isPlaying = true;
+            document.getElementById('playBtn').textContent = '⏸ Pause';
+            playInterval = setInterval(() => {
+                if (currentStep < steps.length - 1) {
+                    nextStep();
+                } else {
+                    stopAutoPlay();
+                }
+            }, 3000);
+        }
+        
+        function stopAutoPlay() {
+            isPlaying = false;
+            document.getElementById('playBtn').textContent = '▶ Play';
+            clearInterval(playInterval);
+        }
+        
+        // Zoom controls
+        function zoomIn() {
+            zoomLevel = Math.min(zoomLevel + 0.1, 1.5); // Max 150%
+            applyZoom();
+        }
+        
+        function zoomOut() {
+            zoomLevel = Math.max(zoomLevel - 0.1, 0.5); // Min 50%
+            applyZoom();
+        }
+        
+        function zoomReset() {
+            zoomLevel = 1.0;
+            applyZoom();
+        }
+        
+        function applyZoom() {
+            const svg = document.getElementById('mainViz');
+            svg.style.transform = `scale(${zoomLevel})`;
+            svg.style.transformOrigin = 'center center';
+            
+            // Update button text to show current zoom level
+            document.getElementById('zoomResetBtn').textContent = `${Math.round(zoomLevel * 100)}%`;
+        }
+        
+        // Event listeners
+        function setupEventListeners() {
+            document.getElementById('prevBtn').addEventListener('click', prevStep);
+            document.getElementById('nextBtn').addEventListener('click', nextStep);
+            document.getElementById('playBtn').addEventListener('click', toggleAutoPlay);
+            
+            // Zoom controls
+            document.getElementById('zoomInBtn').addEventListener('click', zoomIn);
+            document.getElementById('zoomOutBtn').addEventListener('click', zoomOut);
+            document.getElementById('zoomResetBtn').addEventListener('click', zoomReset);
+            
+            document.getElementById('stepCards').addEventListener('click', (e) => {
+                const card = e.target.closest('.step-card');
+                if (card) {
+                    const stepIndex = parseInt(card.dataset.step);
+                    goToStep(stepIndex);
+                }
+            });
+            
+            document.getElementById('viewFullCodeBtn').addEventListener('click', openCodeModal);
+            document.getElementById('closeModal').addEventListener('click', closeCodeModal);
+            document.getElementById('codeModal').addEventListener('click', (e) => {
+                if (e.target.id === 'codeModal') closeCodeModal();
+            });
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') nextStep();
+                if (e.key === 'ArrowLeft') prevStep();
+                if (e.key === 'Escape') closeCodeModal();
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    toggleAutoPlay();
+                }
+                // Zoom shortcuts
+                if (e.key === '+' || e.key === '=') {
+                    e.preventDefault();
+                    zoomIn();
+                }
+                if (e.key === '-' || e.key === '_') {
+                    e.preventDefault();
+                    zoomOut();
+                }
+                if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    zoomReset();
+                }
+            });
+        }
+        
+        // Modal
+        function openCodeModal() {
+            const modal = document.getElementById('codeModal');
+            const fullCodeEl = document.getElementById('fullCode');
+            fullCodeEl.textContent = fullCode;
+            Prism.highlightElement(fullCodeEl);
+            
+            // Highlight relevant lines for current step
+            highlightRelevantLines();
+            
+            modal.classList.add('active');
+        }
+        
+        function highlightRelevantLines() {
+            const step = steps[currentStep];
+            if (!step.codeHighlightLines) return;
+            
+            const [startLine, endLine] = step.codeHighlightLines;
+            const fullCodeEl = document.getElementById('fullCode');
+            const lines = fullCodeEl.innerHTML.split('\n');
+            
+            // Add highlighting class to relevant lines
+            for (let i = startLine - 1; i < endLine && i < lines.length; i++) {
+                lines[i] = '<span class="code-highlight">' + lines[i] + '</span>';
+            }
+            
+            fullCodeEl.innerHTML = lines.join('\n');
+            
+            // Scroll to highlighted section
+            setTimeout(() => {
+                const highlightedLine = fullCodeEl.querySelector('.code-highlight');
+                if (highlightedLine) {
+                    highlightedLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+        
+        function closeCodeModal() {
+            document.getElementById('codeModal').classList.remove('active');
+        }
+        
+        // Visualization functions
+        function renderStep1(svg) {
+            const examples = [
+                { instruction: "Convert this to uppercase", input: "hello world", response: "HELLO WORLD" },
+                { instruction: "Summarize this text", input: "Long paragraph about climate...", response: "Climate change summary..." },
+                { instruction: "Translate to French", input: "Good morning", response: "Bonjour" }
+            ];
+            
+            const cardWidth = 240;
+            const cardHeight = 160;
+            const gap = 20;
+            const startX = (800 - (cardWidth * 3 + gap * 2)) / 2;
+            
+            examples.forEach((ex, i) => {
+                const x = startX + i * (cardWidth + gap);
+                const y = 150;
+                
+                // Card background
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', x);
+                rect.setAttribute('y', y);
+                rect.setAttribute('width', cardWidth);
+                rect.setAttribute('height', cardHeight);
+                rect.setAttribute('rx', 8);
+                rect.setAttribute('fill', '#fff');
+                rect.setAttribute('stroke', '#e2e8f0');
+                rect.setAttribute('stroke-width', 2);
+                g.appendChild(rect);
+                
+                // Title
+                const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                title.setAttribute('x', x + cardWidth / 2);
+                title.setAttribute('y', y + 28);
+                title.setAttribute('text-anchor', 'middle');
+                title.setAttribute('font-size', '14');
+                title.setAttribute('font-weight', '700');
+                title.setAttribute('fill', '#f97316');
+                title.textContent = `Example ${i + 1}`;
+                g.appendChild(title);
+                
+                // Instruction
+                addText(g, x + 12, y + 58, 'Instruction:', '#64748b', 12, 600);
+                addText(g, x + 12, y + 76, truncate(ex.instruction, 23), '#1e293b', 11);
+                
+                // Input
+                addText(g, x + 12, y + 100, 'Input:', '#64748b', 12, 600);
+                addText(g, x + 12, y + 118, truncate(ex.input, 23), '#1e293b', 11);
+                
+                // Response
+                addText(g, x + 12, y + 142, 'Response:', '#64748b', 12, 600);
+                addText(g, x + 12, y + 160, truncate(ex.response, 23), '#1e293b', 11);
+                
+                svg.appendChild(g);
+            });
+            
+            // Title
+            addText(svg, 400, 80, 'Raw Training Examples', '#1e293b', 20, 700, 'middle');
+        }
+        
+        function renderStep2(svg) {
+            // Before box
+            const beforeX = 50;
+            const beforeY = 80;
+            
+            addText(svg, beforeX, beforeY, 'BEFORE (Separate Fields)', '#64748b', 14, 700);
+            
+            const beforeRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            beforeRect.setAttribute('x', beforeX);
+            beforeRect.setAttribute('y', beforeY + 15);
+            beforeRect.setAttribute('width', 300);
+            beforeRect.setAttribute('height', 130);
+            beforeRect.setAttribute('rx', 8);
+            beforeRect.setAttribute('fill', '#fef3c7');
+            beforeRect.setAttribute('stroke', '#f59e0b');
+            beforeRect.setAttribute('stroke-width', 2);
+            svg.appendChild(beforeRect);
+            
+            addText(svg, beforeX + 12, beforeY + 42, 'Instruction: "Convert to uppercase"', '#92400e', 11);
+            addText(svg, beforeX + 12, beforeY + 65, 'Input: "hello world"', '#92400e', 11);
+            addText(svg, beforeX + 12, beforeY + 88, 'Response: "HELLO WORLD"', '#92400e', 11);
+            
+            // Arrow
+            const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            arrow.setAttribute('d', 'M 360 145 L 430 145');
+            arrow.setAttribute('stroke', '#8b5cf6');
+            arrow.setAttribute('stroke-width', 3);
+            arrow.setAttribute('fill', 'none');
+            arrow.setAttribute('marker-end', 'url(#arrowhead)');
+            svg.appendChild(arrow);
+            
+            addText(svg, 395, 130, 'Format', '#8b5cf6', 13, 700, 'middle');
+            
+            // After box
+            const afterX = 450;
+            const afterY = 80;
+            
+            addText(svg, afterX, afterY, 'AFTER (Formatted Template)', '#64748b', 14, 700);
+            
+            const afterRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            afterRect.setAttribute('x', afterX);
+            afterRect.setAttribute('y', afterY + 15);
+            afterRect.setAttribute('width', 300);
+            afterRect.setAttribute('height', 320);
+            afterRect.setAttribute('rx', 8);
+            afterRect.setAttribute('fill', '#dbeafe');
+            afterRect.setAttribute('stroke', '#3b82f6');
+            afterRect.setAttribute('stroke-width', 2);
+            svg.appendChild(afterRect);
+            
+            let textY = afterY + 38;
+            const lineHeight = 18;
+            const lines = [
+                'Below is an instruction that describes',
+                'a task. Write a response...',
+                '',
+                '### Instruction:',
+                'Convert to uppercase',
+                '',
+                '### Input:',
+                'hello world',
+                '',
+                '### Response:',
+                'HELLO WORLD'
+            ];
+            
+            lines.forEach(line => {
+                const color = line.startsWith('###') ? '#1e40af' : '#1e3a8a';
+                const weight = line.startsWith('###') ? 700 : 400;
+                addText(svg, afterX + 12, textY, line, color, 11, weight);
+                textY += lineHeight;
+            });
+            
+            // Define arrowhead marker
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', 10);
+            marker.setAttribute('markerHeight', 10);
+            marker.setAttribute('refX', 9);
+            marker.setAttribute('refY', 3);
+            marker.setAttribute('orient', 'auto');
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', '0 0, 10 3, 0 6');
+            polygon.setAttribute('fill', '#8b5cf6');
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+        }
+        
+        function renderStep3(svg) {
+            addText(svg, 400, 50, 'Text → Token IDs', '#1e293b', 18, 700, 'middle');
+            
+            const textY = 120;
+            const tokenY = 280;
+            
+            // Text representation
+            const textSegments = [
+                { text: '"Below is an..."', tokens: '[21106, 318, 281...]' },
+                { text: '"### Instruction:"', tokens: '[198, 21017, 46486...]' },
+                { text: '"Convert this..."', tokens: '[3103, 1653, 284...]' },
+                { text: '"hello world"', tokens: '[31373, 995...]' },
+                { text: '"HELLO WORLD"', tokens: '[39, 28, 3698...]' }
+            ];
+            
+            textSegments.forEach((seg, i) => {
+                const x = 100 + i * 130;
+                
+                // Text box
+                const textRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                textRect.setAttribute('x', x);
+                textRect.setAttribute('y', textY);
+                textRect.setAttribute('width', 110);
+                textRect.setAttribute('height', 50);
+                textRect.setAttribute('rx', 6);
+                textRect.setAttribute('fill', '#fef3c7');
+                textRect.setAttribute('stroke', '#f59e0b');
+                textRect.setAttribute('stroke-width', 2);
+                svg.appendChild(textRect);
+                
+                addText(svg, x + 55, textY + 30, seg.text, '#92400e', 9, 400, 'middle');
+                
+                // Arrow
+                const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                arrow.setAttribute('x1', x + 55);
+                arrow.setAttribute('y1', textY + 60);
+                arrow.setAttribute('x2', x + 55);
+                arrow.setAttribute('y2', tokenY - 10);
+                arrow.setAttribute('stroke', '#8b5cf6');
+                arrow.setAttribute('stroke-width', 2);
+                arrow.setAttribute('marker-end', 'url(#arrowhead)');
+                svg.appendChild(arrow);
+                
+                // Token box
+                const tokenRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                tokenRect.setAttribute('x', x);
+                tokenRect.setAttribute('y', tokenY);
+                tokenRect.setAttribute('width', 110);
+                tokenRect.setAttribute('height', 60);
+                tokenRect.setAttribute('rx', 6);
+                tokenRect.setAttribute('fill', '#dbeafe');
+                tokenRect.setAttribute('stroke', '#3b82f6');
+                tokenRect.setAttribute('stroke-width', 2);
+                svg.appendChild(tokenRect);
+                
+                addText(svg, x + 55, tokenY + 35, seg.tokens, '#1e40af', 8, 400, 'middle');
+            });
+            
+            addText(svg, 400, 200, '↓ Tokenize ↓', '#8b5cf6', 14, 700, 'middle');
+        }
+        
+        function renderStep4(svg) {
+            addText(svg, 400, 35, 'Adding Padding Tokens to Match Batch Length', '#1e293b', 15, 700, 'middle');
+            
+            const sequences = [
+                { tokens: [0, 1, 2, 3, 4], label: 'Sequence 1' },
+                { tokens: [5, 6], label: 'Sequence 2' },
+                { tokens: [7, 8, 9], label: 'Sequence 3' }
+            ];
+            
+            const maxLen = 5;
+            const boxSize = 45;
+            const gap = 6;
+            const startY = 110;
+            
+            // Section headers (only once at the top)
+            addText(svg, 220, 75, 'BEFORE', '#64748b', 12, 700, 'middle');
+            addText(svg, 570, 75, 'AFTER (padded to 5)', '#64748b', 12, 700, 'middle');
+            
+            sequences.forEach((seq, i) => {
+                const y = startY + i * 100;
+                
+                // Sequence label on far left
+                addText(svg, 30, y + boxSize / 2 + 5, seq.label + ':', '#64748b', 11, 600);
+                
+                // BEFORE section - tokens
+                const beforeX = 130;
+                seq.tokens.forEach((token, j) => {
+                    const x = beforeX + j * (boxSize + gap);
+                    drawTokenBox(svg, x, y, boxSize, token, '#dbeafe', '#3b82f6', 11);
+                });
+                
+                // Length label - below the boxes
+                const labelX = beforeX + (seq.tokens.length * (boxSize + gap)) / 2;
+                addText(svg, labelX, y + boxSize + 18, `(length: ${seq.tokens.length})`, '#94a3b8', 9, 400, 'middle');
+                
+                // AFTER section - with padding
+                const afterX = 480;
+                for (let j = 0; j < maxLen; j++) {
+                    const x = afterX + j * (boxSize + gap);
+                    const token = j < seq.tokens.length ? seq.tokens[j] : 50256;
+                    const isPadding = j >= seq.tokens.length;
+                    drawTokenBox(svg, x, y, boxSize, token, 
+                        isPadding ? '#fef3c7' : '#dbeafe', 
+                        isPadding ? '#f59e0b' : '#3b82f6', 11);
+                }
+            });
+            
+            // Legend at bottom
+            const legendY = 440;
+            const legendX = 200;
+            
+            drawTokenBox(svg, legendX, legendY, 40, '50256', '#fef3c7', '#f59e0b', 10);
+            addText(svg, legendX + 50, legendY + 25, 'Padding token (end-of-text)', '#64748b', 11);
+            
+            drawTokenBox(svg, legendX + 320, legendY, 40, 'N', '#dbeafe', '#3b82f6', 10);
+            addText(svg, legendX + 370, legendY + 25, 'Real content token', '#64748b', 11);
+        }
+        
+        function renderStep5(svg) {
+            addText(svg, 400, 40, 'Creating Target Sequences (Shift by 1)', '#1e293b', 18, 700, 'middle');
+            
+            const sequences = [
+                { input: [0, 1, 2, 3, 4], target: [1, 2, 3, 4, 50256] },
+                { input: [5, 6, 50256, 50256, 50256], target: [6, 50256, 50256, 50256, 50256] },
+                { input: [7, 8, 9, 50256, 50256], target: [8, 9, 50256, 50256, 50256] }
+            ];
+            
+            const boxSize = 50;
+            const gap = 8;
+            const startY = 100;
+            
+            // Center the content
+            const totalWidth = 5 * (boxSize + gap) - gap; // 5 boxes width
+            const labelWidth = 80; // Width for "Input:" and "Target:" labels
+            const contentStartX = (800 - totalWidth - labelWidth) / 2;
+            
+            sequences.forEach((seq, i) => {
+                const y = startY + i * 120;
+                
+                // Input label
+                addText(svg, contentStartX, y + 30, 'Input:', '#f97316', 14, 700);
+                
+                // Input sequence
+                const inputX = contentStartX + labelWidth;
+                seq.input.forEach((token, j) => {
+                    const x = inputX + j * (boxSize + gap);
+                    const isPadding = token === 50256;
+                    drawTokenBox(svg, x, y, boxSize, token, 
+                        isPadding ? '#fef3c7' : '#dbeafe',
+                        isPadding ? '#f59e0b' : '#3b82f6', 12);
+                });
+                
+                // Target label
+                addText(svg, contentStartX, y + 95, 'Target:', '#14b8a6', 14, 700);
+                
+                // Target sequence
+                const targetY = y + 65;
+                seq.target.forEach((token, j) => {
+                    const x = inputX + j * (boxSize + gap);
+                    const isPadding = token === 50256;
+                    drawTokenBox(svg, x, targetY, boxSize, token,
+                        isPadding ? '#fef3c7' : '#d1fae5',
+                        isPadding ? '#f59e0b' : '#10b981', 12);
+                    
+                    // Draw arrow showing shift
+                    if (j < seq.input.length) {
+                        const arrowX = x + boxSize / 2;
+                        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        arrow.setAttribute('x1', arrowX);
+                        arrow.setAttribute('y1', y + boxSize + 2);
+                        arrow.setAttribute('x2', arrowX);
+                        arrow.setAttribute('y2', targetY - 2);
+                        arrow.setAttribute('stroke', '#94a3b8');
+                        arrow.setAttribute('stroke-width', 2);
+                        arrow.setAttribute('marker-end', 'url(#arrowhead-small)');
+                        svg.appendChild(arrow);
+                    }
+                });
+            });
+            
+            // Explanation - centered at bottom
+            addText(svg, 400, 475, 'Each input token predicts the next token in the target', '#64748b', 13, 400, 'middle');
+            
+            // Small arrowhead for shift arrows
+            const defs = document.querySelector('defs') || document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', 'arrowhead-small');
+            marker.setAttribute('markerWidth', 6);
+            marker.setAttribute('markerHeight', 6);
+            marker.setAttribute('refX', 5);
+            marker.setAttribute('refY', 3);
+            marker.setAttribute('orient', 'auto');
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', '0 0, 6 3, 0 6');
+            polygon.setAttribute('fill', '#94a3b8');
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+            if (!svg.querySelector('defs')) svg.appendChild(defs);
+        }
+        
+        function renderStep6(svg) {
+            addText(svg, 400, 35, 'Masking Padding in Targets with -100', '#1e293b', 16, 700, 'middle');
+            
+            const sequences = [
+                { before: [6, 50256, 50256, 50256, 50256], after: [6, 50256, -100, -100, -100], label: 'Target 2' }
+            ];
+            
+            const boxSize = 65;
+            const gap = 12;
+            
+            // Show only one clear example
+            const seq = sequences[0];
+            
+            // BEFORE section
+            const beforeY = 100;
+            addText(svg, 400, beforeY, 'BEFORE (All padding tokens are 50256):', '#dc2626', 14, 700, 'middle');
+            
+            const beforeBoxY = beforeY + 30;
+            const startX = (800 - (boxSize * 5 + gap * 4)) / 2;
+            
+            seq.before.forEach((token, j) => {
+                const x = startX + j * (boxSize + gap);
+                const color = token === 50256 ? '#fef3c7' : '#d1fae5';
+                const stroke = token === 50256 ? '#f59e0b' : '#10b981';
+                const strokeWidth = 3;
+                
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', x);
+                rect.setAttribute('y', beforeBoxY);
+                rect.setAttribute('width', boxSize);
+                rect.setAttribute('height', boxSize);
+                rect.setAttribute('rx', 6);
+                rect.setAttribute('fill', color);
+                rect.setAttribute('stroke', stroke);
+                rect.setAttribute('stroke-width', strokeWidth);
+                svg.appendChild(rect);
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x + boxSize / 2);
+                text.setAttribute('y', beforeBoxY + boxSize / 2 + 6);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '14');
+                text.setAttribute('font-weight', '700');
+                text.setAttribute('fill', '#1e293b');
+                text.textContent = token;
+                svg.appendChild(text);
+                
+                // Add label below
+                if (j === 0) {
+                    addText(svg, x + boxSize / 2, beforeBoxY + boxSize + 20, 'Real', '#15803d', 11, 700, 'middle');
+                    addText(svg, x + boxSize / 2, beforeBoxY + boxSize + 35, 'token', '#15803d', 11, 700, 'middle');
+                } else if (j === 1) {
+                    addText(svg, x + boxSize / 2, beforeBoxY + boxSize + 20, 'First', '#f59e0b', 11, 700, 'middle');
+                    addText(svg, x + boxSize / 2, beforeBoxY + boxSize + 35, 'EOS', '#f59e0b', 11, 700, 'middle');
+                } else {
+                    addText(svg, x + boxSize / 2, beforeBoxY + boxSize + 20, 'Padding', '#f59e0b', 11, 700, 'middle');
+                    addText(svg, x + boxSize / 2, beforeBoxY + boxSize + 35, `#${j}`, '#f59e0b', 11, 700, 'middle');
+                }
+            });
+            
+            // Arrow with annotation
+            const arrowY = 270;
+            addText(svg, 400, arrowY, '↓', '#8b5cf6', 24, 700, 'middle');
+            addText(svg, 400, arrowY + 25, 'Replace all but FIRST 50256 with -100', '#8b5cf6', 13, 700, 'middle');
+            addText(svg, 400, arrowY + 42, '↓', '#8b5cf6', 24, 700, 'middle');
+            
+            // AFTER section
+            const afterY = 320;
+            addText(svg, 400, afterY, 'AFTER (Subsequent padding masked as -100):', '#15803d', 14, 700, 'middle');
+            
+            const afterBoxY = afterY + 30;
+            
+            seq.after.forEach((token, j) => {
+                const x = startX + j * (boxSize + gap);
+                let color, stroke;
+                if (token === -100) {
+                    color = '#f1f5f9';
+                    stroke = '#94a3b8';
+                } else if (token === 50256) {
+                    color = '#fef3c7';
+                    stroke = '#f59e0b';
+                } else {
+                    color = '#d1fae5';
+                    stroke = '#10b981';
+                }
+                const strokeWidth = 3;
+                
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', x);
+                rect.setAttribute('y', afterBoxY);
+                rect.setAttribute('width', boxSize);
+                rect.setAttribute('height', boxSize);
+                rect.setAttribute('rx', 6);
+                rect.setAttribute('fill', color);
+                rect.setAttribute('stroke', stroke);
+                rect.setAttribute('stroke-width', strokeWidth);
+                svg.appendChild(rect);
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x + boxSize / 2);
+                text.setAttribute('y', afterBoxY + boxSize / 2 + 6);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '13');
+                text.setAttribute('font-weight', '700');
+                text.setAttribute('fill', '#1e293b');
+                text.textContent = token;
+                svg.appendChild(text);
+                
+                // Add label below with status
+                if (j === 0) {
+                    addText(svg, x + boxSize / 2, afterBoxY + boxSize + 20, '✓ Learns', '#15803d', 11, 700, 'middle');
+                } else if (j === 1) {
+                    addText(svg, x + boxSize / 2, afterBoxY + boxSize + 20, '✓ Learns', '#f59e0b', 11, 700, 'middle');
+                    addText(svg, x + boxSize / 2, afterBoxY + boxSize + 35, 'to stop', '#f59e0b', 10, 700, 'middle');
+                } else {
+                    addText(svg, x + boxSize / 2, afterBoxY + boxSize + 20, '✗ Ignored', '#dc2626', 11, 700, 'middle');
+                    addText(svg, x + boxSize / 2, afterBoxY + boxSize + 35, 'in loss', '#dc2626', 10, 700, 'middle');
+                }
+            });
+        }
+        
+        function renderStep7(svg) {
+            addText(svg, 400, 40, 'Why Keep the First End-of-Text Token?', '#1e293b', 18, 700, 'middle');
+            
+            // Example target
+            const tokens = [6, 50256, -100, -100, -100];
+            const labels = ['Real', 'First EOS', 'Masked', 'Masked', 'Masked'];
+            const sublabels = ['Learn', '✓ Learn', '✗ Ignore', '✗ Ignore', '✗ Ignore'];
+            
+            const boxSize = 75;
+            const gap = 12;
+            const startX = (800 - (boxSize * 5 + gap * 4)) / 2;
+            const y = 120;
+            
+            tokens.forEach((token, i) => {
+                const x = startX + i * (boxSize + gap);
+                let color, stroke;
+                if (token === -100) {
+                    color = '#f1f5f9';
+                    stroke = '#94a3b8';
+                } else if (token === 50256) {
+                    color = '#fef3c7';
+                    stroke = '#f59e0b';
+                } else {
+                    color = '#d1fae5';
+                    stroke = '#10b981';
+                }
+                
+                drawTokenBox(svg, x, y, boxSize, token, color, stroke, 14);
+                
+                // Label
+                addText(svg, x + boxSize / 2, y - 10, labels[i], '#64748b', 12, 600, 'middle');
+                addText(svg, x + boxSize / 2, y + boxSize + 22, sublabels[i], 
+                    i === 1 ? '#15803d' : i === 0 ? '#15803d' : '#dc2626', 13, 700, 'middle');
+            });
+            
+            // Inference examples
+            const exampleY = 260;
+            
+            // Without EOS
+            addText(svg, 100, exampleY, 'WITHOUT Learning EOS:', '#dc2626', 15, 700);
+            const withoutBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            withoutBox.setAttribute('x', 100);
+            withoutBox.setAttribute('y', exampleY + 10);
+            withoutBox.setAttribute('width', 600);
+            withoutBox.setAttribute('height', 65);
+            withoutBox.setAttribute('rx', 8);
+            withoutBox.setAttribute('fill', '#fee2e2');
+            withoutBox.setAttribute('stroke', '#dc2626');
+            withoutBox.setAttribute('stroke-width', 2);
+            svg.appendChild(withoutBox);
+            
+            addText(svg, 110, exampleY + 38, 'User: "Translate hello to French"', '#7f1d1d', 12);
+            addText(svg, 110, exampleY + 58, 'Model: "bonjour merci oui non ..." → NEVER STOPS ✗', '#7f1d1d', 12, 700);
+            
+            // With EOS
+            const withY = exampleY + 95;
+            addText(svg, 100, withY, 'WITH Learning EOS:', '#15803d', 15, 700);
+            const withBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            withBox.setAttribute('x', 100);
+            withBox.setAttribute('y', withY + 10);
+            withBox.setAttribute('width', 600);
+            withBox.setAttribute('height', 65);
+            withBox.setAttribute('rx', 8);
+            withBox.setAttribute('fill', '#dcfce7');
+            withBox.setAttribute('stroke', '#15803d');
+            withBox.setAttribute('stroke-width', 2);
+            svg.appendChild(withBox);
+            
+            addText(svg, 110, withY + 38, 'User: "Translate hello to French"', '#14532d', 12);
+            addText(svg, 110, withY + 58, 'Model: "bonjour" → (generates 50256) → STOPS ✓', '#14532d', 12, 700);
+        }
+        
+        function renderStep8(svg) {
+            addText(svg, 400, 30, 'Final Batch Ready for Training', '#1e293b', 16, 700, 'middle');
+            
+            // Inputs section
+            const sectionHeaderX = 250;
+            addText(svg, sectionHeaderX, 70, 'INPUTS (what model sees):', '#f97316', 12, 700);
+            
+            const inputs = [
+                [0, 1, 2, 3, 4],
+                [5, 6, 50256, 50256, 50256],
+                [7, 8, 9, 50256, 50256]
+            ];
+            
+            const boxSize = 38;
+            const gap = 5;
+            const inputStartY = 95;
+            
+            // Center the content
+            const totalWidth = 5 * (boxSize + gap) - gap; // 5 boxes width
+            const labelWidth = 55; // Width for "Seq X:" label
+            const contentStartX = (800 - totalWidth - labelWidth) / 2;
+            
+            inputs.forEach((seq, i) => {
+                const y = inputStartY + i * (boxSize + 12);
+                addText(svg, contentStartX, y + 24, `Seq ${i + 1}:`, '#64748b', 10, 600);
+                
+                seq.forEach((token, j) => {
+                    const x = contentStartX + labelWidth + j * (boxSize + gap);
+                    const isPadding = token === 50256;
+                    drawTokenBox(svg, x, y, boxSize, token,
+                        isPadding ? '#fef3c7' : '#dbeafe',
+                        isPadding ? '#f59e0b' : '#3b82f6', 9);
+                });
+            });
+            
+            // Targets section
+            const targetStartY = 265;
+            addText(svg, sectionHeaderX, targetStartY - 15, 'TARGETS (what model should predict):', '#14b8a6', 12, 700);
+            
+            const targets = [
+                [1, 2, 3, 4, 50256],
+                [6, 50256, -100, -100, -100],
+                [8, 9, 50256, -100, -100]
+            ];
+            
+            targets.forEach((seq, i) => {
+                const y = targetStartY + i * (boxSize + 12);
+                addText(svg, contentStartX, y + 24, `Seq ${i + 1}:`, '#64748b', 10, 600);
+                
+                seq.forEach((token, j) => {
+                    const x = contentStartX + labelWidth + j * (boxSize + gap);
+                    let color, stroke;
+                    if (token === -100) {
+                        color = '#f1f5f9';
+                        stroke = '#94a3b8';
+                    } else if (token === 50256) {
+                        color = '#fef3c7';
+                        stroke = '#f59e0b';
+                    } else {
+                        color = '#d1fae5';
+                        stroke = '#10b981';
+                    }
+                    drawTokenBox(svg, x, y, boxSize, token, color, stroke, 9);
+                });
+            });
+            
+            // Stats - centered
+            addText(svg, 400, 420, 'Batch shape: (3 sequences, 5 tokens)', '#64748b', 10, 600, 'middle');
+            addText(svg, 400, 438, 'Effective training tokens: 5 + 2 + 3 = 10', '#15803d', 10, 700, 'middle');
+            addText(svg, 400, 456, 'Masked tokens: 0 + 3 + 2 = 5 (ignored)', '#dc2626', 10, 700, 'middle');
+        }
+        
+        // Helper functions
+        function drawTokenBox(svg, x, y, size, token, fill, stroke, fontSize = 11) {
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.classList.add('token-box');
+            
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', x);
+            rect.setAttribute('y', y);
+            rect.setAttribute('width', size);
+            rect.setAttribute('height', size);
+            rect.setAttribute('rx', 4);
+            rect.setAttribute('fill', fill);
+            rect.setAttribute('stroke', stroke);
+            rect.setAttribute('stroke-width', 2);
+            g.appendChild(rect);
+            
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', x + size / 2);
+            text.setAttribute('y', y + size / 2 + 4);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', fontSize);
+            text.setAttribute('font-weight', '600');
+            text.setAttribute('fill', '#1e293b');
+            text.textContent = token;
+            g.appendChild(text);
+            
+            svg.appendChild(g);
+        }
+        
+        function addText(svg, x, y, content, fill, size, weight = 400, anchor = 'start') {
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', y);
+            text.setAttribute('fill', fill);
+            text.setAttribute('font-size', size);
+            text.setAttribute('font-weight', weight);
+            text.setAttribute('text-anchor', anchor);
+            text.textContent = content;
+            svg.appendChild(text);
+            return text;
+        }
+        
+        function truncate(str, maxLen) {
+            return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

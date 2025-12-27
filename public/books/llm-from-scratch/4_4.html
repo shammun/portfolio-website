@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFN: Dimension Transformation Flow</title>
+    <!-- Prism.js for Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            
+            --accent-primary: #8b5cf6; /* Violet */
+            --accent-light: #f5f3ff;
+            --accent-border: #c4b5fd;
+            
+            --orange-primary: #f97316;
+            --teal-primary: #14b8a6;
+
+            --border-color: #e2e8f0;
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-rows: auto auto auto 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+            min-height: 850px; /* Added minimum height to prevent cut-off */
+        }
+
+        header { display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-size: 1.5rem; margin: 0; color: var(--text-primary); }
+        .subtitle { color: var(--text-secondary); font-size: 0.9rem; }
+
+        /* Controls */
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-card);
+            flex-wrap: wrap;
+            gap: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .config-group { display: flex; gap: 15px; align-items: center; }
+        .select-wrapper { display: flex; flex-direction: column; gap: 4px; }
+        .select-wrapper label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+        
+        select {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: #f8fafc;
+            color: var(--text-primary);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .playback-controls { display: flex; gap: 8px; }
+        .playback-controls button {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .playback-controls button:hover { background: var(--accent-light); color: var(--accent-primary); border-color: var(--accent-border); }
+        .playback-controls button.primary { background: var(--accent-primary); color: white; border: none; }
+        .playback-controls button.primary:hover { background: #7c3aed; }
+
+        /* Step Nav */
+        .step-nav { display: flex; gap: 12px; overflow-x: auto; padding: 4px; scrollbar-width: thin; }
+        .step-card {
+            flex: 0 0 160px;
+            background: var(--card-bg);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .step-card:hover { transform: translateY(-2px); }
+        .step-card.active { border-color: var(--accent-primary); box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15); }
+        
+        .step-card.cat-input { border-top: 3px solid var(--orange-primary); }
+        .step-card.cat-transform { border-top: 3px solid var(--accent-primary); }
+        .step-card.cat-output { border-top: 3px solid var(--teal-primary); }
+        
+        .step-num { font-size: 0.7rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px; }
+        .step-title { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+
+        /* Main Content */
+        .main-content { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; min-height: 0; }
+
+        .viz-panel {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow-card);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        #ffn-svg { width: 100%; height: 100%; min-height: 400px; }
+
+        /* Info Panel */
+        .info-panel { display: flex; flex-direction: column; gap: 15px; height: 100%; min-height: 0; overflow: hidden; }
+        
+        .explanation-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-color);
+            flex: 0 0 auto;
+            border-left: 4px solid transparent;
+        }
+        .explanation-card.cat-input { border-left-color: var(--orange-primary); }
+        .explanation-card.cat-transform { border-left-color: var(--accent-primary); }
+        .explanation-card.cat-output { border-left-color: var(--teal-primary); }
+
+        .step-badge { background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; display: inline-block; }
+        .description-text { line-height: 1.6; font-size: 0.95rem; color: #334155; margin-bottom: 15px; }
+        .insight-box { background: #fdfce7; border: 1px solid #fde047; padding: 12px; border-radius: 8px; font-size: 0.9rem; color: #854d0e; }
+        .insight-box.math { background: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
+
+        /* Code Preview Area */
+        .code-preview {
+            background: #1e293b;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #334155;
+            flex: 1; /* Take remaining height */
+            position: relative;
+        }
+
+        .code-header {
+            background: #0f172a;
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            z-index: 10;
+        }
+
+        .code-title { color: #94a3b8; font-size: 0.75rem; font-family: monospace; }
+        
+        .header-btn-group { display: flex; gap: 8px; }
+
+        .header-btn {
+            background: transparent;
+            border: 1px solid #475569;
+            color: #cbd5e1;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .header-btn:hover { background: #334155; color: white; border-color: #64748b; }
+
+        /* Code Container - Main View */
+        .code-container {
+            position: relative;
+            flex: 1;
+            overflow: auto;
+            scrollbar-width: thin;
+            background: #1e293b;
+        }
+
+        pre { 
+            margin: 0 !important; 
+            padding: 15px !important; 
+            position: relative; 
+            z-index: 2; 
+            background: transparent !important;
+            font-family: 'Consolas', monospace !important;
+            font-size: 0.85rem !important; 
+            line-height: 1.5 !important;
+        }
+        
+        code { font-family: 'Consolas', monospace !important; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #1e293b;
+            width: 90%; max-width: 900px; height: 85vh;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #334155;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f172a;
+            border-radius: 12px 12px 0 0;
+        }
+        .modal-header h3 { color: #f1f5f9; margin: 0; font-size: 1.1rem; }
+        .close-btn { background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; }
+        .close-btn:hover { color: white; }
+        .modal-body { 
+            flex: 1; 
+            overflow: hidden; 
+            position: relative; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Modal Highlighting Infrastructure */
+        .modal-code-wrapper {
+            position: relative;
+            flex: 1;
+            overflow: auto;
+            background: #1e293b;
+        }
+
+        .highlight-layer {
+            position: absolute;
+            top: 15px; /* Matches pre padding-top */
+            left: 0;
+            width: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .highlight-row {
+            width: 100%;
+            height: 1.275rem; /* Matches line-height 1.5 of 0.85rem font */
+            transition: background 0.2s;
+        }
+
+        .highlight-row.active {
+            background: rgba(139, 92, 246, 0.25);
+            border-left: 3px solid #8b5cf6;
+        }
+
+        .modal-pre {
+            position: relative;
+            z-index: 2;
+            margin: 0;
+            padding: 15px;
+            background: transparent !important;
+            font-family: 'Consolas', monospace;
+            line-height: 1.5;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content { grid-template-columns: 1fr; grid-template-rows: 400px auto; }
+            .container { height: auto; display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <h1>FeedForward Network Flow</h1>
+            <div class="subtitle">"Expand-Transform-Compress" Architecture</div>
+        </div>
+    </header>
+
+    <!-- Controls -->
+    <div class="controls-bar">
+        <div class="config-group">
+            <div class="select-wrapper">
+                <label>Batch Size</label>
+                <select id="batchSize" onchange="updateConfig()">
+                    <option value="1">1</option>
+                    <option value="2" selected>2</option>
+                    <option value="4">4</option>
+                </select>
+            </div>
+            <div class="select-wrapper">
+                <label>Seq Length</label>
+                <select id="seqLen" onchange="updateConfig()">
+                    <option value="1">1</option>
+                    <option value="4" selected>4</option>
+                    <option value="16">16</option>
+                </select>
+            </div>
+            <div class="select-wrapper">
+                <label>Embed Dim</label>
+                <select id="embDim" onchange="updateConfig()">
+                    <option value="256">256</option>
+                    <option value="512">512</option>
+                    <option value="768" selected>768</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="playback-controls">
+            <button onclick="changeStep(-1)">← Prev</button>
+            <button class="primary" id="playBtn" onclick="togglePlay()">Play ▶</button>
+            <button onclick="changeStep(1)">Next →</button>
+        </div>
+    </div>
+
+    <!-- Step Nav -->
+    <div class="step-nav" id="stepNav"></div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Visualization -->
+        <div class="viz-panel">
+            <svg id="ffn-svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+                <g id="connections-layer"></g>
+                <g id="nodes-layer"></g>
+                <g id="animations-layer"></g>
+            </svg>
+            <div id="svgTooltip" class="svg-tooltip"></div>
+        </div>
+
+        <!-- Info & Code -->
+        <div class="info-panel">
+            <div id="explanationCard" class="explanation-card cat-input">
+                <span class="step-badge" id="stepBadge">Step 1</span>
+                <h3 id="stepTitle">Input Tensor</h3>
+                <div class="description-text" id="stepDesc"></div>
+                <div id="extraContent"></div>
+            </div>
+
+            <div class="code-preview">
+                <div class="code-header">
+                    <span class="code-title">Relevant Snippet</span>
+                    <div class="header-btn-group">
+                        <button class="header-btn" onclick="openModal()">View Full Code</button>
+                        <button class="header-btn" onclick="copyCode()">Copy</button>
+                    </div>
+                </div>
+                <div class="code-container" id="codeContainer">
+                    <pre><code id="codeBlock" class="language-python"></code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Full Code -->
+<div id="fullCodeModal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Complete Implementation</h3>
+            <button class="close-btn" onclick="closeModal(event)">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-code-wrapper" id="modalCodeWrapper">
+                <div class="highlight-layer" id="modalHighlightLayer">
+                    <!-- Rows generated by JS -->
+                </div>
+                <pre class="modal-pre"><code id="fullModalCode" class="language-python">import torch
+import torch.nn as nn
+import math
+
+class GELU(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        # Precise Gaussian Error Linear Unit approximation
+        return 0.5 * x * (1 + torch.tanh(torch.sqrt(torch.tensor(2.0 / torch.pi)) *
+                                         (x + 0.044715 * torch.pow(x, 3))
+                                         ))
+
+class FeedForward(nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+        # Expansion: emb_dim -> 4 * emb_dim
+        self.linear1 = nn.Linear(cfg["emb_dim"], 4 * cfg["emb_dim"]) 
+        self.act = GELU()
+        # Compression: 4 * emb_dim -> emb_dim
+        self.linear2 = nn.Linear(4 * cfg["emb_dim"], cfg["emb_dim"])
+
+    def forward(self, x):
+        # Input: [batch_size, seq_len, emb_dim]
+        x = self.linear1(x) 
+        x = self.act(x)     
+        x = self.linear2(x) 
+        return x            
+
+# Example Usage
+cfg = {"emb_dim": 768}
+model = FeedForward(cfg)
+x = torch.randn(2, 4, 768)
+out = model(x)
+print(out.shape) # [2, 4, 768]</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+<script>
+    // --- STATE & DATA ---
+    const state = {
+        step: 0,
+        isPlaying: false,
+        timer: null,
+        config: { batch: 2, seq: 4, emb: 768 }
+    };
+
+    // Code snippets and FULL CODE LINE MAPPING (0-indexed)
+    // Based on the full code in the modal
+    const steps = [
+        {
+            id: 0,
+            title: "Input Tensor",
+            category: "cat-input",
+            desc: "The input tensor consists of independent token vectors. The FFN processes each token separately.",
+            insight: "💡 <strong>Key Concept:</strong> No mixing between tokens happens here. Only dimensions change.",
+            vizFocus: 'input',
+            snippet: `# Input Tensor Initialization
+x = torch.randn(batch_size, seq_len, emb_dim)
+# Shape: [batch_size, seq_len, emb_dim]`,
+            modalLines: [33] // x = torch.randn... (Index 33 is line 34)
+        },
+        {
+            id: 1,
+            title: "Linear 1: Expansion",
+            category: "cat-transform",
+            desc: "The first layer projects input to 4x dimensions (Expansion Phase).",
+            insight: "🌍 <strong>Analogy:</strong> Like unpacking a compressed file to work on the details.",
+            vizFocus: 'linear1',
+            snippet: `# Expansion Layer Definition
+self.linear1 = nn.Linear(emb_dim, 4 * emb_dim)
+# Weight Matrix: [4*emb_dim, emb_dim]`,
+            modalLines: [18, 25] // self.linear1 (line 19) and usage (line 26)
+        },
+        {
+            id: 2,
+            title: "Expanded Hidden State",
+            category: "cat-transform",
+            desc: "Data now lives in a high-dimensional space (3072 dims for GPT-2 Small).",
+            insight: "🔢 <strong>Param Count:</strong> This expansion creates the bulk of the model's parameters.",
+            vizFocus: 'hidden',
+            snippet: `# Forward Pass: Expansion
+hidden = self.linear1(x)
+# Hidden Shape: [batch_size, seq_len, 4*emb_dim]`,
+            modalLines: [25] // x = self.linear1(x) (line 26)
+        },
+        {
+            id: 3,
+            title: "GELU Activation",
+            category: "cat-transform",
+            desc: "Non-linear activation function allows learning complex patterns.",
+            insight: "⚡ <strong>Math:</strong> x * Φ(x). It gates information based on magnitude.",
+            vizFocus: 'gelu',
+            snippet: `# Activation Function
+self.act = GELU()
+hidden = self.act(hidden)
+# Shape remains: [batch_size, seq_len, 4*emb_dim]`,
+            modalLines: [4, 5, 6, 7, 8, 9, 10, 11, 12, 19, 26] // Class, init, usage
+        },
+        {
+            id: 4,
+            title: "Linear 2: Compression",
+            category: "cat-transform",
+            desc: "Projecting back down to the embedding dimension (Compression Phase).",
+            insight: "📦 <strong>Analogy:</strong> Re-packing the edited file into its original format.",
+            vizFocus: 'linear2',
+            snippet: `# Compression Layer
+self.linear2 = nn.Linear(4 * emb_dim, emb_dim)
+x = self.linear2(hidden)
+# Back to original dim`,
+            modalLines: [21, 27] // definition and usage
+        },
+        {
+            id: 5,
+            title: "Output Tensor",
+            category: "cat-output",
+            desc: "Output shape matches input shape, allowing residual connection.",
+            insight: "✅ <strong>Result:</strong> Token representations are now richer and context-aware.",
+            vizFocus: 'output',
+            snippet: `# Output Return
+return x
+# Final Shape: [batch_size, seq_len, emb_dim]`,
+            modalLines: [28, 34] // return x and out = model(x)
+        },
+        {
+            id: 6,
+            title: "Architecture Analysis",
+            category: "cat-output",
+            desc: "Summary of transformations and parameters.",
+            vizFocus: 'all',
+            snippet: `# Parameter Summary
+# Linear 1: (emb_dim * 4*emb_dim) + 4*emb_dim
+# Linear 2: (4*emb_dim * emb_dim) + emb_dim
+# Total ≈ 8 * emb_dim^2`,
+            modalLines: [15, 16, 17, 18, 19, 20, 21] // Init block
+        }
+    ];
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+        initNav();
+        updateConfig();
+        // Modal highlighting
+        Prism.highlightElement(document.getElementById('fullModalCode'));
+    };
+
+    function updateConfig() {
+        state.config.batch = parseInt(document.getElementById('batchSize').value);
+        state.config.seq = parseInt(document.getElementById('seqLen').value);
+        state.config.emb = parseInt(document.getElementById('embDim').value);
+        
+        renderStep(state.step);
+        drawViz();
+    }
+
+    // --- NAVIGATION ---
+    function initNav() {
+        const nav = document.getElementById('stepNav');
+        nav.innerHTML = '';
+        steps.forEach((s, idx) => {
+            const el = document.createElement('div');
+            el.className = `step-card ${s.category}`;
+            el.innerHTML = `<span class="step-num">STEP ${idx}</span><div class="step-title">${s.title}</div>`;
+            el.onclick = () => { stopPlay(); renderStep(idx); }
+            nav.appendChild(el);
+        });
+    }
+
+    function changeStep(dir) {
+        stopPlay();
+        let next = state.step + dir;
+        if(next < 0) next = 0;
+        if(next >= steps.length) next = steps.length - 1;
+        renderStep(next);
+    }
+
+    function renderStep(idx) {
+        state.step = idx;
+        const s = steps[idx];
+
+        // Nav Active
+        document.querySelectorAll('.step-card').forEach((c, i) => {
+            c.classList.toggle('active', i === idx);
+            if(i===idx) c.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+
+        // Content
+        const card = document.getElementById('explanationCard');
+        card.className = `explanation-card ${s.category}`;
+        document.getElementById('stepBadge').textContent = `Step ${idx + 1} of ${steps.length}`;
+        document.getElementById('stepTitle').textContent = s.title;
+        document.getElementById('stepDesc').innerHTML = s.desc;
+
+        // Extra Content
+        const extraDiv = document.getElementById('extraContent');
+        extraDiv.innerHTML = '';
+        if (idx === 6) {
+            const {emb} = state.config;
+            const hidden = emb * 4;
+            const p1 = emb * hidden + hidden;
+            const p2 = hidden * emb + emb;
+            extraDiv.innerHTML = `
+                <div class="insight-box math">
+                    <div style="font-weight:700; margin-bottom:10px;">Parameter Check</div>
+                    <div style="font-family:monospace; font-size:0.9rem;">
+                        Linear1: ${p1.toLocaleString()}<br>
+                        Linear2: ${p2.toLocaleString()}<br>
+                        <strong>Total: ${(p1+p2).toLocaleString()}</strong>
+                    </div>
+                </div>
+            `;
+        } else if (s.insight) {
+            extraDiv.innerHTML = `<div class="insight-box">${s.insight}</div>`;
+        }
+
+        // --- SNIPPET INJECTION ---
+        let codeText = s.snippet
+            .replace(/batch_size/g, state.config.batch)
+            .replace(/seq_len/g, state.config.seq)
+            .replace(/emb_dim/g, state.config.emb)
+            .replace(/4\*emb_dim/g, state.config.emb * 4);
+
+        const codeBlock = document.getElementById('codeBlock');
+        codeBlock.textContent = codeText;
+        Prism.highlightElement(codeBlock);
+        
+        drawViz();
+    }
+
+    // --- PLAYBACK ---
+    function togglePlay() {
+        if(state.isPlaying) { stopPlay(); }
+        else {
+            state.isPlaying = true;
+            document.getElementById('playBtn').textContent = 'Pause ⏸';
+            state.timer = setInterval(() => {
+                if(state.step < steps.length - 1) renderStep(state.step + 1);
+                else stopPlay();
+            }, 2500);
+        }
+    }
+    function stopPlay() {
+        state.isPlaying = false;
+        document.getElementById('playBtn').textContent = 'Play ▶';
+        clearInterval(state.timer);
+    }
+
+    // --- MODAL ---
+    function openModal() {
+        const modal = document.getElementById('fullCodeModal');
+        modal.style.display = 'flex';
+        
+        // Setup Highlight Layer
+        const layer = document.getElementById('modalHighlightLayer');
+        layer.innerHTML = '';
+        
+        // Create rows (assuming ~50 lines is enough for this snippet)
+        for(let i=0; i<50; i++) {
+            const row = document.createElement('div');
+            row.className = 'highlight-row';
+            layer.appendChild(row);
+        }
+        
+        // Apply Highlights based on current step
+        const s = steps[state.step];
+        const rows = layer.children;
+        
+        if (s.modalLines) {
+            s.modalLines.forEach(lineIdx => {
+                if(rows[lineIdx]) rows[lineIdx].classList.add('active');
+            });
+            
+            // Auto scroll to first highlighted line
+            if(s.modalLines.length > 0) {
+                // Wait for display:flex to render
+                setTimeout(() => {
+                    const wrapper = document.getElementById('modalCodeWrapper');
+                    // 1.275rem * 16px base font size roughly.
+                    // Or retrieve actual height if dynamic. 
+                    // Let's rely on row index * height logic approx.
+                    // 0.85rem font size line height 1.5 ~= 21px
+                    const rowHeight = 21; 
+                    const targetY = (s.modalLines[0] * rowHeight) - 60; // -60 for context
+                    wrapper.scrollTo({ top: targetY, behavior: 'smooth' });
+                }, 50);
+            }
+        }
+    }
+    
+    function closeModal(e) {
+        document.getElementById('fullCodeModal').style.display = 'none';
+    }
+    
+    function copyCode() {
+        const text = document.getElementById('codeBlock').textContent;
+        navigator.clipboard.writeText(text);
+    }
+
+    // --- VIZ (SVG) ---
+    function drawViz() {
+        const svg = document.getElementById('ffn-svg');
+        const nodesLayer = document.getElementById('nodes-layer');
+        const connsLayer = document.getElementById('connections-layer');
+        const animLayer = document.getElementById('animations-layer');
+        
+        nodesLayer.innerHTML = ''; connsLayer.innerHTML = ''; animLayer.innerHTML = '';
+
+        const H = 400, centerY = 200;
+        const xIn = 120, xHid = 400, xOut = 680;
+        const hBase = 60, hExp = 220;
+
+        const s = steps[state.step];
+        const f = s.vizFocus;
+
+        // Nodes
+        drawTensor(nodesLayer, xIn, centerY, 60, hBase, "Input", `[${state.config.batch}, ${state.config.seq}, ${state.config.emb}]`, f==='input'||f==='all');
+        drawTensor(nodesLayer, xHid, centerY, 100, hExp, "Hidden", `[${state.config.batch}, ${state.config.seq}, ${state.config.emb*4}]`, f==='hidden'||f==='gelu'||f==='all', f==='gelu');
+        drawTensor(nodesLayer, xOut, centerY, 60, hBase, "Output", `[${state.config.batch}, ${state.config.seq}, ${state.config.emb}]`, f==='output'||f==='all');
+
+        // Connections
+        drawTrapezoid(connsLayer, xIn+30, centerY, hBase, xHid-50, centerY, hExp, '#c4b5fd', f==='linear1');
+        drawTrapezoid(connsLayer, xHid+50, centerY, hExp, xOut-30, centerY, hBase, '#99f6e4', f==='linear2');
+
+        // Animation
+        if (state.isPlaying || f !== 'all') {
+            if (f === 'linear1') animateFlow(animLayer, xIn+30, centerY, xHid-50, centerY);
+            if (f === 'linear2') animateFlow(animLayer, xHid+50, centerY, xOut-30, centerY);
+        }
+    }
+
+    function drawTensor(p, cx, cy, w, h, lbl, sub, active, isGelu) {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        r.setAttribute("x", cx-w/2); r.setAttribute("y", cy-h/2); r.setAttribute("width", w); r.setAttribute("height", h);
+        r.setAttribute("rx", 6); r.setAttribute("fill", active?"#ffffff":"#f1f5f9");
+        r.setAttribute("stroke", active?"#8b5cf6":"#cbd5e1"); r.setAttribute("stroke-width", active?3:1);
+        if(active) r.setAttribute("filter", "url(#glow)");
+        g.appendChild(r);
+
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("x", cx); t.setAttribute("y", cy-5); t.setAttribute("text-anchor", "middle");
+        t.setAttribute("font-weight", "bold"); t.setAttribute("fill", "#1e293b"); t.textContent = lbl;
+        g.appendChild(t);
+
+        const s = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        s.setAttribute("x", cx); s.setAttribute("y", cy+15); s.setAttribute("text-anchor", "middle");
+        s.setAttribute("font-size", "10"); s.setAttribute("fill", "#64748b"); s.textContent = sub;
+        g.appendChild(s);
+
+        if(isGelu) {
+            const gc = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            gc.setAttribute("cx", cx+w/2-15); gc.setAttribute("cy", cy-h/2+15); gc.setAttribute("r", 12); gc.setAttribute("fill", "#f97316");
+            g.appendChild(gc);
+            const gt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            gt.setAttribute("x", cx+w/2-15); gt.setAttribute("y", cy-h/2+19); gt.setAttribute("text-anchor", "middle");
+            gt.setAttribute("fill", "white"); gt.setAttribute("font-size", "10"); gt.textContent = "ƒ";
+            g.appendChild(gt);
+        }
+        p.appendChild(g);
+    }
+
+    function drawTrapezoid(p, x1, y1, h1, x2, y2, h2, c, active) {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${x1} ${y1-h1/2} L ${x2} ${y2-h2/2} L ${x2} ${y2+h2/2} L ${x1} ${y1+h1/2} Z`);
+        path.setAttribute("fill", c); path.setAttribute("opacity", active?0.8:0.2);
+        path.setAttribute("stroke", active?c:"none");
+        if(active) { path.setAttribute("stroke-dasharray", "5,5"); path.setAttribute("stroke-width", 2); }
+        p.appendChild(path);
+    }
+
+    function animateFlow(p, x1, y1, x2, y2) {
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("r", 4); c.setAttribute("fill", "#4ade80");
+        const a = document.createElementNS("http://www.w3.org/2000/svg", "animateMotion");
+        a.setAttribute("path", `M ${x1},${y1} L ${x2},${y2}`); a.setAttribute("dur", "1s"); a.setAttribute("repeatCount", "indefinite");
+        c.appendChild(a); p.appendChild(c);
+    }
+</script>
+</body>
+</html>

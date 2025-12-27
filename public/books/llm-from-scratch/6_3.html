@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dataset Splitting Strategy (Balanced)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        pre, code, .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 5px;
+            border: 2px solid #1e1e1e;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-slideUp { animation: slideUp 0.3s ease-out forwards; }
+        
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            margin-top: -6px; 
+            box-shadow: 0 0 0 2px #ffffff;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 4px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 text-slate-700 pb-20">
+
+    <!-- HEADER -->
+    <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Balanced Dataset Splitting</h1>
+                <p class="text-sm text-slate-500">Undersampling & Random Splitting Workflow</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="app.openModal(null)" class="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">
+                    <i data-lucide="code" class="w-4 h-4"></i> View Full Code
+                </button>
+                <button onclick="app.resetDefaults()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors" title="Reset to Default">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- LEFT COLUMN: VISUALIZATION & CONTROLS (8 cols) -->
+        <div class="lg:col-span-8 space-y-6">
+            
+            <!-- VISUALIZATION CARD -->
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 relative">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-lg font-bold text-slate-800">Balanced Data Distribution</h2>
+                        <div class="group relative flex flex-col items-center">
+                            <i data-lucide="help-circle" class="w-4 h-4 text-slate-400 cursor-help"></i>
+                            <div class="absolute bottom-full mb-2 hidden w-48 flex-col items-center group-hover:flex z-50">
+                                <span class="relative z-10 p-2 text-xs leading-none text-white whitespace-normal bg-slate-800 rounded shadow-lg">
+                                    Visualizes the dataset AFTER undersampling. It is now perfectly balanced (50/50).
+                                </span>
+                                <div class="w-3 h-3 -mt-2 rotate-45 bg-slate-800"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4 text-xs">
+                        <div class="px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-lg font-medium flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-3 h-3"></i> Balanced (Undersampled)
+                        </div>
+                        <div class="bg-slate-100 rounded-lg p-1 flex">
+                            <button onclick="app.setDisplayMode('count')" class="display-mode-btn px-3 py-1 rounded-md capitalize transition-all text-slate-500 hover:text-slate-700" id="btn-mode-count">Count</button>
+                            <button onclick="app.setDisplayMode('both')" class="display-mode-btn px-3 py-1 rounded-md capitalize transition-all bg-white shadow text-purple-700 font-medium" id="btn-mode-both">Both</button>
+                            <button onclick="app.setDisplayMode('percent')" class="display-mode-btn px-3 py-1 rounded-md capitalize transition-all text-slate-500 hover:text-slate-700" id="btn-mode-percent">%</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHART LEGEND -->
+                <div class="flex justify-center gap-6 mb-4 text-xs">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 bg-teal-500 rounded-sm"></div>
+                        <span class="text-slate-600 font-medium">Ham (50%)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 bg-orange-500 rounded-sm"></div>
+                        <span class="text-slate-600 font-medium">Spam (50%)</span>
+                    </div>
+                </div>
+
+                <!-- CHART AREA -->
+                <div class="h-80 flex items-end justify-center gap-8 md:gap-16 pb-20 px-4 relative" id="chartArea">
+                    <!-- Bars will be injected here by JS -->
+                    
+                    <!-- Y-Axis Guidelines -->
+                    <div class="absolute left-0 top-0 bottom-20 w-full pointer-events-none opacity-10 flex flex-col justify-between z-0">
+                        <div class="w-full border-t border-slate-900"></div>
+                        <div class="w-full border-t border-slate-900"></div>
+                        <div class="w-full border-t border-slate-900"></div>
+                        <div class="w-full border-t border-slate-900"></div>
+                        <div class="w-full border-t border-slate-900"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDERS & CONTROLS -->
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-6">Adjust Split Ratios (Random Split)</h3>
+                
+                <div class="space-y-8">
+                    <!-- Training Slider -->
+                    <div class="relative">
+                        <div class="flex justify-between mb-2">
+                            <label class="text-sm font-medium text-slate-700">Training Set</label>
+                            <span id="trainValDisplay" class="text-sm font-bold text-purple-600 bg-purple-50 px-2 rounded">70%</span>
+                        </div>
+                        <input type="range" id="trainSlider" min="50" max="80" value="70" oninput="app.handleTrainChange(this.value)">
+                    </div>
+
+                    <!-- Validation Slider -->
+                    <div class="relative">
+                        <div class="flex justify-between mb-2">
+                            <label class="text-sm font-medium text-slate-700">Validation Set</label>
+                            <span id="valValDisplay" class="text-sm font-bold text-purple-600 bg-purple-50 px-2 rounded">10%</span>
+                        </div>
+                        <input type="range" id="valSlider" min="5" max="20" value="10" oninput="app.handleValChange(this.value)">
+                    </div>
+
+                    <!-- Test (Disabled) -->
+                    <div class="relative opacity-70">
+                        <div class="flex justify-between mb-2">
+                            <label class="text-sm font-medium text-slate-700">Test Set (Remaining)</label>
+                            <span id="testValDisplay" class="text-sm font-bold text-slate-600 bg-slate-100 px-2 rounded">20%</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-200 rounded-lg overflow-hidden mt-2">
+                            <div id="testBarVisual" class="h-full bg-slate-400" style="width: 66%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- EDUCATIONAL INSIGHT BOX -->
+            <div id="insightBox" class="rounded-xl border p-4 flex gap-4 transition-colors duration-300 bg-indigo-50 border-indigo-200 text-indigo-800">
+                <div class="mt-1 flex-shrink-0" id="insightIcon">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h4 id="insightTitle" class="font-bold text-sm uppercase tracking-wide opacity-80 mb-1">Key Insight</h4>
+                    <p id="insightText" class="text-sm leading-relaxed">Because we balanced the dataset first (undersampling), a simple random split effectively preserves the 50/50 class ratio across Train, Validation, and Test sets.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: STATS & CODE (4 cols) -->
+        <div class="lg:col-span-4 space-y-6">
+            
+            <!-- STATS PANEL -->
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <span class="w-2 h-4 bg-purple-500 rounded-sm"></span>
+                    Real-time Statistics
+                </h3>
+                
+                <div class="space-y-4" id="statsContainer">
+                    <!-- Stats items injected by JS -->
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-400">
+                    * Minor variations in 50/50 balance may occur due to random sampling, but are generally negligible in balanced datasets.
+                </div>
+            </div>
+
+            <!-- DYNAMIC CODE PREVIEW -->
+            <div class="bg-slate-900 rounded-2xl shadow-lg p-5 text-slate-300 font-mono text-xs overflow-hidden relative group">
+                <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="text-slate-400 hover:text-white" onclick="app.openModal(null)">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <h3 class="text-slate-500 font-bold mb-3 text-[10px] uppercase tracking-wider border-b border-slate-800 pb-2">
+                    Implementation Logic
+                </h3>
+                <div class="leading-relaxed min-h-[100px]" id="sidebarCode">
+                    <!-- Code snippet injected by JS -->
+                </div>
+                <div class="mt-4 pt-4 border-t border-slate-800 text-center">
+                    <button onclick="app.openModal(null)" class="text-purple-400 hover:text-purple-300 text-xs font-bold flex items-center justify-center gap-1 w-full">
+                        View Complete Code <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- FOOTER KEY TAKEAWAYS -->
+    <footer class="max-w-6xl mx-auto px-4 pb-12">
+        <div class="border-t border-slate-200 pt-8">
+            <h3 class="text-lg font-bold text-slate-800 mb-6">Key Takeaways</h3>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-100">
+                    <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mb-3 font-bold">1</div>
+                    <h4 class="font-bold text-slate-800 mb-2">Undersampling First</h4>
+                    <p class="text-sm text-slate-600">
+                        Instead of handling imbalance during splitting, we created a <code>balanced_df</code> first by taking all Spam messages and sampling an equal number of Ham messages.
+                    </p>
+                </div>
+                <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-100">
+                    <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center mb-3 font-bold">2</div>
+                    <h4 class="font-bold text-slate-800 mb-2">Random Split</h4>
+                    <p class="text-sm text-slate-600">
+                        Since the source dataframe is already balanced (50/50), a random shuffle and slice (<code>sample(frac=1)</code>) naturally maintains this balance in the subsets.
+                    </p>
+                </div>
+                <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-100">
+                    <div class="w-10 h-10 bg-teal-100 text-teal-600 rounded-lg flex items-center justify-center mb-3 font-bold">3</div>
+                    <h4 class="font-bold text-slate-800 mb-2">PyTorch Dataset</h4>
+                    <p class="text-sm text-slate-600">
+                        The `SpamDataset` class handles tokenization and padding dynamically, preparing the data for the DataLoader to consume in batches.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- CODE MODAL -->
+    <div id="codeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn" onclick="app.closeModal()">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-slideUp" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                        <i data-lucide="code" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800">Custom Implementation</h3>
+                        <p class="text-xs text-slate-500">Undersampling • Random Split • PyTorch Dataset</p>
+                    </div>
+                </div>
+                <button onclick="app.closeModal()" class="p-2 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Code) -->
+            <div class="flex-1 overflow-auto p-0 bg-[#1e1e1e] text-slate-300 font-mono text-sm relative custom-scrollbar">
+                <table class="w-full border-collapse">
+                    <tbody id="modalCodeBody">
+                        <!-- Code lines injected here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-slate-100 bg-white flex justify-between items-center text-sm">
+                <div class="text-slate-500">
+                    <span class="font-mono font-bold text-slate-700" id="lineCount"></span> lines
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="app.copyCode()" class="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-700 transition-colors">
+                        <i data-lucide="copy" class="w-4 h-4"></i> Copy Code
+                    </button>
+                    <button onclick="app.closeModal()" class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP SCRIPT -->
+    <script>
+        const app = (function() {
+            // CONSTANTS
+            // User provided code creates balanced dataset first.
+            // Spam count in original is ~747. Undersampling ham to match spam means 747 + 747 = 1494 total.
+            const TOTAL_DATASET = 1494;
+            const GLOBAL_SPAM_RATIO = 0.5;
+            
+            const FULL_CODE = `import pandas as pd
+import torch
+from torch.utils.data import Dataset, DataLoader
+
+# 1. BALANCE THE DATASET
+def create_balanced_dataset(df):
+    num_spam = df[df["Label"] == "spam"].shape[0]
+    ham_subset = df[df["Label"] == "ham"].sample(
+        num_spam, random_state=123
+    )
+    balanced_df = pd.concat([
+        ham_subset, df[df["Label"] == "spam"]
+    ])
+    return balanced_df
+
+# 2. RANDOM SPLIT FUNCTION
+def random_split(df, train_frac, validation_frac):
+    df = df.sample(
+        frac=1, random_state=123
+    ).reset_index(drop=True)
+    
+    train_end = int(len(df) * train_frac)
+    validation_end = train_end + int(len(df) * validation_frac)
+
+    train_df = df[:train_end]
+    validation_df = df[train_end:validation_end]
+    test_df = df[validation_end:]
+
+    return train_df, validation_df, test_df
+
+# Usage
+df = pd.read_csv("sms_spam.csv")
+balanced_df = create_balanced_dataset(df)
+train_df, validation_df, test_df = random_split(balanced_df, 0.7, 0.1)
+
+# 3. PYTORCH DATASET CLASS
+class SpamDataset(Dataset):
+    def __init__(self, csv_file, tokenizer, max_length=None, pad_token_id=50256):
+        self.data = pd.read_csv(csv_file)
+        self.encoded_texts = [tokenizer.encode(t) for t in self.data["Text"]]
+        
+        if max_length is None:
+            self.max_length = self._longest_encoded_length()
+        else:
+            self.max_length = max_length
+            self.encoded_texts = [t[:self.max_length] for t in self.encoded_texts]
+
+        self.encoded_texts = [
+            t + [pad_token_id] * (self.max_length - len(t))
+            for t in self.encoded_texts
+        ]
+
+    def __getitem__(self, index):
+        encoded = self.encoded_texts[index]
+        label = self.data.iloc[index]["Label"]
+        return (
+            torch.tensor(encoded, dtype=torch.long),
+            torch.tensor(label, dtype=torch.long)
+        )
+
+    def __len__(self):
+        return len(self.data)
+
+    def _longest_encoded_length(self):
+        max_length = 0
+        for encoded_text in self.encoded_texts:
+            if len(encoded_text) > max_length:
+                max_length = len(encoded_text)
+        return max_length`;
+
+            // STATE
+            let state = {
+                ratios: { train: 70, val: 10, test: 20 },
+                displayMode: 'both', // 'count', 'percent', 'both'
+                hoveredSection: null,
+                calculatedData: {}
+            };
+
+            // INITIALIZATION
+            function init() {
+                calculateData();
+                render();
+                lucide.createIcons();
+            }
+
+            // CALCULATION LOGIC
+            function calculateData() {
+                // We assume the dataset is balanced (50/50)
+                // Random split maintains this balance approximately
+                
+                const trainCount = Math.floor(TOTAL_DATASET * (state.ratios.train / 100));
+                const valCount = Math.floor(TOTAL_DATASET * (state.ratios.val / 100));
+                const testCount = TOTAL_DATASET - trainCount - valCount;
+
+                // With random split on a balanced dataset, the ratio stays roughly 0.5
+                // We use 0.5 exactly for the visualization to be clean, as statistical noise
+                // isn't the primary lesson here, but the structure is.
+                const spamRatio = 0.5;
+
+                const calculateSplit = (total, spamRate) => {
+                    const spam = Math.round(total * spamRate);
+                    const ham = total - spam;
+                    return { total, spam, ham, spamPct: (spam/total)*100, hamPct: (ham/total)*100 };
+                };
+
+                state.calculatedData = {
+                    train: calculateSplit(trainCount, spamRatio),
+                    val: calculateSplit(valCount, spamRatio),
+                    test: calculateSplit(testCount, spamRatio)
+                };
+            }
+
+            // ACTIONS
+            function handleTrainChange(val) {
+                const newTrain = parseInt(val);
+                const remaining = 100 - newTrain;
+                let newVal = state.ratios.val;
+                let newTest = remaining - newVal;
+                
+                if (newTest < 0) {
+                    newTest = 0;
+                    newVal = remaining;
+                }
+                state.ratios = { train: newTrain, val: newVal, test: newTest };
+                updateUI();
+            }
+
+            function handleValChange(val) {
+                const newVal = parseInt(val);
+                const newTest = 100 - state.ratios.train - newVal;
+                if (newTest >= 0) {
+                    state.ratios.val = newVal;
+                    state.ratios.test = newTest;
+                    updateUI();
+                }
+            }
+
+            function setDisplayMode(mode) {
+                state.displayMode = mode;
+                updateUI();
+            }
+
+            function resetDefaults() {
+                state.ratios = { train: 70, val: 10, test: 20 };
+                document.getElementById('trainSlider').value = 70;
+                document.getElementById('valSlider').value = 10;
+                updateUI();
+            }
+
+            function setHover(section) {
+                state.hoveredSection = section;
+                renderBars(); // To update styling
+                renderStats(); // To update highlighting
+                renderSidebarCode();
+                renderInsights();
+            }
+
+            function updateUI() {
+                calculateData();
+                render();
+            }
+
+            // RENDERERS
+            function render() {
+                renderBars();
+                renderSliders();
+                renderStats();
+                renderInsights();
+                renderSidebarCode();
+                renderDisplayModeButtons();
+            }
+
+            function renderDisplayModeButtons() {
+                ['count', 'both', 'percent'].forEach(mode => {
+                    const btn = document.getElementById(`btn-mode-${mode}`);
+                    if (state.displayMode === mode) {
+                        btn.className = "display-mode-btn px-3 py-1 rounded-md capitalize transition-all bg-white shadow text-purple-700 font-medium";
+                    } else {
+                        btn.className = "display-mode-btn px-3 py-1 rounded-md capitalize transition-all text-slate-500 hover:text-slate-700";
+                    }
+                });
+            }
+
+            function renderSliders() {
+                document.getElementById('trainValDisplay').textContent = state.ratios.train + '%';
+                document.getElementById('valValDisplay').textContent = state.ratios.val + '%';
+                
+                const testDisplay = document.getElementById('testValDisplay');
+                testDisplay.textContent = state.ratios.test + '%';
+                
+                // Update visual bar for test slider
+                document.getElementById('testBarVisual').style.width = ((state.ratios.test / 30) * 100) + '%';
+                
+                // Sync inputs if changed programmatically
+                document.getElementById('trainSlider').value = state.ratios.train;
+                document.getElementById('valSlider').value = state.ratios.val;
+            }
+
+            function renderBars() {
+                const container = document.getElementById('chartArea');
+                // Clear existing bars except guidelines
+                const guidelines = container.querySelector('.absolute');
+                container.innerHTML = '';
+                container.appendChild(guidelines);
+
+                ['train', 'val', 'test'].forEach(type => {
+                    const d = state.calculatedData[type];
+                    const pct = state.ratios[type];
+                    const isHovered = state.hoveredSection === type;
+                    const spamHeight = d.spamPct;
+                    const hamHeight = d.hamPct;
+
+                    // Text visibility logic
+                    const totalPixelHeight = (pct / 100) * 320; 
+                    const showSpamText = (d.spamPct / 100 * totalPixelHeight) > 18;
+                    const showHamText = (d.hamPct / 100 * totalPixelHeight) > 18;
+
+                    const spamText = state.displayMode !== 'count' ? Math.round(d.spamPct) + '%' : d.spam;
+                    const hamText = state.displayMode !== 'count' ? Math.round(d.hamPct) + '%' : d.ham;
+
+                    // Create elements
+                    const wrapper = document.createElement('div');
+                    wrapper.className = `flex flex-col items-center group transition-all duration-500 ease-in-out w-1/3 max-w-[160px] relative cursor-pointer`;
+                    wrapper.style.height = `${pct}%`;
+                    wrapper.onmouseenter = () => setHover(type);
+                    wrapper.onmouseleave = () => setHover(null);
+                    wrapper.onclick = () => openModal(type);
+
+                    // Bar container
+                    const barBox = document.createElement('div');
+                    barBox.className = `w-full h-full flex flex-col-reverse rounded-lg overflow-hidden shadow-sm transition-transform duration-300 border border-slate-200 ${isHovered ? 'ring-4 ring-purple-100 scale-105 shadow-xl' : ''}`;
+
+                    // Spam Segment
+                    const spamSeg = document.createElement('div');
+                    spamSeg.className = "bg-orange-500 w-full flex items-center justify-center text-white text-xs font-bold transition-all duration-500 relative hover:brightness-110";
+                    spamSeg.style.height = `${spamHeight}%`;
+                    spamSeg.onmouseenter = (e) => { e.stopPropagation(); setHover('spam'); };
+                    if (showSpamText) {
+                        spamSeg.innerHTML = `<span class="drop-shadow-md whitespace-nowrap px-1">${spamText}</span>`;
+                    }
+
+                    // Ham Segment
+                    const hamSeg = document.createElement('div');
+                    hamSeg.className = "bg-teal-500 w-full flex items-center justify-center text-white text-xs font-bold transition-all duration-500 relative hover:brightness-110";
+                    hamSeg.style.height = `${hamHeight}%`;
+                    hamSeg.onmouseenter = (e) => { e.stopPropagation(); setHover('ham'); };
+                    if (showHamText) {
+                        hamSeg.innerHTML = `<span class="drop-shadow-md whitespace-nowrap px-1">${hamText}</span>`;
+                    }
+
+                    barBox.appendChild(spamSeg);
+                    barBox.appendChild(hamSeg);
+                    wrapper.appendChild(barBox);
+
+                    // Labels (Absolute)
+                    const labels = document.createElement('div');
+                    labels.className = "absolute top-full left-0 w-full pt-4 text-center z-10";
+                    labels.innerHTML = `
+                        <div class="font-bold text-lg transition-colors leading-none ${isHovered ? 'text-purple-600' : 'text-slate-700'}">
+                            ${type.charAt(0).toUpperCase() + type.slice(1)}
+                        </div>
+                        <div class="text-xs text-slate-400 font-mono mt-1 uppercase tracking-wider">Split Size</div>
+                        <div class="text-sm font-bold text-slate-800">${pct}%</div>
+                    `;
+                    wrapper.appendChild(labels);
+
+                    container.appendChild(wrapper);
+                });
+            }
+
+            function renderStats() {
+                const container = document.getElementById('statsContainer');
+                container.innerHTML = '';
+
+                ['train', 'val', 'test'].forEach(key => {
+                    const d = state.calculatedData[key];
+                    const isHovered = state.hoveredSection === key;
+                    
+                    // In balanced split, deviation should be small
+                    const deviation = Math.abs(d.spamPct - 50.0);
+                    const isBadBalance = deviation > 5;
+
+                    const div = document.createElement('div');
+                    div.className = `p-3 rounded-lg border transition-all ${isHovered ? 'bg-purple-50 border-purple-200' : 'bg-slate-50 border-slate-100'}`;
+                    
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold capitalize text-slate-700">${key} Set</span>
+                            <span class="text-xs font-mono text-slate-500">${d.total.toLocaleString()} msgs</span>
+                        </div>
+                        <div class="flex gap-1 h-2 rounded-full overflow-hidden mb-2">
+                            <div class="bg-teal-500" style="width: ${d.hamPct}%"></div>
+                            <div class="bg-orange-500" style="width: ${d.spamPct}%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="flex items-center gap-1 text-teal-700 font-medium">
+                                <div class="w-2 h-2 rounded-full bg-teal-500"></div> Ham: ${d.ham}
+                            </span>
+                            <span class="flex items-center gap-1 text-orange-700 font-medium">
+                                Spam: ${d.spam} <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                            </span>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+                lucide.createIcons();
+            }
+
+            function renderInsights() {
+                const box = document.getElementById('insightBox');
+                const title = document.getElementById('insightTitle');
+                const text = document.getElementById('insightText');
+                const icon = document.getElementById('insightIcon');
+
+                let content = { type: 'info', text: "Because we balanced the dataset first (undersampling), a simple random split effectively preserves the 50/50 class ratio across Train, Validation, and Test sets." };
+
+                if (state.ratios.train < 60) {
+                    content = { type: 'warning', text: "With less than 60% training data, the model may not have enough examples to learn robust patterns." };
+                } else if (state.ratios.test < 15) {
+                    content = { type: 'warning', text: "A test set smaller than 15% may not provide reliable performance estimates." };
+                } else if (state.hoveredSection === 'spam') {
+                    content = { type: 'info', text: "Thanks to undersampling, Spam is now 50% of the dataset, preventing model bias towards the majority class." };
+                }
+
+                // Styling
+                if (content.type === 'warning') {
+                    box.className = "rounded-xl border p-4 flex gap-4 transition-colors duration-300 bg-amber-50 border-amber-200 text-amber-800";
+                    title.textContent = "Warning";
+                    icon.innerHTML = '<i data-lucide="alert-triangle" class="w-5 h-5"></i>';
+                } else {
+                    box.className = "rounded-xl border p-4 flex gap-4 transition-colors duration-300 bg-indigo-50 border-indigo-200 text-indigo-800";
+                    title.textContent = "Key Insight";
+                    icon.innerHTML = '<i data-lucide="info" class="w-5 h-5"></i>';
+                }
+                text.textContent = content.text;
+                lucide.createIcons();
+            }
+
+            function renderSidebarCode() {
+                const container = document.getElementById('sidebarCode');
+                let html = '';
+
+                if (state.hoveredSection === 'train') {
+                    html = `
+                        <div class="animate-fadeIn">
+                            <span class="text-slate-400"># Random Split Logic</span><br/>
+                            train_end = int(len(df) * train_frac)<br/>
+                            <span class="bg-purple-900 text-purple-300 font-bold px-1 rounded">train_df = df[:train_end]</span>
+                        </div>`;
+                } else if (state.hoveredSection === 'val') {
+                    html = `
+                        <div class="animate-fadeIn">
+                            <span class="text-slate-400"># Validation Split Logic</span><br/>
+                            val_end = train_end + int(len(df) * val_frac)<br/>
+                            <span class="bg-purple-900 text-purple-300 font-bold px-1 rounded">val_df = df[train_end:val_end]</span>
+                        </div>`;
+                } else if (state.hoveredSection === 'test') {
+                     html = `
+                        <div class="animate-fadeIn">
+                            <span class="text-slate-400"># Test Split Logic</span><br/>
+                            test_df = df[val_end:]
+                        </div>`;
+                } else if (state.hoveredSection === 'spam') {
+                    html = `
+                        <div class="animate-fadeIn">
+                            <span class="text-slate-400"># Balancing Logic</span><br/>
+                            ham_subset = df[df["Label"]=="ham"].sample(<br/>
+                            &nbsp;&nbsp;<span class="bg-orange-900 text-orange-300 font-bold px-1 rounded">num_spam, random_state=123</span><br/>
+                            )
+                        </div>`;
+                } else {
+                    html = `
+                        <div>
+                            <span class="text-slate-400"># Custom Workflow</span><br/>
+                            balanced_df = create_balanced_dataset(df)<br/>
+                            train, val, test = random_split(...)<br/>
+                            ds = SpamDataset("train.csv", ...)
+                        </div>`;
+                }
+                container.innerHTML = html;
+            }
+
+            // MODAL LOGIC
+            function openModal(section) {
+                const modal = document.getElementById('codeModal');
+                const tbody = document.getElementById('modalCodeBody');
+                modal.classList.remove('hidden');
+                
+                let highlightLines = [];
+                let color = '#8b5cf6';
+
+                if (section === 'train') highlightLines = [22, 25];
+                else if (section === 'val') highlightLines = [23, 26];
+                else if (section === 'test') highlightLines = [27];
+                else if (section === 'spam' || section === 'ham') { highlightLines = [6, 7, 8, 9, 10, 11, 12, 13, 14]; color = '#f97316'; }
+
+                const lines = FULL_CODE.split('\n');
+                document.getElementById('lineCount').textContent = lines.length;
+                let html = '';
+
+                lines.forEach((line, i) => {
+                    const lineNum = i + 1;
+                    const isHighlighted = highlightLines.includes(lineNum);
+                    
+                    // Escape HTML characters first
+                    let escapedLine = line
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;");
+                    
+                    // Single pass regex for syntax highlighting to avoid conflicts
+                    const syntaxRegex = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|#.*|\b(?:import|from|def|return|if|else|class|pd|torch|Dataset|DataLoader)\b)/g;
+
+                    let coloredLine = escapedLine.replace(syntaxRegex, (match) => {
+                        if (match.startsWith("#")) {
+                            return `<span class="text-green-600">${match}</span>`;
+                        } else if (match.startsWith('"') || match.startsWith("'")) {
+                            return `<span class="text-orange-300">${match}</span>`;
+                        } else if (['pd', 'torch', 'Dataset', 'DataLoader'].includes(match)) {
+                             return `<span class="text-blue-400">${match}</span>`;
+                        } else {
+                            return `<span class="text-purple-400">${match}</span>`;
+                        }
+                    });
+
+                    html += `
+                        <tr class="${isHighlighted ? 'bg-opacity-20' : ''}" style="background-color: ${isHighlighted ? color + '33' : 'transparent'}">
+                            <td class="w-12 text-right select-none text-slate-600 pr-4 py-0.5 border-r border-slate-700 bg-[#1e1e1e] sticky left-0">${lineNum}</td>
+                            <td class="pl-4 py-0.5 whitespace-pre ${isHighlighted ? 'font-bold text-white' : ''}">${coloredLine}</td>
+                            ${isHighlighted ? `<td class="w-1 absolute left-0 h-full" style="background-color: ${color}"></td>` : ''}
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+            }
+
+            function closeModal() {
+                document.getElementById('codeModal').classList.add('hidden');
+            }
+
+            function copyCode() {
+                 // Create a temporary textarea element
+                const textarea = document.createElement('textarea');
+                textarea.value = FULL_CODE;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'absolute';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+
+                // Select the text
+                textarea.select();
+                textarea.setSelectionRange(0, 99999); // For mobile devices
+
+                // Execute the copy command
+                try {
+                    document.execCommand('copy');
+                    // Optional: Visual feedback could go here
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                }
+
+                // Remove the textarea
+                document.body.removeChild(textarea);
+            }
+
+            return {
+                init,
+                handleTrainChange,
+                handleValChange,
+                setDisplayMode,
+                resetDefaults,
+                openModal,
+                closeModal,
+                copyCode
+            };
+        })();
+
+        // Start the app
+        document.addEventListener('DOMContentLoaded', app.init);
+    </script>
+</body>
+</html>

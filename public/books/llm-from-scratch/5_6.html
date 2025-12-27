@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multinomial Sampling vs Argmax - Interactive LLM Visualization</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Background */
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f5f7ff;
+            
+            /* Cards */
+            --card-bg: #ffffff;
+            --card-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
+            --card-shadow-hover: 0 8px 32px rgba(99, 102, 241, 0.18);
+            
+            /* Argmax - Orange */
+            --argmax-primary: #f97316;
+            --argmax-light: #fff7ed;
+            --argmax-border: #fdba74;
+            --argmax-text: #c2410c;
+            
+            /* Multinomial - Teal */
+            --multi-primary: #14b8a6;
+            --multi-light: #ecfdf5;
+            --multi-border: #6ee7b7;
+            --multi-text: #0d9488;
+            
+            /* Action - Purple */
+            --action-primary: #8b5cf6;
+            --action-light: #c4b5fd;
+            --action-gradient-start: #c4b5fd;
+            --action-gradient-end: #8b5cf6;
+            
+            /* Text */
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            
+            /* Other */
+            --border-light: #e2e8f0;
+            --success: #22c55e;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .header h1 .emoji {
+            font-size: 36px;
+        }
+
+        .header .subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .view-code-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--action-gradient-start), var(--action-gradient-end));
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .view-code-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .card-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Input Context */
+        .context-display {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border: 2px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .context-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .context-blank {
+            display: inline-block;
+            width: 100px;
+            border-bottom: 3px solid var(--action-primary);
+            margin-left: 8px;
+            position: relative;
+        }
+
+        .context-blank::after {
+            content: '?';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 4px;
+            font-size: 18px;
+            color: var(--action-primary);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .context-arrow {
+            margin-top: 12px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Probability Chart */
+        .prob-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .prob-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+            padding: 4px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .prob-row:hover {
+            background: #f8fafc;
+        }
+
+        .prob-row.highlighted {
+            background: var(--argmax-light);
+        }
+
+        .prob-row.highlighted.multi {
+            background: var(--multi-light);
+        }
+
+        .prob-word {
+            width: 80px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .prob-bar-container {
+            flex: 1;
+            height: 24px;
+            background: #f1f5f9;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .prob-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease-out;
+            position: relative;
+        }
+
+        .prob-bar.high {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+
+        .prob-bar.medium {
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+        }
+
+        .prob-bar.low {
+            background: linear-gradient(90deg, #94a3b8, #64748b);
+        }
+
+        .prob-value {
+            width: 60px;
+            text-align: right;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .prob-bar-highlight {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            animation: shimmer 1s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); opacity: 1; }
+            100% { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* Side by Side Comparison */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .method-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+        }
+
+        .method-card.argmax {
+            border: 2px solid var(--argmax-border);
+        }
+
+        .method-card.multinomial {
+            border: 2px solid var(--multi-border);
+        }
+
+        .method-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .method-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .argmax .method-icon {
+            background: var(--argmax-light);
+        }
+
+        .multinomial .method-icon {
+            background: var(--multi-light);
+        }
+
+        .method-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .argmax .method-title {
+            color: var(--argmax-text);
+        }
+
+        .multinomial .method-title {
+            color: var(--multi-text);
+        }
+
+        .method-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .result-box {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .argmax .result-box {
+            background: var(--argmax-light);
+        }
+
+        .multinomial .result-box {
+            background: var(--multi-light);
+        }
+
+        .result-token {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'Source Code Pro', monospace;
+        }
+
+        .argmax .result-token {
+            color: var(--argmax-primary);
+        }
+
+        .multinomial .result-token {
+            color: var(--multi-primary);
+        }
+
+        .result-prob {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .result-note {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .star-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 20px;
+            animation: spin-star 2s linear infinite;
+        }
+
+        @keyframes spin-star {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .method-btn {
+            width: 100%;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 9999px;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .argmax .method-btn {
+            background: var(--argmax-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+
+        .argmax .method-btn:hover {
+            background: #ea580c;
+            transform: translateY(-2px);
+        }
+
+        .multinomial .method-btn {
+            background: var(--multi-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+        }
+
+        .multinomial .method-btn:hover {
+            background: #0d9488;
+            transform: translateY(-2px);
+        }
+
+        .method-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .history-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .history-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .history-tokens {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .history-token {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .argmax .history-token {
+            background: var(--argmax-light);
+            color: var(--argmax-text);
+        }
+
+        .multinomial .history-token {
+            background: var(--multi-light);
+            color: var(--multi-text);
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 12px;
+        }
+
+        /* Spinning Wheel Animation */
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wheel-tokens {
+            display: flex;
+            gap: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .wheel-token {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            background: #f1f5f9;
+            color: var(--text-secondary);
+            transition: all 0.1s ease;
+        }
+
+        .wheel-token.active {
+            background: var(--multi-primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Simulation Section */
+        .simulation-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            padding: 24px;
+        }
+
+        .simulation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .simulation-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .simulation-title h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .simulation-btn {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--action-gradient-start), var(--action-gradient-end));
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .simulation-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .simulation-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .simulation-progress {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--action-gradient-start), var(--action-gradient-end));
+            border-radius: 3px;
+            transition: width 0.1s ease;
+        }
+
+        .simulation-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .simulation-results {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sim-result-panel {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .sim-result-panel.argmax {
+            border-left: 4px solid var(--argmax-primary);
+        }
+
+        .sim-result-panel.multinomial {
+            border-left: 4px solid var(--multi-primary);
+        }
+
+        .sim-panel-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .sim-result-panel.argmax .sim-panel-title {
+            color: var(--argmax-text);
+        }
+
+        .sim-result-panel.multinomial .sim-panel-title {
+            color: var(--multi-text);
+        }
+
+        .sim-histogram {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sim-hist-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sim-hist-word {
+            width: 70px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        .sim-hist-bar-container {
+            flex: 1;
+            height: 20px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .sim-hist-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.2s ease;
+        }
+
+        .sim-result-panel.argmax .sim-hist-bar {
+            background: linear-gradient(90deg, var(--argmax-border), var(--argmax-primary));
+        }
+
+        .sim-result-panel.multinomial .sim-hist-bar {
+            background: linear-gradient(90deg, var(--multi-border), var(--multi-primary));
+        }
+
+        .sim-hist-count {
+            width: 40px;
+            text-align: right;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .variety-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+
+        .sim-result-panel.argmax .variety-badge {
+            background: var(--argmax-light);
+            color: var(--argmax-text);
+        }
+
+        .sim-result-panel.multinomial .variety-badge {
+            background: var(--multi-light);
+            color: var(--multi-text);
+        }
+
+        /* Key Takeaway */
+        .takeaway-card {
+            background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+            border: 2px solid var(--action-light);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .takeaway-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--action-primary);
+            margin-bottom: 16px;
+        }
+
+        .takeaway-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .takeaway-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .takeaway-item {
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        .takeaway-item h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .takeaway-item.argmax h4 {
+            color: var(--argmax-text);
+        }
+
+        .takeaway-item.multinomial h4 {
+            color: var(--multi-text);
+        }
+
+        .takeaway-item p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .takeaway-item code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 12px;
+        }
+
+        .takeaway-footer {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 12px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .takeaway-footer code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 12px;
+            color: var(--action-primary);
+        }
+
+        /* Code Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .code-modal {
+            background: #1e293b;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .code-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .code-modal-header h3 {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-modal-header h3 span {
+            font-size: 18px;
+        }
+
+        .close-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #334155;
+            border: none;
+            color: #94a3b8;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: #475569;
+            color: white;
+        }
+
+        .code-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .code-container {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            counter-reset: line;
+        }
+
+        .code-line {
+            display: flex;
+            padding: 0 24px;
+            transition: background 0.2s ease;
+        }
+
+        .code-line:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .code-line.highlighted {
+            background: rgba(99, 102, 241, 0.2);
+            border-left: 3px solid var(--action-primary);
+            padding-left: 21px;
+        }
+
+        .line-number {
+            width: 40px;
+            text-align: right;
+            padding-right: 16px;
+            color: #64748b;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .line-content {
+            flex: 1;
+            color: #e2e8f0;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        /* Syntax Highlighting */
+        .keyword { color: #c084fc; font-weight: bold; }
+        .string { color: #86efac; }
+        .number { color: #fca5a5; }
+        .comment { color: #94a3b8; font-style: italic; }
+        .function { color: #60a5fa; }
+        .operator { color: #f472b6; }
+        .builtin { color: #e0bbff; }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: #1e293b;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        /* Animation classes */
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .shake {
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px); }
+            40% { transform: translateX(5px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>
+                <span class="emoji">📊</span>
+                Multinomial Sampling vs Argmax
+            </h1>
+            <p class="subtitle">How LLMs decide which token to generate next</p>
+            <button class="view-code-btn" onclick="openCodeModal()">
+                <span>📝</span> View PyTorch Code
+            </button>
+        </header>
+
+        <!-- Input Context -->
+        <div class="card fade-in">
+            <div class="card-header">
+                <span>📝</span> Input Context
+            </div>
+            <div class="context-display">
+                <div class="context-text">
+                    "Every effort moves you<span class="context-blank"></span>"
+                </div>
+                <div class="context-arrow">↑ What token should come next?</div>
+            </div>
+        </div>
+
+        <!-- Probability Distribution -->
+        <div class="card fade-in" id="prob-chart-card">
+            <div class="card-header">
+                <span>📈</span> Token Probabilities (after softmax)
+            </div>
+            <div class="prob-chart" id="prob-chart">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Side-by-Side Comparison -->
+        <div class="comparison-grid">
+            <!-- Argmax Panel -->
+            <div class="method-card argmax fade-in">
+                <div class="method-header">
+                    <div class="method-icon">🎯</div>
+                    <h3 class="method-title">ARGMAX (Greedy)</h3>
+                </div>
+                <p class="method-subtitle">"Always pick the highest probability"</p>
+                
+                <div class="result-box" id="argmax-result">
+                    <span class="star-indicator">★</span>
+                    <div class="result-token" id="argmax-token">—</div>
+                    <div class="result-prob" id="argmax-prob"></div>
+                    <div class="result-note">Same every time!</div>
+                </div>
+
+                <button class="method-btn" id="argmax-btn" onclick="runArgmax()">
+                    <span>▶</span> Run Argmax
+                </button>
+
+                <div class="history-section">
+                    <div class="history-label">History</div>
+                    <div class="history-tokens" id="argmax-history">
+                        <span style="color: var(--text-muted); font-size: 13px;">Click to run...</span>
+                    </div>
+                    <div class="stats-row">
+                        <span>Runs: <strong id="argmax-count">0</strong></span>
+                        <span id="argmax-stats"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multinomial Panel -->
+            <div class="method-card multinomial fade-in">
+                <div class="method-header">
+                    <div class="method-icon">🎲</div>
+                    <h3 class="method-title">MULTINOMIAL (Random)</h3>
+                </div>
+                <p class="method-subtitle">"Sample based on probabilities"</p>
+                
+                <div class="result-box" id="multi-result">
+                    <div class="result-token" id="multi-token">—</div>
+                    <div class="result-prob" id="multi-prob"></div>
+                    <div class="result-note">Different each time!</div>
+                </div>
+
+                <button class="method-btn" id="multi-btn" onclick="runMultinomial()">
+                    <span>🎲</span> Sample Once
+                </button>
+
+                <div class="history-section">
+                    <div class="history-label">Last 5 Samples</div>
+                    <div class="history-tokens" id="multi-history">
+                        <span style="color: var(--text-muted); font-size: 13px;">Click to sample...</span>
+                    </div>
+                    <div class="stats-row">
+                        <span>Samples: <strong id="multi-count">0</strong></span>
+                        <span id="multi-stats"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulation Section -->
+        <div class="simulation-card fade-in">
+            <div class="simulation-header">
+                <div class="simulation-title">
+                    <span style="font-size: 24px;">🔬</span>
+                    <h3>Run 100 Samples Simulation</h3>
+                </div>
+                <button class="simulation-btn" id="sim-btn" onclick="runSimulation()">
+                    Run Simulation
+                </button>
+            </div>
+
+            <div class="simulation-progress" id="sim-progress" style="display: none;">
+                <span id="sim-progress-text">Sampling... 0/100</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="simulation-results">
+                <div class="sim-result-panel argmax">
+                    <div class="sim-panel-title">🎯 ARGMAX RESULTS</div>
+                    <div class="sim-histogram" id="argmax-histogram">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="variety-badge" id="argmax-variety">
+                        Unique tokens: <strong>0</strong>
+                    </div>
+                </div>
+
+                <div class="sim-result-panel multinomial">
+                    <div class="sim-panel-title">🎲 MULTINOMIAL RESULTS</div>
+                    <div class="sim-histogram" id="multi-histogram">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="variety-badge" id="multi-variety">
+                        Unique tokens: <strong>0</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Takeaway -->
+        <div class="takeaway-card fade-in">
+            <div class="takeaway-title">
+                <span>💡</span> Key Takeaway
+            </div>
+            <div class="takeaway-content">
+                <div class="takeaway-item argmax">
+                    <h4>🎯 Argmax = Deterministic</h4>
+                    <p>
+                        Uses <code>torch.argmax(probas)</code><br><br>
+                        Same input → Same output, every time<br><br>
+                        <strong>Best for:</strong> Consistent, predictable responses (code generation, factual queries)
+                    </p>
+                </div>
+                <div class="takeaway-item multinomial">
+                    <h4>🎲 Multinomial = Probabilistic</h4>
+                    <p>
+                        Uses <code>torch.multinomial(probas, 1)</code><br><br>
+                        Same input → Different outputs based on probability<br><br>
+                        <strong>Best for:</strong> Creative writing, diverse text generation
+                    </p>
+                </div>
+            </div>
+            <div class="takeaway-footer">
+                In production LLMs, <code>temperature=0</code> uses argmax, while <code>temperature&gt;0</code> uses multinomial with scaled probabilities.
+            </div>
+        </div>
+    </div>
+
+    <!-- Code Modal -->
+    <div class="modal-overlay" id="code-modal">
+        <div class="code-modal">
+            <div class="code-modal-header">
+                <h3><span>🐍</span> PyTorch Implementation</h3>
+                <button class="close-btn" onclick="closeCodeModal()">×</button>
+            </div>
+            <div class="code-modal-body">
+                <div class="code-container" id="code-container">
+                    <!-- Code lines populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Token data
+        const tokenData = [
+            { id: 0, word: 'closer', logit: 4.51, probability: 0 },
+            { id: 1, word: 'every', logit: 0.89, probability: 0 },
+            { id: 2, word: 'effort', logit: -1.90, probability: 0 },
+            { id: 3, word: 'forward', logit: 6.75, probability: 0 },
+            { id: 4, word: 'inches', logit: 1.63, probability: 0 },
+            { id: 5, word: 'moves', logit: -1.62, probability: 0 },
+            { id: 6, word: 'pizza', logit: -1.89, probability: 0 },
+            { id: 7, word: 'toward', logit: 6.28, probability: 0 },
+            { id: 8, word: 'you', logit: 1.79, probability: 0 },
+        ];
+
+        // Calculate softmax probabilities
+        function softmax(logits) {
+            const maxLogit = Math.max(...logits);
+            const exps = logits.map(l => Math.exp(l - maxLogit));
+            const sum = exps.reduce((a, b) => a + b, 0);
+            return exps.map(e => e / sum);
+        }
+
+        // Initialize probabilities
+        const logits = tokenData.map(t => t.logit);
+        const probabilities = softmax(logits);
+        tokenData.forEach((t, i) => t.probability = probabilities[i]);
+
+        // Sort by probability for display
+        const sortedTokens = [...tokenData].sort((a, b) => b.probability - a.probability);
+
+        // State
+        let argmaxCount = 0;
+        let argmaxHistory = [];
+        let multiCount = 0;
+        let multiHistory = [];
+        let multiStats = {};
+        let simArgmaxCounts = {};
+        let simMultiCounts = {};
+
+        // Initialize probability chart
+        function initProbChart() {
+            const chart = document.getElementById('prob-chart');
+            chart.innerHTML = '';
+            
+            sortedTokens.forEach(token => {
+                const row = document.createElement('div');
+                row.className = 'prob-row';
+                row.dataset.tokenId = token.id;
+                
+                const prob = (token.probability * 100).toFixed(1);
+                const barWidth = Math.max(token.probability * 100 / sortedTokens[0].probability * 100, 2);
+                
+                let barClass = 'low';
+                if (token.probability > 0.3) barClass = 'high';
+                else if (token.probability > 0.05) barClass = 'medium';
+                
+                row.innerHTML = `
+                    <span class="prob-word">${token.word}</span>
+                    <div class="prob-bar-container">
+                        <div class="prob-bar ${barClass}" style="width: ${barWidth}%"></div>
+                    </div>
+                    <span class="prob-value">${prob}%</span>
+                `;
+                
+                row.addEventListener('mouseenter', (e) => showTooltip(e, token));
+                row.addEventListener('mouseleave', hideTooltip);
+                
+                chart.appendChild(row);
+            });
+        }
+
+        // Initialize histograms
+        function initHistograms() {
+            ['argmax-histogram', 'multi-histogram'].forEach(id => {
+                const hist = document.getElementById(id);
+                hist.innerHTML = '';
+                
+                sortedTokens.forEach(token => {
+                    const row = document.createElement('div');
+                    row.className = 'sim-hist-row';
+                    row.dataset.tokenId = token.id;
+                    
+                    row.innerHTML = `
+                        <span class="sim-hist-word">${token.word}</span>
+                        <div class="sim-hist-bar-container">
+                            <div class="sim-hist-bar" style="width: 0%"></div>
+                        </div>
+                        <span class="sim-hist-count">0</span>
+                    `;
+                    
+                    hist.appendChild(row);
+                });
+            });
+        }
+
+        // Multinomial sampling
+        function sampleMultinomial() {
+            const random = Math.random();
+            let cumulative = 0;
+            for (let i = 0; i < probabilities.length; i++) {
+                cumulative += probabilities[i];
+                if (random < cumulative) {
+                    return i;
+                }
+            }
+            return probabilities.length - 1;
+        }
+
+        // Argmax
+        function getArgmax() {
+            let maxIdx = 0;
+            let maxProb = probabilities[0];
+            for (let i = 1; i < probabilities.length; i++) {
+                if (probabilities[i] > maxProb) {
+                    maxProb = probabilities[i];
+                    maxIdx = i;
+                }
+            }
+            return maxIdx;
+        }
+
+        // Highlight probability bar
+        function highlightProbBar(tokenId, type = 'argmax') {
+            document.querySelectorAll('.prob-row').forEach(row => {
+                row.classList.remove('highlighted', 'multi');
+            });
+            
+            const row = document.querySelector(`.prob-row[data-token-id="${tokenId}"]`);
+            if (row) {
+                row.classList.add('highlighted');
+                if (type === 'multi') row.classList.add('multi');
+                
+                // Add shimmer effect
+                const bar = row.querySelector('.prob-bar');
+                const highlight = document.createElement('div');
+                highlight.className = 'prob-bar-highlight';
+                bar.appendChild(highlight);
+                setTimeout(() => highlight.remove(), 1000);
+            }
+        }
+
+        // Run Argmax
+        function runArgmax() {
+            const tokenId = getArgmax();
+            const token = tokenData[tokenId];
+            
+            // Update display
+            document.getElementById('argmax-token').textContent = token.word;
+            document.getElementById('argmax-prob').textContent = `${(token.probability * 100).toFixed(1)}%`;
+            
+            // Highlight bar
+            highlightProbBar(tokenId, 'argmax');
+            
+            // Update count
+            argmaxCount++;
+            document.getElementById('argmax-count').textContent = argmaxCount;
+            
+            // Update history
+            argmaxHistory.push(token.word);
+            updateArgmaxHistory();
+            
+            // Update stats
+            document.getElementById('argmax-stats').textContent = `${token.word}: ${argmaxCount} (100%)`;
+            
+            // Animation
+            document.getElementById('argmax-result').classList.add('shake');
+            setTimeout(() => document.getElementById('argmax-result').classList.remove('shake'), 500);
+        }
+
+        // Run Multinomial
+        async function runMultinomial() {
+            const btn = document.getElementById('multi-btn');
+            btn.disabled = true;
+            
+            // Animation - rapid token switching
+            const resultBox = document.getElementById('multi-result');
+            const tokenDisplay = document.getElementById('multi-token');
+            
+            for (let i = 0; i < 8; i++) {
+                const randIdx = Math.floor(Math.random() * tokenData.length);
+                tokenDisplay.textContent = tokenData[randIdx].word;
+                tokenDisplay.style.opacity = 0.5;
+                await sleep(60);
+            }
+            
+            // Final selection
+            const tokenId = sampleMultinomial();
+            const token = tokenData[tokenId];
+            
+            tokenDisplay.textContent = token.word;
+            tokenDisplay.style.opacity = 1;
+            document.getElementById('multi-prob').textContent = `${(token.probability * 100).toFixed(1)}%`;
+            
+            // Highlight bar
+            highlightProbBar(tokenId, 'multi');
+            
+            // Update count
+            multiCount++;
+            document.getElementById('multi-count').textContent = multiCount;
+            
+            // Update history
+            multiHistory.unshift(token.word);
+            if (multiHistory.length > 5) multiHistory.pop();
+            updateMultiHistory();
+            
+            // Update stats
+            multiStats[token.word] = (multiStats[token.word] || 0) + 1;
+            updateMultiStats();
+            
+            btn.disabled = false;
+        }
+
+        function updateArgmaxHistory() {
+            const container = document.getElementById('argmax-history');
+            if (argmaxHistory.length === 0) {
+                container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">Click to run...</span>';
+            } else {
+                const display = argmaxHistory.slice(-5);
+                container.innerHTML = display.map(w => `<span class="history-token">${w}</span>`).join('');
+            }
+        }
+
+        function updateMultiHistory() {
+            const container = document.getElementById('multi-history');
+            if (multiHistory.length === 0) {
+                container.innerHTML = '<span style="color: var(--text-muted); font-size: 13px;">Click to sample...</span>';
+            } else {
+                container.innerHTML = multiHistory.map(w => `<span class="history-token">${w}</span>`).join('');
+            }
+        }
+
+        function updateMultiStats() {
+            const sorted = Object.entries(multiStats).sort((a, b) => b[1] - a[1]);
+            const top = sorted.slice(0, 2);
+            const statsStr = top.map(([word, count]) => `${word}: ${count}`).join(', ');
+            document.getElementById('multi-stats').textContent = statsStr;
+        }
+
+        // Run Simulation
+        async function runSimulation() {
+            const btn = document.getElementById('sim-btn');
+            btn.disabled = true;
+            
+            const progressDiv = document.getElementById('sim-progress');
+            const progressText = document.getElementById('sim-progress-text');
+            const progressFill = document.getElementById('progress-fill');
+            
+            progressDiv.style.display = 'block';
+            
+            // Reset counts
+            simArgmaxCounts = {};
+            simMultiCounts = {};
+            tokenData.forEach(t => {
+                simArgmaxCounts[t.word] = 0;
+                simMultiCounts[t.word] = 0;
+            });
+            
+            const numSamples = 100;
+            
+            for (let i = 0; i < numSamples; i++) {
+                // Argmax always returns same token
+                const argmaxId = getArgmax();
+                simArgmaxCounts[tokenData[argmaxId].word]++;
+                
+                // Multinomial samples from distribution
+                const multiId = sampleMultinomial();
+                simMultiCounts[tokenData[multiId].word]++;
+                
+                // Update progress
+                const progress = ((i + 1) / numSamples) * 100;
+                progressText.textContent = `Sampling... ${i + 1}/${numSamples}`;
+                progressFill.style.width = `${progress}%`;
+                
+                // Update histograms
+                updateSimHistograms(i + 1);
+                
+                await sleep(20);
+            }
+            
+            progressText.textContent = 'Complete!';
+            
+            // Update variety badges
+            const argmaxUnique = Object.values(simArgmaxCounts).filter(v => v > 0).length;
+            const multiUnique = Object.values(simMultiCounts).filter(v => v > 0).length;
+            
+            document.getElementById('argmax-variety').innerHTML = `Unique tokens: <strong>${argmaxUnique}</strong>`;
+            document.getElementById('multi-variety').innerHTML = `Unique tokens: <strong>${multiUnique}</strong>`;
+            
+            setTimeout(() => {
+                btn.disabled = false;
+            }, 1000);
+        }
+
+        function updateSimHistograms(total) {
+            // Update argmax histogram
+            const argmaxHist = document.getElementById('argmax-histogram');
+            sortedTokens.forEach(token => {
+                const row = argmaxHist.querySelector(`[data-token-id="${token.id}"]`);
+                const count = simArgmaxCounts[token.word] || 0;
+                const bar = row.querySelector('.sim-hist-bar');
+                const countSpan = row.querySelector('.sim-hist-count');
+                
+                bar.style.width = `${(count / total) * 100}%`;
+                countSpan.textContent = count;
+            });
+            
+            // Update multinomial histogram
+            const multiHist = document.getElementById('multi-histogram');
+            sortedTokens.forEach(token => {
+                const row = multiHist.querySelector(`[data-token-id="${token.id}"]`);
+                const count = simMultiCounts[token.word] || 0;
+                const bar = row.querySelector('.sim-hist-bar');
+                const countSpan = row.querySelector('.sim-hist-count');
+                
+                bar.style.width = `${(count / total) * 100}%`;
+                countSpan.textContent = count;
+            });
+        }
+
+        // Tooltip
+        function showTooltip(event, token) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = `
+                <strong>${token.word}</strong><br>
+                Logit: ${token.logit.toFixed(2)}<br>
+                Probability: ${(token.probability * 100).toFixed(2)}%
+            `;
+            tooltip.style.left = `${event.pageX + 10}px`;
+            tooltip.style.top = `${event.pageY + 10}px`;
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.remove('visible');
+        }
+
+        // Code Modal
+        const pythonCode = `import torch
+
+# ============================================
+# STEP 1: Define the vocabulary
+# ============================================
+vocab = {
+    "closer": 0,
+    "every": 1,
+    "effort": 2,
+    "forward": 3,
+    "inches": 4,
+    "moves": 5,
+    "pizza": 6,
+    "toward": 7,
+    "you": 8,
+}
+inverse_vocab = {v: k for k, v in vocab.items()}
+
+# ============================================
+# STEP 2: Model outputs logits for next token
+# ============================================
+# These are the raw scores the model outputs for each possible next token
+# after processing "Every effort moves you"
+next_token_logits = torch.tensor(
+    [4.51, 0.89, -1.90, 6.75, 1.63, -1.62, -1.89, 6.28, 1.79]
+)
+
+# ============================================
+# STEP 3: Convert logits to probabilities using softmax
+# ============================================
+probas = torch.softmax(next_token_logits, dim=0)
+print("Probabilities:", probas)
+# Higher logits → higher probabilities
+# "forward" (logit=6.75) will have highest probability
+# "toward" (logit=6.28) will have second highest
+
+# ============================================
+# STEP 4a: ARGMAX - Deterministic selection
+# ============================================
+# Always picks the token with the highest probability
+next_token_id_argmax = torch.argmax(probas).item()
+print(f"Argmax selected: {inverse_vocab[next_token_id_argmax]}")
+# Output: "forward" - EVERY SINGLE TIME
+
+# ============================================
+# STEP 4b: MULTINOMIAL - Probabilistic sampling
+# ============================================
+# Randomly samples based on the probability distribution
+torch.manual_seed(123)  # For reproducibility in demo
+next_token_id_multinomial = torch.multinomial(probas, num_samples=1).item()
+print(f"Multinomial selected: {inverse_vocab[next_token_id_multinomial]}")
+# Output: Could be "forward", "toward", "closer", etc.
+# Higher probability tokens are more likely but not guaranteed!
+
+# ============================================
+# STEP 5: Demonstration - Sample 1000 times
+# ============================================
+def print_sampled_tokens(probas):
+    """
+    Samples tokens 1000 times and shows the frequency distribution.
+    This demonstrates how multinomial sampling respects probabilities
+    while still allowing variety.
+    """
+    torch.manual_seed(123)
+    
+    # Sample 1,000 tokens based on the probability distribution
+    sample = [torch.multinomial(probas, num_samples=1).item() for i in range(1_000)]
+    
+    # Count how many times each token was selected
+    sampled_ids = torch.bincount(torch.tensor(sample))
+    
+    # Print results
+    print("\\nToken selection frequency (out of 1000 samples):")
+    for i, freq in enumerate(sampled_ids):
+        word = inverse_vocab.get(i, f"Token_{i}")
+        print(f"{freq:4d} x {word}")
+
+print_sampled_tokens(probas)
+# Expected output (varies slightly due to randomness):
+#  71 x closer
+#   2 x every
+#   0 x effort
+# 544 x forward  ← Most frequent, matches highest probability
+#   2 x inches
+#   1 x moves
+#   0 x pizza
+# 376 x toward   ← Second most frequent
+#   4 x you
+
+# ============================================
+# COMPLETE GENERATE FUNCTION (Production Code)
+# ============================================
+def generate(model, idx, max_new_tokens, context_size,
+             temperature=0.0, top_k=None, eos_id=None):
+    """
+    Generate text using either argmax (temperature=0) or 
+    multinomial sampling (temperature>0).
+    
+    Args:
+        model: The language model
+        idx: Starting token indices
+        max_new_tokens: Number of tokens to generate
+        context_size: Maximum context window
+        temperature: 0 = argmax, >0 = multinomial with temperature scaling
+        top_k: If set, only sample from top-k tokens
+        eos_id: End-of-sequence token ID to stop early
+    """
+    for _ in range(max_new_tokens):
+        idx_cond = idx[:, -context_size:]
+        with torch.no_grad():
+            logits = model(idx_cond)
+        logits = logits[:, -1, :]
+        
+        # Optional: top-k filtering
+        if top_k is not None:
+            top_logits, _ = torch.topk(logits, top_k)
+            min_val = top_logits[:, -1]
+            logits = torch.where(
+                logits < min_val,
+                torch.tensor(float('-inf')).to(logits.device),
+                logits
+            )
+        
+        # THE KEY DECISION POINT:
+        if temperature > 0.0:
+            # MULTINOMIAL SAMPLING with temperature scaling
+            logits = logits / temperature
+            probs = torch.softmax(logits, dim=-1)
+            idx_next = torch.multinomial(probs, num_samples=1)
+        else:
+            # ARGMAX (greedy/deterministic)
+            idx_next = torch.argmax(logits, dim=-1, keepdim=True)
+        
+        if idx_next == eos_id:
+            break
+        idx = torch.cat((idx, idx_next), dim=1)
+    return idx`;
+
+        function syntaxHighlight(code) {
+            code = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            // Comprehensive regex to tokenize Python correctly
+            // Order matters: Strings/Comments first, then Keywords, etc.
+            const tokenRegex = /((?:#.*))|((?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))|(\b(?:import|from|def|for|in|if|else|return|with|None|True|False|not|and|or|is|as|class|elif|while|try|except|pass|lambda|yield|raise|global|nonlocal|assert|del|break|continue)\b)|(\b[a-zA-Z_]\w*(?=\())|(\b(?:print|range|len|enumerate|float|int|str|dict|list|torch|item|dim|tensor|softmax|argmax|multinomial|manual_seed|bincount|no_grad|topk|where|cat|to|device|get)\b)|(\b\d+\.?\d*\b)/g;
+
+            return code.replace(tokenRegex, (match, com, str, kw, fn, builtin, num) => {
+                if (com) return `<span class="comment">${com}</span>`;
+                if (str) return `<span class="string">${str}</span>`;
+                if (kw) return `<span class="keyword">${kw}</span>`;
+                if (fn) return `<span class="function">${fn}</span>`;
+                if (builtin) return `<span class="builtin">${builtin}</span>`;
+                if (num) return `<span class="number">${num}</span>`;
+                return match;
+            });
+        }
+
+        function initCodeModal() {
+            const container = document.getElementById('code-container');
+            const lines = pythonCode.split('\n');
+            
+            container.innerHTML = lines.map((line, i) => {
+                const highlighted = syntaxHighlight(line);
+                return `<div class="code-line" data-line="${i + 1}">
+                    <span class="line-number">${i + 1}</span>
+                    <span class="line-content">${highlighted || ' '}</span>
+                </div>`;
+            }).join('');
+        }
+
+        function openCodeModal() {
+            document.getElementById('code-modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCodeModal() {
+            document.getElementById('code-modal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function highlightCodeLines(startLine, endLine) {
+            document.querySelectorAll('.code-line').forEach(line => {
+                line.classList.remove('highlighted');
+            });
+            
+            for (let i = startLine; i <= endLine; i++) {
+                const line = document.querySelector(`.code-line[data-line="${i}"]`);
+                if (line) {
+                    line.classList.add('highlighted');
+                    if (i === startLine) {
+                        line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+        }
+
+        // Utility
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Close modal on escape or click outside
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeCodeModal();
+        });
+
+        document.getElementById('code-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'code-modal') closeCodeModal();
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initProbChart();
+            initHistograms();
+            initCodeModal();
+        });
+    </script>
+</body>
+</html>

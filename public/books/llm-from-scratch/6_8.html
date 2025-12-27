@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradient Flow & Fine-Tuning Visualizer</title>
+    <!-- Prism.js for Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            /* Palette */
+            --bg-color: #f5f7ff;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            
+            --orange-primary: #f97316;
+            --orange-light: #fff7ed;
+            --orange-border: #fdba74;
+            
+            --purple-primary: #8b5cf6;
+            --purple-light: #f5f3ff;
+            --purple-border: #c4b5fd;
+            
+            --teal-primary: #14b8a6;
+            --teal-light: #ecfdf5;
+            --teal-border: #99f6e4;
+
+            --border-color: #e2e8f0;
+            --shadow-card: 0 4px 12px rgba(139, 92, 246, 0.08);
+            --shadow-active: 0 0 0 2px var(--purple-primary);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #fafbff 0%, #f0f4ff 100%);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* Layout Grid */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-rows: auto auto auto 1fr;
+            gap: 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin: 0 0 5px 0;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Controls Bar */
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-card);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .playback-controls button {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .playback-controls button:hover {
+            background: var(--purple-light);
+            color: var(--purple-primary);
+            border-color: var(--purple-border);
+        }
+
+        .playback-controls button.primary {
+            background: var(--purple-primary);
+            color: white;
+            border: none;
+        }
+        
+        .playback-controls button.primary:hover {
+            background: #7c3aed;
+        }
+
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--purple-primary); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        /* Step Navigation */
+        .step-nav {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 10px 5px 20px 5px; /* bottom padding for shadow */
+            scrollbar-width: thin;
+        }
+
+        .step-card {
+            flex: 0 0 160px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .step-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .step-card.active {
+            border-color: var(--purple-primary);
+            box-shadow: var(--shadow-active), var(--shadow-card);
+        }
+
+        .step-card.cat-orange { border-top: 4px solid var(--orange-primary); }
+        .step-card.cat-purple { border-top: 4px solid var(--purple-primary); }
+        .step-card.cat-teal { border-top: 4px solid var(--teal-primary); }
+
+        .step-num { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 5px; }
+        .step-title { font-size: 0.85rem; font-weight: 600; line-height: 1.3; }
+
+        /* Main Content Split */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 20px;
+            min-height: 500px;
+        }
+
+        /* Left Panel: Visualization */
+        .viz-panel {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow-card);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #grad-svg {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+        }
+
+        .viz-overlay-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none; /* Let clicks pass through to SVG elements */
+        }
+        
+        .viz-control-item {
+            pointer-events: auto;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Right Panel: Explanation & Code */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: 100%;
+        }
+
+        .explanation-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-card);
+            flex: 1;
+            overflow-y: auto;
+            border-left: 5px solid transparent;
+        }
+
+        .explanation-card.cat-orange { border-left-color: var(--orange-primary); }
+        .explanation-card.cat-purple { border-left-color: var(--purple-primary); }
+        .explanation-card.cat-teal { border-left-color: var(--teal-primary); }
+
+        .section-header {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .insight-box {
+            background: var(--purple-light);
+            border: 1px solid var(--purple-border);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+        .code-preview {
+            background: #1e293b; /* Match Prism Tomorrow bg */
+            border-radius: 12px;
+            padding: 10px;
+            flex: 0 0 160px; /* Fixed height */
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .code-title { color: #94a3b8; font-size: 0.75rem; font-family: monospace; }
+        
+        .view-full-btn {
+            background: transparent;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .view-full-btn:hover { background: #334155; }
+
+        pre { margin: 0 !important; height: 100%; overflow: auto; scrollbar-width: thin; }
+        code { font-size: 0.8rem !important; font-family: 'Consolas', monospace !important; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            width: 90%;
+            max-width: 900px;
+            height: 80vh;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #f1f5f9;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .close-btn:hover { color: white; }
+
+        .modal-body {
+            flex: 1;
+            overflow: auto;
+            padding: 0;
+            position: relative;
+        }
+
+        .line-highlight {
+            background: rgba(139, 92, 246, 0.2);
+            border-left: 3px solid var(--purple-primary);
+            display: block;
+            width: 100%;
+        }
+
+        /* SVG Tooltip */
+        .svg-tooltip {
+            position: absolute;
+            background: rgba(30, 41, 59, 0.95);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+            max-width: 200px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .viz-panel {
+                min-height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>Neural Network Fine-Tuning Visualization</h1>
+            <div class="subtitle">Interactive Gradient Flow & Backpropagation Explorer</div>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <div class="playback-controls">
+                <button onclick="changeStep(-1)" aria-label="Previous Step">← Prev</button>
+                <button id="playBtn" class="primary" onclick="togglePlay()">Play ▶</button>
+                <button onclick="changeStep(1)" aria-label="Next Step">Next →</button>
+            </div>
+
+            <div class="mode-toggle">
+                <span>Feature Extraction</span>
+                <label class="switch">
+                    <input type="checkbox" id="modeSwitch" onchange="toggleMode()">
+                    <span class="slider"></span>
+                </label>
+                <span>Full Fine-Tuning</span>
+            </div>
+        </div>
+
+        <!-- Step Navigation -->
+        <div class="step-nav" id="stepNav">
+            <!-- Populated by JS -->
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Visualization -->
+            <div class="viz-panel">
+                <svg id="grad-svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+                    <!-- SVG Content drawn by JS -->
+                    <defs>
+                        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(139, 92, 246, 0.2)"/>
+                        </filter>
+                        <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#10b981" />
+                        </marker>
+                        <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#dc2626" />
+                        </marker>
+                    </defs>
+                    <g id="connections-layer"></g>
+                    <g id="nodes-layer"></g>
+                    <g id="animations-layer"></g>
+                </svg>
+                
+                <div class="viz-overlay-controls" id="lr-control-container" style="display: none;">
+                    <div class="viz-control-item">
+                        <label for="lrSlider" style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 5px;">Learning Rate: <span id="lrDisplay">0.001</span></label>
+                        <input type="range" id="lrSlider" min="1" max="100" value="50" style="width: 150px;">
+                    </div>
+                </div>
+
+                <div id="svgTooltip" class="svg-tooltip"></div>
+            </div>
+
+            <!-- Explanation & Code -->
+            <div class="info-panel">
+                <div id="explanationCard" class="explanation-card cat-orange">
+                    <div class="section-header">Step <span id="stepNumDisplay">1</span>/8</div>
+                    <h3 id="stepTitleDisplay" style="margin-top:0;">Title Here</h3>
+                    <div id="stepTextDisplay" style="line-height: 1.6; font-size: 0.9rem; color: #475569;">
+                        Explanation text goes here.
+                    </div>
+                    <div id="stepInsightDisplay" class="insight-box">
+                        Insight goes here.
+                    </div>
+                </div>
+
+                <div class="code-preview">
+                    <div class="code-header">
+                        <span class="code-title">relevant_snippet.py</span>
+                        <button class="view-full-btn" onclick="openCodeModal()">View Full Code</button>
+                    </div>
+                    <pre><code id="snippetCode" class="language-python"># Code loads here</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Code Modal -->
+    <div id="codeModal" class="modal-overlay" onclick="closeCodeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Full Training Implementation</h3>
+                <button class="close-btn" onclick="closeCodeModal(event)">×</button>
+            </div>
+            <div class="modal-body">
+                <pre><code id="fullCodeBlock" class="language-python"></code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <script>
+        // --- DATA & STATE ---
+        const state = {
+            currentStep: 0,
+            isPlaying: false,
+            mode: 'feature_extraction', // or 'full_finetuning'
+            learningRate: 0.001,
+            timer: null
+        };
+
+        const steps = [
+            {
+                id: 1,
+                title: "Input Batch Preparation",
+                category: "cat-orange",
+                explanation: "Every training iteration begins with a batch of input data. We process multiple examples simultaneously (a batch) for efficiency and stability. The input tensors contain tokenized text sequences ready for the model.",
+                insight: "💡 <strong>Why Batches?</strong> Processing multiple examples together (mini-batch gradient descent) is more efficient than one-at-a-time and provides smoother gradient estimates.",
+                codeSnippet: "for input_batch, target_batch in train_loader:\n    # Iterate over dataset batches",
+                codeLines: [14],
+                animState: 'input'
+            },
+            {
+                id: 2,
+                title: "Zero Gradients",
+                category: "cat-orange",
+                explanation: "We must explicitly clear gradients from the previous iteration. PyTorch accumulates gradients by default (adds them up). If we don't zero them, the new gradients will be added to old ones, ruining training.",
+                insight: "⚠️ <strong>Common Mistake:</strong> Forgetting <code>optimizer.zero_grad()</code> is a classic bug! It leads to gradients growing uncontrollably.",
+                codeSnippet: "    optimizer.zero_grad()\n    # Clear previous gradients",
+                codeLines: [15],
+                animState: 'zero'
+            },
+            {
+                id: 3,
+                title: "Forward Pass",
+                category: "cat-purple",
+                explanation: "Input data flows through the network layers. Even frozen layers (blue lock) perform computations! They just won't learn new weights later. We calculate logits (raw scores) for classification.",
+                insight: "🔍 <strong>Feature Extraction:</strong> Even though transformer layers are frozen, they still process the input! Freezing only prevents weight updates.",
+                codeSnippet: "    # Forward pass happens inside calc_loss\n    logits = model(input_batch)",
+                codeLines: [16],
+                animState: 'forward'
+            },
+            {
+                id: 4,
+                title: "Loss Calculation",
+                category: "cat-purple",
+                explanation: "We compare the model's predictions (logits) against the true labels using Cross-Entropy Loss. This single number tells us how 'wrong' the model is.",
+                insight: "📊 <strong>The Goal:</strong> Training is simply the process of minimizing this loss value by adjusting weights.",
+                codeSnippet: "    loss = calc_loss_batch(input_batch, target, model)\n    # loss = CrossEntropy(logits, target)",
+                codeLines: [16],
+                animState: 'loss'
+            },
+            {
+                id: 5,
+                title: "Backward Pass (Backprop)",
+                category: "cat-purple",
+                explanation: "Automatic differentiation calculates gradients for every parameter. Gradients flow backward from the loss. In Feature Extraction mode, they stop at frozen layers.",
+                insight: "🎯 <strong>Frozen Layers:</strong> PyTorch computes gradients through frozen layers to reach trainable ones, but doesn't store gradients for the frozen parameters themselves.",
+                codeSnippet: "    loss.backward()\n    # Compute gradients",
+                codeLines: [17],
+                animState: 'backward'
+            },
+            {
+                id: 6,
+                title: "Gradient Inspection",
+                category: "cat-teal",
+                explanation: "Now gradients are stored in <code>.grad</code> attributes. Trainable layers have values indicating direction/magnitude of change. Frozen layers have no gradients.",
+                insight: "⚡ <strong>Gradient Clipping:</strong> Often applied here to prevent exploding gradients in deep networks.",
+                codeSnippet: "# Debugging check:\nfor p in model.parameters():\n    print(p.grad.norm())",
+                codeLines: [],
+                animState: 'magnitudes'
+            },
+            {
+                id: 7,
+                title: "Weight Update (Step)",
+                category: "cat-teal",
+                explanation: "The optimizer updates trainable weights using: <code>weight = weight - lr * gradient</code>. Frozen weights remain exactly the same.",
+                insight: "🎓 <strong>Optimizer:</strong> We typically use AdamW for Transformers. It adapts the learning rate for each parameter individually.",
+                codeSnippet: "    optimizer.step()\n    # Update weights",
+                codeLines: [18],
+                animState: 'step'
+            },
+            {
+                id: 8,
+                title: "Iteration Complete",
+                category: "cat-teal",
+                explanation: "One step is done! The model is slightly better. We increment counters and repeat for the next batch.",
+                insight: "🔄 <strong>The Loop:</strong> This cycle repeats thousands of times per epoch.",
+                codeSnippet: "    examples_seen += batch_size\n    global_step += 1",
+                codeLines: [19, 20],
+                animState: 'complete'
+            }
+        ];
+
+        const fullCode = `import torch
+
+def train_classifier_simple(model, train_loader, val_loader, optimizer, device, num_epochs, eval_freq, eval_iter):
+    """
+    Trains a classification model using a given training dataset.
+    """
+    train_losses, val_losses, train_accs, val_accs = [], [], [], []
+    examples_seen = 0
+    global_step = -1
+        
+    for epoch in range(num_epochs):
+        model.train()
+                
+        for input_batch, target_batch in train_loader:
+            optimizer.zero_grad()
+            loss = calc_loss_batch(input_batch, target_batch, model, device)
+            loss.backward()
+            optimizer.step()
+            examples_seen += input_batch.shape[0]
+            global_step += 1
+                        
+            if global_step % eval_freq == 0:
+                train_loss, val_loss = evaluate_model(model, train_loader, val_loader, device, eval_freq)
+                print(f"Epoch {epoch+1} Step {global_step}: Train {train_loss:.3f}, Val {val_loss:.3f}")
+                
+        # End of epoch evaluation
+        val_accuracy = calc_accuracy_loader(val_loader, model, device)
+        return train_losses, val_accs`;
+
+        // --- INIT ---
+        window.onload = function() {
+            initSteps();
+            document.getElementById('fullCodeBlock').textContent = fullCode;
+            Prism.highlightElement(document.getElementById('fullCodeBlock'));
+            renderStep(0);
+        };
+
+        // --- SVG VISUALIZATION LOGIC ---
+        const svg = document.getElementById('grad-svg');
+        const layers = [
+            { id: 'input', label: 'Input Batch', x: 50, y: 150, w: 100, h: 100, type: 'data' },
+            { id: 'embed', label: 'Embeddings', x: 200, y: 160, w: 40, h: 80, type: 'layer', trainable: true }, // Usually frozen in very strict FE, but often trainable. Let's assume frozen for FE demo simplicity if needed, but standard is typically trainable embeddings or frozen backbone. Let's make Embeddings frozen in FE for clarity.
+            { id: 'trans1', label: 'Transformer Block 1', x: 280, y: 140, w: 120, h: 120, type: 'layer', trainable: false },
+            { id: 'trans2', label: 'Transformer Block 2', x: 440, y: 140, w: 120, h: 120, type: 'layer', trainable: false },
+            { id: 'head', label: 'Class. Head', x: 600, y: 160, w: 60, h: 80, type: 'layer', trainable: true },
+            { id: 'loss', label: 'Loss', x: 720, y: 175, w: 50, h: 50, type: 'data' }
+        ];
+
+        function drawViz() {
+            const connectionsGroup = document.getElementById('connections-layer');
+            const nodesGroup = document.getElementById('nodes-layer');
+            const animGroup = document.getElementById('animations-layer');
+            
+            // Clear
+            connectionsGroup.innerHTML = '';
+            nodesGroup.innerHTML = '';
+            animGroup.innerHTML = '';
+
+            const s = steps[state.currentStep];
+            const isFE = state.mode === 'feature_extraction';
+
+            // Draw Connections first
+            for(let i=0; i<layers.length-1; i++) {
+                const curr = layers[i];
+                const next = layers[i+1];
+                const startX = curr.x + curr.w;
+                const startY = curr.y + curr.h/2;
+                const endX = next.x;
+                const endY = next.y + next.h/2;
+
+                // Base Line
+                const line = createSVGElement('line', {
+                    x1: startX, y1: startY, x2: endX, y2: endY,
+                    stroke: '#cbd5e1', 'stroke-width': 2
+                });
+                connectionsGroup.appendChild(line);
+
+                // Animations
+                if (s.animState === 'forward') {
+                    const bead = createSVGElement('circle', {
+                        r: 5, fill: '#10b981'
+                    });
+                    const anim = createSVGElement('animateMotion', {
+                        dur: '1s', repeatCount: 'indefinite',
+                        path: `M${startX},${startY} L${endX},${endY}`
+                    });
+                    bead.appendChild(anim);
+                    animGroup.appendChild(bead);
+                }
+                
+                if (s.animState === 'backward') {
+                    // Reverse flow
+                    let blocked = false;
+                    // In FE, gradients blocked before trainable layers? 
+                    // Logic: Head is trainable. Trans2 is frozen.
+                    // Gradients flow Head -> Trans2. BUT Trans2 parameters don't store them. 
+                    // However, gradients MUST flow *through* Trans2 to get to Trans1? No.
+                    // Actually, if Trans1 and Trans2 are frozen, we don't need gradients for them.
+                    // But if Embed was trainable, we would need to pass through.
+                    // For this simplified demo: Gradients originate at Loss.
+                    // Loss -> Head (Trainable). OK.
+                    // Head -> Trans2 (Frozen). Gradients computed w.r.t input of Head (output of Trans2), but Trans2 weights get no grad.
+                    // If Embed is Frozen too, gradients effectively stop being useful after Head.
+                    
+                    if (isFE && !curr.trainable) {
+                        blocked = true;
+                    }
+
+                    if (!blocked || next.trainable) {
+                         const bead = createSVGElement('circle', {
+                            r: 5, fill: '#dc2626'
+                        });
+                        // Arrow moving backwards
+                        const anim = createSVGElement('animateMotion', {
+                            dur: '1s', repeatCount: 'indefinite',
+                            path: `M${endX},${endY} L${startX},${startY}`
+                        });
+                        bead.appendChild(anim);
+                        animGroup.appendChild(bead);
+                    } else {
+                        // Show blocked symbol
+                        const crossSize = 10;
+                        const midX = (startX + endX) / 2;
+                        const midY = (startY + endY) / 2;
+                        const cross = createSVGElement('g', { opacity: 0.7 });
+                        cross.appendChild(createSVGElement('line', {
+                            x1: midX-crossSize, y1: midY-crossSize, x2: midX+crossSize, y2: midY+crossSize,
+                            stroke: '#f97316', 'stroke-width': 3
+                        }));
+                        cross.appendChild(createSVGElement('line', {
+                            x1: midX+crossSize, y1: midY-crossSize, x2: midX-crossSize, y2: midY+crossSize,
+                            stroke: '#f97316', 'stroke-width': 3
+                        }));
+                        animGroup.appendChild(cross);
+                    }
+                }
+            }
+
+            // Draw Nodes
+            layers.forEach(l => {
+                const g = createSVGElement('g', { 
+                    transform: `translate(${l.x}, ${l.y})`,
+                    class: 'layer-group',
+                    'data-tooltip': `${l.label} (${l.trainable || !isFE ? 'Trainable' : 'Frozen'})`
+                });
+
+                // Shape
+                let fill = '#ffffff';
+                let stroke = '#94a3b8';
+                
+                // Highlight logic
+                if (s.animState === 'input' && l.id === 'input') { stroke = '#f97316'; fill = '#fff7ed'; }
+                if (s.animState === 'loss' && l.id === 'loss') { stroke = '#8b5cf6'; fill = '#f5f3ff'; }
+                if (s.animState === 'step' && (l.trainable || !isFE) && l.type === 'layer') { stroke = '#14b8a6'; fill = '#ccfbf1'; }
+
+                const rect = createSVGElement('rect', {
+                    width: l.w, height: l.h, rx: 8,
+                    fill: fill, stroke: stroke, 'stroke-width': 2,
+                    filter: 'url(#shadow)'
+                });
+                g.appendChild(rect);
+
+                // Text
+                const text = createSVGElement('text', {
+                    x: l.w/2, y: l.h/2 + 5,
+                    'text-anchor': 'middle',
+                    'font-size': '12px', 'font-family': 'sans-serif', fill: '#334155',
+                    'font-weight': '600',
+                    'pointer-events': 'none' // allow tooltip on group
+                });
+                // Split label
+                if(l.label.includes(' ')) {
+                    const parts = l.label.split(' ');
+                    text.textContent = parts[0];
+                    const tspan = createSVGElement('tspan', { x: l.w/2, dy: 15 });
+                    tspan.textContent = parts[1];
+                    text.appendChild(tspan);
+                    text.setAttribute('y', l.h/2 - 5);
+                } else {
+                    text.textContent = l.label;
+                }
+                g.appendChild(text);
+
+                // Lock Icon for Frozen
+                if (isFE && !l.trainable && l.type === 'layer') {
+                    const lockGroup = createSVGElement('g', { transform: `translate(${l.w - 20}, -10)` });
+                    const circle = createSVGElement('circle', { r: 12, fill: '#fff', stroke: '#94a3b8', 'stroke-width':1 });
+                    const lockTxt = createSVGElement('text', { x: -5, y: 5, 'font-size': '14px' });
+                    lockTxt.textContent = '🔒';
+                    lockGroup.appendChild(circle);
+                    lockGroup.appendChild(lockTxt);
+                    g.appendChild(lockGroup);
+                }
+
+                // Zero Grad Visual
+                if (s.animState === 'zero' && l.type === 'layer') {
+                    const zeroTxt = createSVGElement('text', { 
+                        x: l.w/2, y: -10, 'text-anchor': 'middle', fill: '#f97316', 'font-weight': 'bold'
+                    });
+                    zeroTxt.textContent = "Grads: 0.0";
+                    g.appendChild(zeroTxt);
+                }
+
+                // Magnitude Visuals
+                if (s.animState === 'magnitudes' && l.type === 'layer') {
+                    // Heatmap bar at bottom
+                    if (!isFE || l.trainable) {
+                        const mag = l.id === 'head' ? 0.9 : 0.4;
+                        const barW = l.w * mag;
+                        const bar = createSVGElement('rect', {
+                            x: (l.w - barW)/2, y: l.h - 15, width: barW, height: 8, rx: 2,
+                            fill: l.id === 'head' ? '#dc2626' : '#fca5a5'
+                        });
+                        g.appendChild(bar);
+                    } else {
+                        // Frozen
+                        const bar = createSVGElement('rect', {
+                            x: l.w/2 - 20, y: l.h - 15, width: 40, height: 8, rx: 2,
+                            fill: '#e2e8f0'
+                        });
+                        g.appendChild(bar);
+                    }
+                }
+
+                // Tooltip Events
+                g.onmouseenter = (e) => showTooltip(e, g.getAttribute('data-tooltip'));
+                g.onmouseleave = () => hideTooltip();
+
+                nodesGroup.appendChild(g);
+            });
+        }
+
+        function createSVGElement(tag, attrs) {
+            const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+            for (let k in attrs) el.setAttribute(k, attrs[k]);
+            return el;
+        }
+
+        // --- INTERACTIVITY ---
+
+        function initSteps() {
+            const nav = document.getElementById('stepNav');
+            nav.innerHTML = '';
+            steps.forEach((step, idx) => {
+                const card = document.createElement('div');
+                card.className = `step-card ${step.category}`;
+                card.innerHTML = `<span class="step-num">STEP ${step.id}</span><div class="step-title">${step.title}</div>`;
+                card.onclick = () => {
+                    state.isPlaying = false;
+                    document.getElementById('playBtn').textContent = "Play ▶";
+                    renderStep(idx);
+                };
+                nav.appendChild(card);
+            });
+        }
+
+        function renderStep(idx) {
+            if (idx < 0) idx = 0;
+            if (idx >= steps.length) idx = steps.length - 1;
+            
+            state.currentStep = idx;
+
+            // Update UI State
+            document.querySelectorAll('.step-card').forEach((c, i) => {
+                c.classList.toggle('active', i === idx);
+            });
+            
+            // Scroll Nav
+            const nav = document.getElementById('stepNav');
+            const activeCard = nav.children[idx];
+            if(activeCard) {
+                activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+
+            const s = steps[idx];
+            
+            // Update Text
+            const expCard = document.getElementById('explanationCard');
+            expCard.className = `explanation-card ${s.category}`;
+            document.getElementById('stepNumDisplay').textContent = s.id;
+            document.getElementById('stepTitleDisplay').textContent = s.title;
+            document.getElementById('stepTextDisplay').innerHTML = s.explanation;
+            document.getElementById('stepInsightDisplay').innerHTML = s.insight;
+
+            // Update Snippet
+            const codeEl = document.getElementById('snippetCode');
+            codeEl.textContent = s.codeSnippet;
+            Prism.highlightElement(codeEl);
+
+            // Controls Visibility
+            const lrControl = document.getElementById('lr-control-container');
+            if (s.id === 7) {
+                lrControl.style.display = 'block';
+            } else {
+                lrControl.style.display = 'none';
+            }
+
+            drawViz();
+        }
+
+        function changeStep(dir) {
+            state.isPlaying = false;
+            document.getElementById('playBtn').textContent = "Play ▶";
+            renderStep(state.currentStep + dir);
+        }
+
+        function togglePlay() {
+            if (state.isPlaying) {
+                state.isPlaying = false;
+                document.getElementById('playBtn').textContent = "Play ▶";
+                if(state.timer) clearInterval(state.timer);
+            } else {
+                state.isPlaying = true;
+                document.getElementById('playBtn').textContent = "Pause ⏸";
+                
+                // If at end, restart
+                if(state.currentStep === steps.length - 1) renderStep(0);
+
+                state.timer = setInterval(() => {
+                    if (state.currentStep < steps.length - 1) {
+                        renderStep(state.currentStep + 1);
+                    } else {
+                        state.isPlaying = false;
+                        document.getElementById('playBtn').textContent = "Play ▶";
+                        clearInterval(state.timer);
+                    }
+                }, 2000);
+            }
+        }
+
+        function toggleMode() {
+            const checkbox = document.getElementById('modeSwitch');
+            state.mode = checkbox.checked ? 'full_finetuning' : 'feature_extraction';
+            // Update layers trainable status for visual simplicity
+            // In Full FT, blocks are trainable
+            if (state.mode === 'full_finetuning') {
+                layers[2].trainable = true; // Trans1
+                layers[3].trainable = true; // Trans2
+            } else {
+                layers[2].trainable = false;
+                layers[3].trainable = false;
+            }
+            renderStep(state.currentStep);
+        }
+
+        // --- SLIDER ---
+        const slider = document.getElementById('lrSlider');
+        slider.oninput = function() {
+            const val = this.value; // 1 to 100
+            // Logarithmic feel
+            const lr = (val / 10000).toFixed(5); 
+            state.learningRate = lr;
+            document.getElementById('lrDisplay').textContent = lr;
+        }
+
+        // --- TOOLTIP ---
+        function showTooltip(e, text) {
+            const tt = document.getElementById('svgTooltip');
+            tt.textContent = text;
+            tt.style.display = 'block';
+            tt.style.left = (e.clientX + 10) + 'px';
+            tt.style.top = (e.clientY + 10) + 'px';
+        }
+        function hideTooltip() {
+            document.getElementById('svgTooltip').style.display = 'none';
+        }
+
+        // --- MODAL ---
+        function openCodeModal() {
+            document.getElementById('codeModal').style.display = 'flex';
+            
+            // Highlight lines
+            const linesToHighlight = steps[state.currentStep].codeLines;
+            const fullCodeEl = document.getElementById('fullCodeBlock');
+            
+            // Re-render raw then highlight lines manually via CSS or overlays?
+            // Prism doesn't support line highlighting easily dynamically without plugins.
+            // We will use a simpler approach: text matching or basic overlay.
+            // Actually, Prism Line Highlight plugin is standard but not included here.
+            // Let's use string manipulation to wrap lines or just scroll.
+            
+            // Simple Scroll approach for vanilla
+            // We assume standard font height approx 20px
+            if(linesToHighlight && linesToHighlight.length > 0) {
+                 // Reset styling
+                 // Just scroll to the first line
+                 const lineHeight = 20; // Approx
+                 const scrollY = (linesToHighlight[0] - 2) * lineHeight;
+                 fullCodeEl.parentElement.scrollTop = scrollY;
+            }
+        }
+        
+        function closeCodeModal(e) {
+             document.getElementById('codeModal').style.display = 'none';
+        }
+
+        // Resize listener
+        window.onresize = drawViz;
+
+    </script>
+</body>
+</html>

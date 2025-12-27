@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Residual Connections Visualized</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            /* slate-50 */
+            color: #1e293b;
+            /* slate-800 */
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Animations */
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translate(-50%, 10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -64px);
+            }
+
+            /* matches -top-16 */
+        }
+
+        .animate-fade-in-up {
+            animation: fade-in-up 0.3s ease-out forwards;
+        }
+
+        /* Pulse animation for backprop arrows */
+        @keyframes pulse-violet {
+
+            0%,
+            100% {
+                color: #8b5cf6;
+                opacity: 1;
+            }
+
+            50% {
+                color: #a78bfa;
+                opacity: 0.7;
+            }
+        }
+
+        .animate-pulse-violet {
+            animation: pulse-violet 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Transition utilities */
+        .transition-all-custom {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 500ms;
+        }
+
+        /* Scrollbar for code block */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #2d2d2d;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+
+<body class="p-4 lg:p-12 min-h-screen">
+
+    <div class="max-w-6xl mx-auto space-y-12">
+
+        <!-- Header -->
+        <header class="text-center space-y-4">
+            <h1 class="text-4xl font-extrabold text-slate-900">
+                Residual Connections <span class="text-violet-600">Visualized</span>
+            </h1>
+            <p class="max-w-2xl mx-auto text-lg text-slate-600">
+                See why standard deep networks fail to learn, and how skip connections create a "highway" for gradients
+                to travel back to the start.
+            </p>
+        </header>
+
+        <!-- Problem / Solution Section -->
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- The Problem -->
+            <div class="bg-red-50 border border-red-100 rounded-xl p-6 flex flex-col gap-3 shadow-sm">
+                <div class="flex items-center gap-3 text-red-700 font-bold text-lg border-b border-red-200 pb-3">
+                    <i data-lucide="x" class="w-6 h-6 bg-red-100 p-1 rounded-full"></i>
+                    The Problem
+                </div>
+                <p class="text-slate-700 leading-relaxed">
+                    In deep neural networks, gradients become tiny as they flow backward. Early layers get almost zero
+                    gradient (like <span class="font-mono bg-red-100 px-1 rounded text-red-800">0.00020</span>) and
+                    can't learn anything.
+                </p>
+            </div>
+
+            <!-- The Solution -->
+            <div class="bg-teal-50 border border-teal-100 rounded-xl p-6 flex flex-col gap-3 shadow-sm">
+                <div class="flex items-center gap-3 text-teal-700 font-bold text-lg border-b border-teal-200 pb-3">
+                    <i data-lucide="check" class="w-6 h-6 bg-teal-100 p-1 rounded-full"></i>
+                    The Solution
+                </div>
+                <div
+                    class="font-mono text-xs bg-white border border-teal-200 px-2 py-1 rounded w-fit text-teal-800 font-bold">
+                    output = x + layer(x)
+                </div>
+                <p class="text-slate-700 leading-relaxed">
+                    Add a "shortcut" that passes the input directly to the output. This keeps gradients strong (like
+                    <span class="font-mono bg-teal-100 px-1 rounded text-teal-800">0.22</span>) even in early layers!
+                </p>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex flex-col md:flex-row justify-center gap-4 py-4 items-center">
+            <div class="bg-white p-1 rounded-lg border border-slate-200 shadow-sm inline-flex">
+                <button id="btn-standard" onclick="setMode('standard')"
+                    class="px-6 py-2 rounded-md font-bold text-sm transition-all bg-red-50 text-red-600 shadow-sm ring-1 ring-red-200">
+                    Standard Network
+                </button>
+                <button id="btn-residual" onclick="setMode('residual')"
+                    class="px-6 py-2 rounded-md font-bold text-sm transition-all text-slate-500 hover:bg-slate-50">
+                    Residual Network
+                </button>
+            </div>
+
+            <button id="btn-run" onclick="runSimulation()"
+                class="flex items-center gap-2 px-6 py-2 rounded-lg font-bold text-white shadow-md transition-transform active:scale-95 bg-violet-600 hover:bg-violet-700">
+                <i data-lucide="play" width="18"></i>
+                <span>Run Backprop</span>
+            </button>
+        </div>
+
+        <!-- Network Diagram Container -->
+        <div
+            class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative min-h-[400px] flex flex-col">
+
+            <!-- Legend / Status -->
+            <div
+                class="bg-slate-50/80 backdrop-blur px-6 py-3 border-b border-slate-100 flex justify-between items-center text-xs font-mono">
+                <div class="flex gap-4">
+                    <span class="flex items-center gap-1.5 opacity-50">
+                        <i data-lucide="arrow-right" width="14" class="text-slate-400"></i> Forward Flow
+                    </span>
+                    <span class="flex items-center gap-1.5 text-violet-600 font-bold animate-pulse-violet">
+                        <i data-lucide="arrow-left" width="14"></i> Backward Gradient Flow
+                    </span>
+                </div>
+                <div class="text-slate-400">Layer Count: 5</div>
+            </div>
+
+            <!-- Visualization Canvas -->
+            <!-- INCREASED TOP PADDING (pt-32) HERE TO PREVENT CUTOFF -->
+            <div class="flex-grow flex items-center justify-center pt-32 pb-12 px-8 overflow-x-auto relative">
+                <!-- Horizontal Axis Line -->
+                <div class="absolute top-1/2 left-10 right-10 h-0.5 bg-slate-200 -z-10"></div>
+
+                <div id="network-container" class="flex items-center gap-8 md:gap-12 min-w-max">
+                    <!-- Nodes will be injected here by JS -->
+                </div>
+            </div>
+
+            <!-- Result Banner (Hidden by default) -->
+            <div id="result-banner" class="hidden p-4 text-center border-t transition-all duration-300">
+                <div class="flex items-center justify-center gap-2 font-bold text-lg" id="result-title">
+                    <!-- Title injected by JS -->
+                </div>
+                <p class="text-sm opacity-90 mt-1" id="result-desc">
+                    <!-- Desc injected by JS -->
+                </p>
+            </div>
+        </div>
+
+        <!-- Code & Explanation Grid -->
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- Explanation Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div class="flex items-center gap-2 mb-4 text-slate-800">
+                    <i data-lucide="zap" class="text-amber-500 fill-amber-500" width="20"></i>
+                    <h3 class="font-bold text-xl" id="content-title">Standard Network</h3>
+                </div>
+                <p class="text-slate-600 leading-relaxed mb-6" id="content-desc">
+                    In a standard network, data flows linearly. During backpropagation (learning), the gradient signal
+                    must pass BACK through every layer's weights. If weights are small (<1), the signal multiplies by
+                        small numbers repeatedly and vanishes. </p>
+                        <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-2">Backprop Math Logic</div>
+                            <code class="text-sm font-bold font-mono text-slate-700" id="content-math">
+                        grad_in = grad_out × weight
+                    </code>
+                        </div>
+            </div>
+
+            <!-- Code Block -->
+            <div
+                class="bg-[#1e1e1e] rounded-lg border border-slate-700 shadow-xl overflow-hidden font-mono text-xs md:text-sm leading-6 flex flex-col h-full">
+                <div class="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-[#333]">
+                    <span class="text-slate-400 flex items-center gap-2">
+                        <i data-lucide="code-2" width="14" class="text-blue-400"></i> pytorch_model.py
+                    </span>
+                </div>
+                <div class="p-4 overflow-x-auto text-slate-300 custom-scrollbar flex-grow bg-[#1e1e1e]">
+                    <pre id="code-display"></pre>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Logic Script -->
+    <script>
+        // --- Configuration ---
+        const LAYERS_COUNT = 5;
+        const ANIMATION_MS_PER_LAYER = 1200;
+
+        // --- State ---
+        let currentMode = 'standard';
+        let activeLayer = null; // null, or index 4 down to 0
+        let isAnimating = false;
+        let animationInterval = null;
+
+        // --- Data Content ---
+        const CONTENT = {
+            standard: {
+                title: "Standard Network",
+                subtitle: "The Vanishing Gradient",
+                description: "In a standard network, data flows linearly. During backpropagation (learning), the gradient signal must pass BACK through every layer's weights. If weights are small (<1), the signal multiplies by small numbers repeatedly and vanishes.",
+                math: "grad_in = grad_out × weight",
+                code: `class ExampleDeepNeuralNetwork(nn.Module):
+    def __init__(self, layer_sizes, use_shortcut):
+        super().__init__()
+        self.use_shortcut = use_shortcut
+        self.layers = nn.ModuleList([
+            # Layers initialized here...
+        ])
+
+    def forward(self, x):
+        for layer in self.layers:
+            layer_output = layer(x)
+            
+            # ⛔️ Standard Pass (use_shortcut=False)
+            if self.use_shortcut and x.shape == layer_output.shape:
+                x = x + layer_output
+            else:
+                x = layer_output # Gradient bottleneck!
+                
+        return x`
+            },
+            residual: {
+                title: "Residual Network",
+                subtitle: "The Gradient Highway",
+                description: "A Residual Block adds the input 'x' to the output. This creates a shortcut. During backpropagation, the gradient splits: one part goes through the layer, but a copy goes through the shortcut (derivative = 1). This ensures the signal reaches the start safely.",
+                math: "grad_in = grad_out × (1 + weight)",
+                code: `class ExampleDeepNeuralNetwork(nn.Module):
+    def __init__(self, layer_sizes, use_shortcut):
+        super().__init__()
+        self.use_shortcut = use_shortcut
+        self.layers = nn.ModuleList([
+            # Layers initialized here...
+        ])
+
+    def forward(self, x):
+        for layer in self.layers:
+            layer_output = layer(x)
+            
+            # ✅ Residual Pass (use_shortcut=True)
+            if self.use_shortcut and x.shape == layer_output.shape:
+                x = x + layer_output # Gradient Highway!
+            else:
+                x = layer_output
+                
+        return x`
+            }
+        };
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderCode();
+            renderNetwork();
+        });
+
+        // --- Actions ---
+
+        function setMode(mode) {
+            if (isAnimating) return;
+            currentMode = mode;
+            activeLayer = null;
+
+            // Update UI Buttons
+            const btnStd = document.getElementById('btn-standard');
+            const btnRes = document.getElementById('btn-residual');
+
+            if (mode === 'standard') {
+                btnStd.className = "px-6 py-2 rounded-md font-bold text-sm transition-all bg-red-50 text-red-600 shadow-sm ring-1 ring-red-200";
+                btnRes.className = "px-6 py-2 rounded-md font-bold text-sm transition-all text-slate-500 hover:bg-slate-50";
+            } else {
+                btnStd.className = "px-6 py-2 rounded-md font-bold text-sm transition-all text-slate-500 hover:bg-slate-50";
+                btnRes.className = "px-6 py-2 rounded-md font-bold text-sm transition-all bg-teal-50 text-teal-600 shadow-sm ring-1 ring-teal-200";
+            }
+
+            // Hide Banner
+            document.getElementById('result-banner').classList.add('hidden');
+
+            updateContentInfo();
+            renderCode();
+            renderNetwork();
+        }
+
+        function runSimulation() {
+            if (isAnimating) return;
+
+            activeLayer = null;
+            renderNetwork(); // Clear previous state
+            document.getElementById('result-banner').classList.add('hidden');
+
+            const btnRun = document.getElementById('btn-run');
+            btnRun.innerHTML = `<i data-lucide="rotate-ccw" class="animate-spin" width="18"></i><span>Simulating...</span>`;
+            lucide.createIcons();
+            btnRun.classList.add('bg-slate-400', 'cursor-not-allowed');
+            btnRun.classList.remove('bg-violet-600', 'hover:bg-violet-700');
+
+            isAnimating = true;
+
+            setTimeout(() => {
+                // Start Animation Loop
+                activeLayer = LAYERS_COUNT - 1;
+                renderNetwork(); // Render initial state (last layer active)
+
+                animationInterval = setInterval(() => {
+                    if (activeLayer === 0) {
+                        finishSimulation();
+                    } else {
+                        activeLayer--;
+                        renderNetwork();
+                    }
+                }, ANIMATION_MS_PER_LAYER);
+            }, 100);
+        }
+
+        function finishSimulation() {
+            clearInterval(animationInterval);
+            isAnimating = false;
+
+            // Reset Button
+            const btnRun = document.getElementById('btn-run');
+            btnRun.innerHTML = `<i data-lucide="play" width="18"></i><span>Run Backprop</span>`;
+            lucide.createIcons();
+            btnRun.classList.remove('bg-slate-400', 'cursor-not-allowed');
+            btnRun.classList.add('bg-violet-600', 'hover:bg-violet-700');
+
+            // Show Banner
+            showResultBanner();
+        }
+
+        function showResultBanner() {
+            const banner = document.getElementById('result-banner');
+            const titleDiv = document.getElementById('result-title');
+            const descP = document.getElementById('result-desc');
+
+            banner.classList.remove('hidden');
+
+            if (currentMode === 'residual') {
+                banner.className = "p-4 text-center border-t bg-teal-50 border-teal-200 text-teal-800 transition-all duration-300";
+                titleDiv.innerHTML = `<i data-lucide="check-circle-2" width="24"></i> Signal Preserved (0.22)`;
+                descP.innerText = "The skip connection creates a path where the derivative is 1.0, preserving the gradient magnitude.";
+            } else {
+                banner.className = "p-4 text-center border-t bg-red-50 border-red-200 text-red-800 transition-all duration-300";
+                titleDiv.innerHTML = `<i data-lucide="alert-triangle" width="24"></i> Signal Vanished (0.0002)`;
+                descP.innerText = "Without the skip connection, the gradient is multiplied by small weights repeatedly until it disappears.";
+            }
+            lucide.createIcons();
+        }
+
+        function updateContentInfo() {
+            const data = CONTENT[currentMode];
+            document.getElementById('content-title').innerText = data.title;
+            document.getElementById('content-desc').innerText = data.description;
+            document.getElementById('content-math').innerText = data.math;
+        }
+
+        // --- Renderers ---
+
+        function getGradientValue(layerIdx) {
+            const steps = (LAYERS_COUNT - 1) - layerIdx;
+            if (currentMode === 'residual') return Math.max(0.22 - (steps * 0.005), 0.20);
+            return Math.pow(0.45, steps + 1) * 0.22;
+        }
+
+        function renderNetwork() {
+            const container = document.getElementById('network-container');
+            let html = '';
+
+            // Input Node
+            html += `
+                <div class="flex flex-col items-center gap-2 opacity-50">
+                    <div class="w-12 h-12 rounded-full bg-slate-100 border-2 border-slate-300 flex items-center justify-center font-bold text-slate-400 text-xs">INPUT</div>
+                </div>
+            `;
+
+            // Arrow Input -> Layer 0
+            const inputActive = activeLayer !== null && activeLayer <= 0;
+            let arrowColor = 'text-slate-300';
+            if (inputActive) arrowColor = currentMode === 'residual' ? 'text-teal-400' : 'text-red-300';
+            html += `
+                <div class="transition-colors duration-300 ${arrowColor}">
+                    <i data-lucide="arrow-right" width="24" stroke-width="${inputActive ? 3 : 2}"></i>
+                </div>
+            `;
+
+            // Layers
+            for (let i = 0; i < LAYERS_COUNT; i++) {
+                const isCurrent = activeLayer === i;
+                const isPassed = activeLayer !== null && activeLayer <= i;
+                const gradient = getGradientValue(i);
+
+                // Box Styling
+                let boxClasses = "w-24 h-24 rounded-xl flex flex-col items-center justify-center bg-white border-2 shadow-sm transition-all-custom z-10 relative ";
+                if (isCurrent) {
+                    boxClasses += "scale-110 border-violet-500 shadow-xl ring-4 ring-violet-50 ";
+                } else {
+                    boxClasses += "border-slate-300 ";
+                }
+
+                if (isPassed && !isCurrent) {
+                    boxClasses += currentMode === 'residual' ? 'bg-teal-50 border-teal-200 ' : 'bg-red-50 border-red-200 ';
+                }
+
+                // Math Hint
+                const mathText = currentMode === 'residual' ? '× (1 + w)' : '× w';
+                const mathOpacity = isCurrent ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2';
+
+                // Standard Highlight Overlay
+                let stdOverlay = '';
+                if (currentMode === 'standard' && isPassed) {
+                    stdOverlay = `
+                        <div class="absolute inset-0 border-4 border-red-400/50 rounded-xl animate-pulse pointer-events-none flex items-center justify-center">
+                            <i data-lucide="arrow-left" class="text-red-500 opacity-50" width="32"></i>
+                        </div>
+                    `;
+                }
+
+                // Residual Arc
+                let residualArc = '';
+                if (currentMode === 'residual') {
+                    const strokeColor = isPassed ? "#14b8a6" : "#cbd5e1";
+                    const strokeWidth = isPassed ? 3 : 2;
+                    const labelColor = isPassed ? "#0f766e" : "#94a3b8";
+
+                    residualArc = `
+                        <div class="absolute -top-12 left-[-20px] right-[-20px] h-14 pointer-events-none">
+                            <svg width="100%" height="100%" viewBox="0 0 100 50" preserveAspectRatio="none" style="overflow: visible;">
+                                <path d="M 0,50 Q 50,-20 100,50" fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-dasharray="4" marker-end="url(#arrowhead-${i})" class="transition-colors duration-500" />
+                                <circle cx="100" cy="50" r="3" fill="${strokeColor}" />
+                                <rect x="35" y="-10" width="30" height="14" rx="4" fill="white" stroke="${strokeColor}" />
+                                <text x="50" y="0" text-anchor="middle" font-size="8" fill="${labelColor}" font-weight="bold" dominant-baseline="middle">SKIP</text>
+                            </svg>
+                            <svg width="0" height="0">
+                                <defs>
+                                    <marker id="arrowhead-${i}" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                                        <path d="M0,0 L6,3 L0,6" fill="${strokeColor}" />
+                                    </marker>
+                                </defs>
+                            </svg>
+                        </div>
+                    `;
+                }
+
+                // Signal Packet
+                let signalPacket = '';
+                if (isPassed) {
+                    const widthPct = Math.max(gradient * 100, 10);
+                    let barColor, labelTextColor;
+
+                    if (gradient > 0.8) {
+                        barColor = 'bg-emerald-500 shadow-emerald-500/50';
+                        labelTextColor = 'text-emerald-700';
+                    } else if (gradient > 0.1) {
+                        barColor = 'bg-amber-500 shadow-amber-500/50';
+                        labelTextColor = 'text-amber-700';
+                    } else {
+                        barColor = 'bg-red-500 shadow-red-500/50';
+                        labelTextColor = 'text-red-600';
+                    }
+
+                    signalPacket = `
+                        <div class="absolute -top-16 left-1/2 -translate-x-1/2 flex flex-col items-center w-32 z-20 animate-fade-in-up">
+                            <span class="text-[10px] font-bold font-mono mb-1 ${labelTextColor} bg-white px-1.5 py-0.5 rounded shadow-sm border border-slate-100">
+                                Grad: ${gradient.toFixed(5)}
+                            </span>
+                            <div class="w-20 h-4 bg-slate-200 rounded-full overflow-hidden border border-slate-300 shadow-sm">
+                                <div class="h-full ${barColor} transition-all duration-300" style="width: ${widthPct}%"></div>
+                            </div>
+                            <div class="w-0.5 h-6 bg-slate-300 mt-1"></div>
+                            <div class="w-2 h-2 bg-slate-400 rounded-full -mt-1"></div>
+                        </div>
+                    `;
+                }
+
+                // Next Arrow
+                let nextArrow = '';
+                if (i < LAYERS_COUNT - 1) {
+                    let nextArrowColor = 'text-slate-300';
+                    if (isPassed) nextArrowColor = currentMode === 'residual' ? 'text-teal-400' : 'text-red-300';
+
+                    nextArrow = `
+                        <div class="absolute top-1/2 -right-10 -translate-y-1/2 transition-colors duration-300 ${nextArrowColor}">
+                            <i data-lucide="arrow-right" width="20" stroke-width="${isPassed ? 3 : 2}"></i>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="relative group">
+                        <div class="${boxClasses}">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Layer</span>
+                            <span class="text-2xl font-bold text-slate-700">${i + 1}</span>
+                            <div class="absolute -bottom-3 px-2 py-0.5 rounded-full bg-white border shadow-sm text-[10px] font-mono whitespace-nowrap transition-all duration-300 ${mathOpacity}">
+                                ${mathText}
+                            </div>
+                            ${stdOverlay}
+                        </div>
+                        ${residualArc}
+                        ${signalPacket}
+                        ${nextArrow}
+                    </div>
+                `;
+            }
+
+            // Arrow Last Layer -> Output
+            const outputActive = activeLayer !== null;
+            let outArrowColor = 'text-slate-300';
+            if (outputActive) outArrowColor = currentMode === 'residual' ? 'text-teal-400' : 'text-red-300';
+
+            html += `
+                <div class="transition-colors duration-300 ${outArrowColor}">
+                    <i data-lucide="arrow-right" width="24" stroke-width="${outputActive ? 3 : 2}"></i>
+                </div>
+            `;
+
+            // Output Node
+            html += `
+                <div class="flex flex-col items-center gap-2 opacity-50">
+                    <div class="w-12 h-12 rounded-full bg-slate-100 border-2 border-slate-300 flex items-center justify-center font-bold text-slate-400 text-xs">OUT</div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // --- Code Highlighting Helper ---
+        function renderCode() {
+            const codeString = CONTENT[currentMode].code;
+            const container = document.getElementById('code-display');
+            container.innerHTML = ''; // Clear
+
+            const lines = codeString.split('\n');
+            lines.forEach((line, i) => {
+                const row = document.createElement('div');
+                row.className = 'table-row';
+
+                // Highlight specific logic lines
+                const isHighlight = (currentMode === 'residual' && line.includes('x = x + layer_output')) ||
+                    (currentMode === 'standard' && line.includes('x = layer_output # Gradient'));
+
+                if (isHighlight) row.classList.add('bg-white/10');
+
+                // Line Number
+                const lineNum = document.createElement('span');
+                lineNum.className = 'table-cell text-slate-600 select-none text-right pr-4 pl-2';
+                lineNum.innerText = i + 1;
+                row.appendChild(lineNum);
+
+                // Code Text (Simple Regex replacement for syntax color)
+                const codeCell = document.createElement('span');
+                codeCell.className = 'table-cell whitespace-pre pr-2';
+
+                let formatted = line
+                    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") // Escape HTML
+                    .replace(/\b(class|def|return|if|else|for|in|and)\b/g, '<span class="text-pink-400">$1</span>')
+                    .replace(/\b(self|nn)\b/g, '<span class="text-blue-400">$1</span>')
+                    .replace(/#.*/g, '<span class="text-green-600/80 italic">$&</span>')
+                    .replace(/\b(__init__|super|forward|ModuleList)\b/g, '<span class="text-yellow-300">$1</span>');
+
+                codeCell.innerHTML = formatted;
+                row.appendChild(codeCell);
+
+                container.appendChild(row);
+            });
+        }
+
+    </script>
+</body>
+
+</html>

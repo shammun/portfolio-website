@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataLoader Shuffling Visualization</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom transitions for smooth movement */
+        .card-transition {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .fade-enter {
+            animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        /* Custom scrollbar for code block */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; 
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 pb-20">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="database" class="w-6 h-6 text-indigo-600"></i>
+                <h1 class="font-bold text-lg tracking-tight text-slate-900">
+                    LLM Training <span class="text-slate-400 font-normal">| DataLoader Visualization</span>
+                </h1>
+            </div>
+            <button id="view-code-btn" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5">
+                <i data-lucide="code" class="w-4 h-4"></i> View Code
+            </button>
+        </div>
+    </nav>
+
+    <main class="max-w-3xl mx-auto px-4 py-12 space-y-16">
+        
+        <!-- Intro -->
+        <section class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">
+                How <code class="bg-indigo-100 px-2 py-1 rounded text-indigo-700">shuffle=True</code> Actually Works
+            </h1>
+            <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                A visual guide to understanding PyTorch DataLoader shuffling. 
+                Does it mix up the words? Does it break grammar? Let's find out.
+            </p>
+        </section>
+
+        <!-- Section 1: Playlist Analogy -->
+        <section>
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-indigo-100 rounded-lg">
+                        <i data-lucide="music" class="w-6 h-6 text-indigo-700"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800">The Playlist Analogy</h2>
+                </div>
+                <p class="text-slate-600 max-w-2xl ml-1">Think of training examples like songs in a playlist.</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg border border-slate-100 p-6 md:p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-slate-700 flex items-center gap-2">
+                        <i data-lucide="music" class="w-5 h-5 text-pink-500"></i> Training Data Playlist
+                    </h3>
+                    <button id="shuffle-playlist-btn" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50">
+                        <i data-lucide="shuffle" class="w-4 h-4 icon-spin"></i>
+                        Shuffle Playlist
+                    </button>
+                </div>
+
+                <div id="playlist-container" class="space-y-3 relative min-h-[300px]">
+                    <!-- Playlist items will be injected here -->
+                </div>
+                <p id="playlist-message" class="mt-4 text-center text-sm text-slate-500 italic">
+                    Notice: The songs moved positions, but the lyrics inside each song stayed exactly the same!
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 2: Epoch Comparison -->
+        <section>
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-indigo-100 rounded-lg">
+                        <i data-lucide="refresh-cw" class="w-6 h-6 text-indigo-700"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800">Epoch Comparison</h2>
+                </div>
+                <p class="text-slate-600 max-w-2xl ml-1">What the model sees in different training rounds.</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg border border-slate-100 p-6">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                    <div class="flex items-center gap-4">
+                        <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                            <input type="checkbox" id="detailed-view-toggle" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                            Show Tokens
+                        </label>
+                    </div>
+                    <button id="reshuffle-epoch-btn" class="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 text-sm font-medium transition-colors">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5 icon-spin"></i>
+                        Reshuffle Epoch 2
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-8 md:gap-12 relative">
+                    <!-- Column 1 -->
+                    <div class="space-y-4">
+                        <h4 class="text-center font-bold text-slate-400 uppercase tracking-widest text-xs mb-2">Epoch 1 (Original)</h4>
+                        <div id="epoch1-container" class="space-y-4"></div>
+                    </div>
+
+                    <!-- Column 2 -->
+                    <div class="space-y-4">
+                        <h4 class="text-center font-bold text-slate-400 uppercase tracking-widest text-xs mb-2">Epoch 2 (Shuffled)</h4>
+                        <div id="epoch2-container" class="space-y-4 card-transition"></div>
+                    </div>
+                    
+                    <!-- Center Arrow -->
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow-sm border border-slate-100 hidden md:block z-20">
+                        <i data-lucide="arrow-right" class="w-6 h-6 text-slate-300"></i>
+                    </div>
+                </div>
+                
+                <p class="mt-6 text-center text-sm text-slate-500">
+                    Hover over any card on the left to see where it moved on the right!
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 3: Critical Distinction -->
+        <section>
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-indigo-100 rounded-lg">
+                        <i data-lucide="info" class="w-6 h-6 text-indigo-700"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800">The Critical Distinction</h2>
+                </div>
+                <p class="text-slate-600 max-w-2xl ml-1">Understand exactly what changes and what stays the same.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Wrong -->
+                <div class="bg-red-50 rounded-xl p-6 border border-red-100 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i data-lucide="x-circle" class="w-24 h-24 text-red-500"></i>
+                    </div>
+                    <h3 class="text-red-700 font-bold flex items-center gap-2 mb-4">
+                        <i data-lucide="x-circle" class="w-5 h-5"></i> WRONG: Scrambled Tokens
+                    </h3>
+                    <p class="text-sm text-red-800 mb-4">
+                        Shuffling does <span class="font-bold underline">NOT</span> mix up the tokens inside a chunk. This would break the grammar.
+                    </p>
+                    <div class="bg-white p-4 rounded-lg border border-red-200 shadow-sm opacity-70">
+                        <div class="text-xs font-mono text-slate-400 mb-1">Example 0 (Corrupted)</div>
+                        <div class="font-mono text-red-600 font-bold line-through decoration-red-400 decoration-2">
+                            [50, 10, 40, 20, 30]
+                        </div>
+                        <div class="text-xs text-red-400 italic mt-1">"sat The cat on..."</div>
+                    </div>
+                </div>
+
+                <!-- Correct -->
+                <div class="bg-green-50 rounded-xl p-6 border border-green-100 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i data-lucide="check-circle" class="w-24 h-24 text-green-500"></i>
+                    </div>
+                    <h3 class="text-green-700 font-bold flex items-center gap-2 mb-4">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> CORRECT: Reordered Examples
+                    </h3>
+                    <p class="text-sm text-green-800 mb-4">
+                        Shuffling <span class="font-bold">ONLY</span> changes the order of the full examples. Tokens inside stay perfect.
+                    </p>
+                    <div class="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
+                        <div class="text-xs font-mono text-slate-400 mb-1">Example 0 (Intact)</div>
+                        <div class="font-mono text-green-700 font-bold">
+                            [10, 20, 30, 40, 50]
+                        </div>
+                        <div class="text-xs text-green-600 italic mt-1">"The cat sat..."</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Timeline -->
+        <section>
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-indigo-100 rounded-lg">
+                        <i data-lucide="play" class="w-6 h-6 text-indigo-700"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800">Training Flow Timeline</h2>
+                </div>
+                <p class="text-slate-600 max-w-2xl ml-1">Watch how the data stream changes order every epoch.</p>
+            </div>
+
+            <div class="bg-slate-900 text-slate-100 rounded-xl shadow-xl overflow-hidden">
+                <div class="bg-slate-800 p-4 flex items-center justify-between border-b border-slate-700">
+                    <div class="flex items-center gap-4">
+                        <div id="timeline-epoch-badge" class="px-3 py-1 bg-indigo-600 rounded text-xs font-bold uppercase tracking-wider">
+                            Epoch 1
+                        </div>
+                        <div id="timeline-step-text" class="text-sm text-slate-400">
+                            Step 1/4
+                        </div>
+                    </div>
+                    <button id="timeline-play-btn" class="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors font-medium text-sm">
+                        <i data-lucide="play" class="w-4 h-4"></i>
+                        <span id="timeline-btn-text">Start Training</span>
+                    </button>
+                </div>
+
+                <div class="p-8 relative min-h-[240px] flex items-center justify-center">
+                    <!-- Model -->
+                    <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
+                        <div class="w-20 h-20 bg-slate-800 border-2 border-indigo-500 rounded-lg shadow-[0_0_30px_rgba(99,102,241,0.3)] flex items-center justify-center relative">
+                            <i data-lucide="brain-circuit" class="w-10 h-10 text-indigo-400 animate-pulse"></i>
+                            <div class="absolute -bottom-6 w-full text-center text-[10px] text-slate-500 font-mono">MODEL</div>
+                        </div>
+                    </div>
+                    <!-- Stream Line -->
+                    <div class="w-full h-1 bg-slate-800 absolute top-1/2 -translate-y-1/2 z-0"></div>
+                    <!-- Cards Container -->
+                    <div id="timeline-cards-container" class="absolute inset-0 overflow-hidden">
+                        <!-- Animation cards injected here -->
+                    </div>
+                </div>
+                <div id="timeline-order-display" class="bg-slate-800/50 p-2 text-center text-xs text-slate-500 font-mono">
+                    Current Order: [0, 1, 2, 3]
+                </div>
+            </div>
+        </section>
+
+        <!-- Key Takeaway -->
+        <div class="bg-indigo-900 text-indigo-50 rounded-2xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                <i data-lucide="brain-circuit" class="w-8 h-8 text-indigo-300"></i> Key Takeaway
+            </h3>
+            <div class="space-y-4">
+                <div class="flex items-start gap-4">
+                    <div class="bg-green-500/20 p-2 rounded-lg mt-1">
+                        <i data-lucide="check-circle" class="w-6 h-6 text-green-400"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-white">Shuffling CHANGES the Order of Examples</h4>
+                        <p class="text-indigo-200">Just like shuffling a playlist changes which song plays first.</p>
+                    </div>
+                </div>
+                <div class="w-full h-px bg-indigo-800 my-4"></div>
+                <div class="flex items-start gap-4">
+                    <div class="bg-red-500/20 p-2 rounded-lg mt-1">
+                        <i data-lucide="x-circle" class="w-6 h-6 text-red-400"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-white">Shuffling does NOT Change Tokens inside Examples</h4>
+                        <p class="text-indigo-200">The "lyrics" (token IDs) within each chunk remain exactly the same. Grammar is preserved.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Code Modal -->
+    <div id="code-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden transform scale-95 transition-transform duration-200" id="code-modal-content">
+            <div class="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
+                <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                    <i data-lucide="code" class="w-5 h-5 text-indigo-600"></i> PyTorch DataLoader Implementation
+                </h3>
+                <button id="close-modal-btn" class="p-2 hover:bg-slate-200 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                </button>
+            </div>
+            <div id="code-container" class="flex-1 overflow-auto bg-[#1e1e1e] p-6 text-sm font-mono text-gray-300">
+                <!-- Code injected here -->
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-500">
+                Highlighted lines show where `shuffle=True` is applied.
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- Data & Constants ---
+        const EXAMPLES = [
+            {
+                id: 0,
+                color: 'bg-orange-500',
+                lightColor: 'bg-orange-50',
+                borderColor: 'border-orange-200',
+                textColor: 'text-orange-700',
+                label: 'Example 0',
+                inputTokens: [10, 20, 30, 40, 50],
+                targetTokens: [20, 30, 40, 50, 60],
+                textPreview: '"The cat sat"'
+            },
+            {
+                id: 1,
+                color: 'bg-teal-500',
+                lightColor: 'bg-teal-50',
+                borderColor: 'border-teal-200',
+                textColor: 'text-teal-700',
+                label: 'Example 1',
+                inputTokens: [30, 40, 50, 60, 70],
+                targetTokens: [40, 50, 60, 70, 80],
+                textPreview: '"sat on the"'
+            },
+            {
+                id: 2,
+                color: 'bg-purple-500',
+                lightColor: 'bg-purple-50',
+                borderColor: 'border-purple-200',
+                textColor: 'text-purple-700',
+                label: 'Example 2',
+                inputTokens: [50, 60, 70, 80, 90],
+                targetTokens: [60, 70, 80, 90, 100],
+                textPreview: '"the mat The"'
+            },
+            {
+                id: 3,
+                color: 'bg-cyan-600',
+                lightColor: 'bg-cyan-50',
+                borderColor: 'border-cyan-200',
+                textColor: 'text-cyan-800',
+                label: 'Example 3',
+                inputTokens: [70, 80, 90, 100, 110],
+                targetTokens: [80, 90, 100, 110, 120],
+                textPreview: '"The dog barked"'
+            }
+        ];
+
+        const CODE_STRING = `# GPTDatasetV1 - Creates the training examples (chunks)
+import torch
+from torch.utils.data import Dataset, DataLoader
+
+class GPTDatasetV1(Dataset):
+    def __init__(self, txt, tokenizer, max_length, stride):
+        self.input_ids = []
+        self.target_ids = []
+        
+        # Tokenize the entire text
+        token_ids = tokenizer.encode(txt)
+        
+        # Create overlapping chunks using sliding window
+        for i in range(0, len(token_ids) - max_length, stride):
+            input_chunk = token_ids[i:i + max_length]
+            target_chunk = token_ids[i + 1: i + max_length + 1]
+            self.input_ids.append(torch.tensor(input_chunk))
+            self.target_ids.append(torch.tensor(target_chunk))
+    
+    def __len__(self):
+        return len(self.input_ids)
+    
+    def __getitem__(self, idx):
+        return self.input_ids[idx], self.target_ids[idx]
+
+
+# create_dataloader_V1 - Wraps dataset with DataLoader
+def create_dataloader_V1(txt, batch_size=4, max_length=256,
+                         stride=128, shuffle=True, drop_last=True,
+                         num_workers=0):
+    tokenizer = tiktoken.get_encoding("gpt2")
+    dataset = GPTDatasetV1(txt, tokenizer, max_length, stride)
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,  # ← This is the key parameter!
+        drop_last=drop_last,
+        num_workers=num_workers
+    )
+    return dataloader
+
+
+# Usage - Creating train and validation loaders
+train_loader = create_dataloader_V1(
+    train_text,
+    batch_size=2, max_length=256, stride=128,
+    shuffle=True,   # ← Shuffle for training!
+    num_workers=0
+)
+
+val_loader = create_dataloader_V1(
+    val_text,
+    batch_size=2, max_length=256, stride=128,
+    shuffle=False,  # ← No shuffle for validation!
+    num_workers=0
+)`;
+
+        // --- Utility Functions ---
+
+        function shuffleArray(array) {
+            const newArr = [...array];
+            for (let i = newArr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+            }
+            return newArr;
+        }
+
+        function createTokenBadge(num, type) {
+            const classes = type === 'input' 
+                ? 'bg-orange-100 text-orange-700' 
+                : 'bg-teal-100 text-teal-700';
+            return `<span class="inline-block px-1.5 py-0.5 rounded text-xs font-mono mr-1 mb-1 ${classes}">${num}</span>`;
+        }
+
+        // --- Playlist Section Logic ---
+        const playlistContainer = document.getElementById('playlist-container');
+        const shufflePlaylistBtn = document.getElementById('shuffle-playlist-btn');
+        let playlistOrder = [0, 1, 2, 3];
+
+        function renderPlaylist(isShuffling = false) {
+            playlistContainer.innerHTML = '';
+            playlistOrder.forEach((id, index) => {
+                const ex = EXAMPLES[id];
+                const div = document.createElement('div');
+                div.className = `flex items-center p-4 rounded-lg border-2 transition-all duration-500 ease-in-out ${ex.lightColor} ${ex.borderColor} ${isShuffling ? 'opacity-50 scale-95' : 'opacity-100 scale-100'}`;
+                // Set absolute positioning styles for shuffle animation (simplified here to flex order or re-render)
+                // For vanilla JS without complex flip libraries, re-rendering with CSS classes is safest
+                div.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center font-bold text-slate-400 mr-4 shadow-sm">
+                        ${index + 1}
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-baseline justify-between">
+                            <span class="font-bold ${ex.textColor}">🎵 ${ex.label}</span>
+                            <span class="text-xs text-slate-500 font-mono">ID: ${ex.id}</span>
+                        </div>
+                        <div class="text-slate-600 font-mono text-sm mt-1">
+                            Lyrics: [${ex.inputTokens.join(', ')}]
+                        </div>
+                    </div>
+                `;
+                playlistContainer.appendChild(div);
+            });
+        }
+
+        shufflePlaylistBtn.addEventListener('click', () => {
+            shufflePlaylistBtn.disabled = true;
+            // Robust selection for either <i> or <svg> (Lucide transforms <i> to <svg>)
+            const icon = shufflePlaylistBtn.querySelector('.lucide') || shufflePlaylistBtn.querySelector('[data-lucide]');
+            if(icon) icon.classList.add('animate-spin');
+            
+            // Visual feedback state
+            renderPlaylist(true);
+            document.getElementById('playlist-message').textContent = "Shuffling...";
+
+            setTimeout(() => {
+                playlistOrder = shuffleArray(playlistOrder);
+                renderPlaylist(false);
+                if(icon) icon.classList.remove('animate-spin');
+                shufflePlaylistBtn.disabled = false;
+                document.getElementById('playlist-message').textContent = "Notice: The songs moved positions, but the lyrics inside each song stayed exactly the same!";
+            }, 400);
+        });
+
+        // --- Epoch Section Logic ---
+        const epoch1Container = document.getElementById('epoch1-container');
+        const epoch2Container = document.getElementById('epoch2-container');
+        const reshuffleEpochBtn = document.getElementById('reshuffle-epoch-btn');
+        const detailedToggle = document.getElementById('detailed-view-toggle');
+        
+        let epoch2Order = [3, 1, 0, 2];
+        let isDetailed = true;
+        let hoveredId = null;
+
+        function renderEpochCard(id, index, isDetailedView) {
+            const ex = EXAMPLES[id];
+            const isHovered = hoveredId === id;
+            const isDimmed = hoveredId !== null && hoveredId !== id;
+            
+            const card = document.createElement('div');
+            card.className = `
+                relative p-3 rounded-xl border-2 transition-all duration-300 cursor-pointer
+                ${isHovered ? 'scale-105 shadow-xl ring-2 ring-indigo-400 z-10' : 'shadow-sm'}
+                ${isDimmed ? 'opacity-40 grayscale-[50%]' : 'opacity-100'}
+                ${ex.lightColor} ${ex.borderColor}
+            `;
+            card.dataset.id = id; // Store ID for hover logic
+
+            let content = `
+                <div class="flex justify-between items-center mb-2 pointer-events-none">
+                    <span class="font-bold text-sm ${ex.textColor}">${ex.label}</span>
+                    <span class="text-xs font-bold bg-white/50 px-2 py-0.5 rounded text-slate-500">
+                        Position: ${index + 1}
+                    </span>
+                </div>
+            `;
+
+            if (isDetailedView) {
+                content += `
+                    <div class="space-y-2 pointer-events-none">
+                        <div>
+                            <div class="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-0.5">Input</div>
+                            <div class="flex flex-wrap gap-0.5">
+                                ${ex.inputTokens.map(t => createTokenBadge(t, 'input')).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-bold text-teal-600 uppercase tracking-wider mb-0.5">Target</div>
+                            <div class="flex flex-wrap gap-0.5">
+                                ${ex.targetTokens.map(t => createTokenBadge(t, 'target')).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                content += `
+                    <div class="h-12 flex items-center justify-center text-sm italic text-slate-500 pointer-events-none">
+                        ${ex.textPreview}...
+                    </div>
+                `;
+            }
+
+            card.innerHTML = content;
+            
+            // Hover events
+            card.addEventListener('mouseenter', () => {
+                hoveredId = id;
+                renderEpochViews(); // Re-render to apply dimming/highlighting
+            });
+            card.addEventListener('mouseleave', () => {
+                hoveredId = null;
+                renderEpochViews();
+            });
+
+            return card;
+        }
+
+        function renderEpochViews() {
+            // Render Epoch 1
+            epoch1Container.innerHTML = '';
+            [0, 1, 2, 3].forEach((id, idx) => {
+                epoch1Container.appendChild(renderEpochCard(id, idx, isDetailed));
+            });
+
+            // Render Epoch 2
+            epoch2Container.innerHTML = '';
+            epoch2Order.forEach((id, idx) => {
+                epoch2Container.appendChild(renderEpochCard(id, idx, isDetailed));
+            });
+        }
+
+        reshuffleEpochBtn.addEventListener('click', () => {
+            reshuffleEpochBtn.disabled = true;
+            // Robust selection
+            const icon = reshuffleEpochBtn.querySelector('.lucide') || reshuffleEpochBtn.querySelector('[data-lucide]');
+            if(icon) icon.classList.add('animate-spin');
+            
+            epoch2Container.classList.add('opacity-50', 'blur-[1px]');
+
+            setTimeout(() => {
+                epoch2Order = shuffleArray(epoch2Order);
+                renderEpochViews();
+                if(icon) icon.classList.remove('animate-spin');
+                epoch2Container.classList.remove('opacity-50', 'blur-[1px]');
+                reshuffleEpochBtn.disabled = false;
+            }, 300);
+        });
+
+        detailedToggle.addEventListener('change', (e) => {
+            isDetailed = e.target.checked;
+            renderEpochViews();
+        });
+
+
+        // --- Timeline Section Logic ---
+        const timelinePlayBtn = document.getElementById('timeline-play-btn');
+        const timelineBtnText = document.getElementById('timeline-btn-text');
+        const timelineContainer = document.getElementById('timeline-cards-container');
+        const badgeEl = document.getElementById('timeline-epoch-badge');
+        const stepTextEl = document.getElementById('timeline-step-text');
+        const orderDisplayEl = document.getElementById('timeline-order-display');
+        
+        let timelineState = {
+            isPlaying: false,
+            step: 0,
+            epoch: 1,
+            timer: null
+        };
+
+        const epochOrders = {
+            1: [0, 1, 2, 3],
+            2: [3, 1, 0, 2],
+            3: [2, 0, 3, 1]
+        };
+
+        function initTimelineCards() {
+            timelineContainer.innerHTML = '';
+            // Create a persistent card for every example
+            EXAMPLES.forEach(ex => {
+                const div = document.createElement('div');
+                div.setAttribute('data-id', ex.id);
+                // Initial hidden state
+                div.className = `absolute top-1/2 -translate-y-1/2 transition-all duration-700 ease-in-out left-[-150px] -translate-x-1/2 scale-75 z-0 opacity-0`;
+                div.innerHTML = `
+                    <div class="w-48 p-3 rounded-lg border-2 shadow-2xl bg-white ${ex.borderColor}">
+                        <div class="text-xs font-bold mb-1 ${ex.textColor}">${ex.label}</div>
+                        <div class="text-[10px] font-mono bg-slate-100 p-1 rounded text-slate-600 truncate">
+                            In: [${ex.inputTokens.join(',')}]
+                        </div>
+                    </div>
+                `;
+                timelineContainer.appendChild(div);
+            });
+        }
+
+        function renderTimelineFrame() {
+            const currentOrder = epochOrders[timelineState.epoch];
+            
+            // Update UI Labels
+            badgeEl.textContent = `Epoch ${timelineState.epoch}`;
+            stepTextEl.textContent = `Step ${timelineState.step + 1}/4`;
+            orderDisplayEl.textContent = `Current Order: [${currentOrder.join(', ')}]`;
+
+            // Update classes for each existing card based on its current role
+            const cards = Array.from(timelineContainer.children);
+            
+            cards.forEach(card => {
+                const id = parseInt(card.getAttribute('data-id'));
+                // Find where this card sits in the current shuffled order
+                const orderIndex = currentOrder.indexOf(id);
+                
+                let positionClass = '';
+                let opacityClass = 'opacity-0';
+
+                // Calculate position based on the current step and the card's order index
+                if (orderIndex === timelineState.step) {
+                    // Processing (Center)
+                    positionClass = 'left-1/2 -translate-x-1/2 scale-110 z-20';
+                    opacityClass = 'opacity-100';
+                } else if (orderIndex > timelineState.step) {
+                    // Waiting (Right)
+                    const offset = (orderIndex - timelineState.step) * 120;
+                    positionClass = `left-[calc(50%+${100 + offset}px)] -translate-x-1/2 scale-90 z-0`;
+                    opacityClass = 'opacity-40';
+                } else {
+                    // Done (Left)
+                    positionClass = 'left-[-150px] -translate-x-1/2 scale-75 z-0';
+                    opacityClass = 'opacity-0';
+                }
+
+                // Apply updated classes. Note: We keep the base transition classes static in the init function or re-apply them.
+                card.className = `absolute top-1/2 -translate-y-1/2 transition-all duration-700 ease-in-out ${positionClass} ${opacityClass}`;
+            });
+        }
+
+        timelinePlayBtn.addEventListener('click', () => {
+            timelineState.isPlaying = !timelineState.isPlaying;
+            
+            // Find current icon (might be SVG if Lucide already processed it)
+            const currentIcon = timelinePlayBtn.querySelector('.lucide') || timelinePlayBtn.querySelector('[data-lucide]');
+            
+            // Re-create the <i> tag which Lucide can process again
+            const newIcon = document.createElement('i');
+            newIcon.className = 'w-4 h-4';
+            
+            if (timelineState.isPlaying) {
+                newIcon.setAttribute('data-lucide', 'pause');
+                if (currentIcon) currentIcon.replaceWith(newIcon); else timelinePlayBtn.prepend(newIcon);
+                
+                timelineBtnText.textContent = 'Pause';
+                
+                // Start Loop
+                timelineState.timer = setInterval(() => {
+                    timelineState.step++;
+                    if (timelineState.step >= 4) {
+                        timelineState.step = 0;
+                        timelineState.epoch = timelineState.epoch === 3 ? 1 : timelineState.epoch + 1;
+                    }
+                    renderTimelineFrame();
+                }, 1500);
+
+            } else {
+                newIcon.setAttribute('data-lucide', 'play');
+                if (currentIcon) currentIcon.replaceWith(newIcon); else timelinePlayBtn.prepend(newIcon);
+                
+                timelineBtnText.textContent = 'Start Training';
+                clearInterval(timelineState.timer);
+            }
+            
+            // Refresh icons
+            lucide.createIcons();
+        });
+
+
+        // --- Code Modal Logic ---
+        const viewCodeBtn = document.getElementById('view-code-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const modal = document.getElementById('code-modal');
+        const modalContent = document.getElementById('code-modal-content');
+        const codeContainer = document.getElementById('code-container');
+
+        function openModal() {
+            modal.classList.remove('hidden');
+            // Trigger reflow for transition
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0');
+            modalContent.classList.remove('scale-95');
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        function renderCode() {
+            const lines = CODE_STRING.split('\n');
+            let html = '';
+            lines.forEach(line => {
+                const isKeyParam = line.includes('shuffle=shuffle,  # ← This is the key parameter!');
+                const isTrainingShuffle = line.includes('shuffle=True,   # ← Shuffle for training!');
+                
+                let classes = "whitespace-pre font-mono leading-6";
+                if (isKeyParam || isTrainingShuffle) {
+                    classes += " bg-yellow-500/10 border-l-4 border-yellow-500 text-yellow-100 -mx-6 px-6";
+                }
+
+                // Simple syntax highlighting for comments
+                const content = line.trim().startsWith('#') 
+                    ? `<span class="text-green-500/80">${line}</span>` 
+                    : line;
+
+                html += `<div class="${classes}">${content}</div>`;
+            });
+            codeContainer.innerHTML = html;
+        }
+
+        viewCodeBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial Renders
+            renderPlaylist();
+            renderEpochViews();
+            renderCode();
+            
+            // Timeline specific init
+            initTimelineCards();
+            renderTimelineFrame();
+
+            // Initialize Icons
+            lucide.createIcons();
+        });
+
+    </script>
+</body>
+</html>

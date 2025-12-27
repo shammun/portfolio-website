@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPT-2 Weight Architecture Mapping</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f0f4ff;
+            --card-bg: #ffffff;
+            --card-shadow: 0 4px 20px rgba(124, 95, 240, 0.1);
+            
+            --openai-orange: #ff8c42;
+            --openai-orange-light: #fff4ed;
+            --openai-orange-border: #ffd4b8;
+            --pytorch-teal: #00a896;
+            --pytorch-teal-light: #e8f8f6;
+            --pytorch-teal-border: #b3e6df;
+            --transform-purple: #7c5ff0;
+            --transform-purple-light: #f3f0ff;
+            --transform-purple-border: #d4c9ff;
+            
+            --text-primary: #1a1a2e;
+            --text-secondary: #5a5a7a;
+            --text-muted: #8a8aaa;
+            
+            --code-bg: #1e1e2e;
+            --code-text: #cdd6f4;
+            --code-keyword: #cba6f7;
+            --code-string: #a6e3a1;
+            --code-number: #fab387;
+            --code-comment: #6c7086;
+            --code-function: #89b4fa;
+            --code-highlight: rgba(124, 95, 240, 0.3);
+            
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .header h1 span {
+            background: linear-gradient(135deg, var(--openai-orange), var(--transform-purple), var(--pytorch-teal));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-subtitle {
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.9rem;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.8rem;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.openai { background: var(--openai-orange); }
+        .legend-dot.pytorch { background: var(--pytorch-teal); }
+        .legend-dot.transform { background: var(--transform-purple); }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .instruction {
+            background: var(--transform-purple-light);
+            border: 1px solid var(--transform-purple-border);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .instruction strong { color: var(--transform-purple); }
+
+        /* Filter Tabs */
+        .filter-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 0.4rem 0.9rem;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            background: var(--card-bg);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .filter-tab:hover { background: rgba(0, 0, 0, 0.03); }
+        .filter-tab.active {
+            background: var(--transform-purple);
+            color: white;
+            border-color: var(--transform-purple);
+        }
+
+        /* Mappings List */
+        .mappings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        /* Single Mapping Row */
+        .mapping-row {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .mapping-row:hover {
+            box-shadow: 0 6px 24px rgba(124, 95, 240, 0.15);
+        }
+
+        .mapping-row.expanded {
+            box-shadow: 0 8px 32px rgba(124, 95, 240, 0.2);
+        }
+
+        /* Collapsed State - Just the summary */
+        .mapping-summary {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr auto;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+        }
+
+        .mapping-row.expanded .mapping-summary {
+            background: rgba(124, 95, 240, 0.05);
+            border-bottom: 1px solid rgba(124, 95, 240, 0.1);
+        }
+
+        .mapping-source, .mapping-target {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .mapping-source { text-align: left; }
+        .mapping-target { text-align: right; }
+
+        .mapping-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+        }
+
+        .mapping-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        .mapping-source .mapping-name { color: var(--openai-orange); }
+        .mapping-target .mapping-name { color: var(--pytorch-teal); }
+
+        .mapping-shape {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .mapping-arrow {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mapping-arrow svg {
+            color: var(--text-muted);
+            width: 18px;
+            height: 18px;
+        }
+
+        .mapping-op {
+            font-size: 0.6rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+
+        .mapping-op.transpose { background: var(--transform-purple); color: white; }
+        .mapping-op.split { background: var(--openai-orange); color: white; }
+        .mapping-op.copy { background: rgba(0, 0, 0, 0.08); color: var(--text-secondary); }
+
+        .expand-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+        }
+
+        .mapping-row.expanded .expand-icon {
+            transform: rotate(180deg);
+            color: var(--transform-purple);
+        }
+
+        /* Expanded Content - Two Columns */
+        .mapping-expanded {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, #fafbff, #f5f3ff);
+        }
+
+        .mapping-row.expanded .mapping-expanded {
+            display: grid;
+        }
+
+        @media (max-width: 900px) {
+            .mapping-expanded {
+                grid-template-columns: 1fr;
+            }
+            .mapping-summary {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+                text-align: center;
+            }
+            .mapping-source, .mapping-target { text-align: center; }
+            .mapping-arrow { justify-content: center; }
+        }
+
+        /* Left Column - Description */
+        .expanded-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .expanded-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .transform-flow {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .flow-box {
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius-sm);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .flow-box.source {
+            background: var(--openai-orange-light);
+            border: 1px solid var(--openai-orange-border);
+            color: var(--openai-orange);
+        }
+
+        .flow-box.op {
+            background: var(--transform-purple-light);
+            border: 1px solid var(--transform-purple-border);
+            color: var(--transform-purple);
+        }
+
+        .flow-box.target {
+            background: var(--pytorch-teal-light);
+            border: 1px solid var(--pytorch-teal-border);
+            color: var(--pytorch-teal);
+        }
+
+        .flow-arrow {
+            color: var(--text-muted);
+        }
+
+        .why-box {
+            background: white;
+            border-radius: var(--radius-sm);
+            padding: 0.75rem;
+            border-left: 3px solid var(--transform-purple);
+        }
+
+        .why-box h4 {
+            font-size: 0.75rem;
+            color: var(--transform-purple);
+            margin-bottom: 0.35rem;
+        }
+
+        .why-box p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Right Column - Code */
+        .expanded-right {
+            background: var(--code-bg);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+
+        .code-header {
+            padding: 0.5rem 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-title {
+            color: var(--code-text);
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .code-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--code-text);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .code-btn:hover { background: rgba(255, 255, 255, 0.15); }
+
+        .code-body {
+            padding: 0.5rem;
+            max-height: 200px;
+            overflow: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            line-height: 1.6;
+        }
+
+        .code-line {
+            display: flex;
+            padding: 0 0.25rem;
+        }
+
+        .code-line.highlighted {
+            background: var(--code-highlight);
+            border-left: 2px solid var(--transform-purple);
+            margin-left: -0.25rem;
+            padding-left: 0.25rem;
+        }
+
+        .code-line-num {
+            width: 24px;
+            color: var(--code-comment);
+            text-align: right;
+            padding-right: 0.5rem;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .code-line-text {
+            color: var(--code-text);
+            white-space: pre;
+        }
+
+        .code-keyword { color: var(--code-keyword); }
+        .code-string { color: var(--code-string); }
+        .code-number { color: var(--code-number); }
+        .code-comment { color: var(--code-comment); font-style: italic; }
+        .code-function { color: var(--code-function); }
+
+        /* Key Takeaway */
+        .takeaway {
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            color: white;
+            margin-top: 1.5rem;
+        }
+
+        .takeaway h3 {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .takeaway p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .takeaway code {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8em;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--code-bg);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            color: var(--code-text);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--code-text);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover { background: rgba(255, 255, 255, 0.2); }
+
+        .modal-body {
+            padding: 1rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-body .code-body {
+            max-height: none;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>GPT-2 <span>Weight Mapping</span></h1>
+        <p class="header-subtitle">How OpenAI's pre-trained weights map to PyTorch</p>
+        <div class="legend">
+            <div class="legend-item"><div class="legend-dot openai"></div>OpenAI/TF</div>
+            <div class="legend-item"><div class="legend-dot transform"></div>Transform</div>
+            <div class="legend-item"><div class="legend-dot pytorch"></div>PyTorch</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="instruction">
+            <strong>Click any row</strong> to expand and see transformation details and code side by side.
+        </div>
+
+        <div class="filter-bar" id="filter-bar">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="embeddings">Embeddings</button>
+            <button class="filter-tab" data-filter="attention">Attention</button>
+            <button class="filter-tab" data-filter="ffn">FFN</button>
+            <button class="filter-tab" data-filter="layernorm">LayerNorm</button>
+        </div>
+
+        <div class="mappings-list" id="mappings-list"></div>
+
+        <div class="takeaway">
+            <h3>🎯 Key Takeaway</h3>
+            <p>
+                Loading weights requires: <code>np.split()</code> to separate Q/K/V matrices,
+                <code>.T</code> transpose for 2D weights (TF vs PyTorch convention),
+                and matching paths correctly. Biases (1D) don't need transpose. Output head reuses token embeddings (weight tying).
+            </p>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">load_weights_into_gpt.py</span>
+                <button class="modal-close" id="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="code-body" id="full-code"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var mappings = [
+            {
+                id: 'pos_emb', category: 'embeddings',
+                openai: "params['wpe']", pytorch: 'gpt.pos_emb.weight',
+                sourceShape: '(1024, 768)', targetShape: '(1024, 768)',
+                operation: 'copy', operationLabel: 'Direct Copy',
+                description: 'Position Embeddings',
+                explanation: 'Position embeddings encode where each token appears in the sequence (positions 0-1023). Shape is identical in both frameworks, so no transformation is needed.',
+                codeLines: [4]
+            },
+            {
+                id: 'tok_emb', category: 'embeddings',
+                openai: "params['wte']", pytorch: 'gpt.tok_emb.weight',
+                sourceShape: '(50257, 768)', targetShape: '(50257, 768)',
+                operation: 'copy', operationLabel: 'Direct Copy',
+                description: 'Token Embeddings',
+                explanation: 'Token embeddings map each vocabulary token (50,257 tokens) to a 768-dimensional vector. Shape is identical in both frameworks, so no transformation is needed.',
+                codeLines: [5]
+            },
+            {
+                id: 'qkv_w', category: 'attention',
+                openai: 'params["blocks"][b]["attn"]["c_attn"]["w"]',
+                pytorch: 'W_query/W_key/W_value.weight',
+                sourceShape: '(768, 2304)', targetShape: '3x (768, 768)',
+                operation: 'split', operationLabel: 'Split+Transpose',
+                description: 'Attention Q/K/V Weights (Combined)',
+                explanation: 'OpenAI stores Query, Key, and Value weights concatenated into one matrix (768×2304 = 768×768×3). We use np.split() to separate them into three (768, 768) matrices, then transpose each with .T because TensorFlow stores weights as (input, output) but PyTorch expects (output, input).',
+                codeLines: [8, 9, 10, 11, 12, 13, 14, 15]
+            },
+            {
+                id: 'qkv_b', category: 'attention',
+                openai: 'params["blocks"][b]["attn"]["c_attn"]["b"]',
+                pytorch: 'W_query/W_key/W_value.bias',
+                sourceShape: '(2304,)', targetShape: '3x (768,)',
+                operation: 'split', operationLabel: 'Split Only',
+                description: 'Attention Q/K/V Biases (Combined)',
+                explanation: 'OpenAI stores Query, Key, and Value biases concatenated into one vector (2304 = 768×3). We use np.split() to separate them into three (768,) vectors. Unlike weights, biases are 1D vectors and do NOT need transposition.',
+                codeLines: [17, 18, 19, 20, 21, 22, 23, 24]
+            },
+            {
+                id: 'out_w', category: 'attention',
+                openai: 'params["blocks"][b]["attn"]["c_proj"]["w"]',
+                pytorch: 'att.out_proj.weight',
+                sourceShape: '(768, 768)', targetShape: '(768, 768)',
+                operation: 'transpose', operationLabel: '.T',
+                description: 'Attention Output Projection Weight',
+                explanation: 'This weight projects the concatenated attention heads back to the model dimension. Transpose is required because TensorFlow stores weights as (input_features, output_features) but PyTorch nn.Linear expects (output_features, input_features).',
+                codeLines: [26, 27, 28]
+            },
+            {
+                id: 'out_b', category: 'attention',
+                openai: 'params["blocks"][b]["attn"]["c_proj"]["b"]',
+                pytorch: 'att.out_proj.bias',
+                sourceShape: '(768,)', targetShape: '(768,)',
+                operation: 'copy', operationLabel: 'Copy',
+                description: 'Attention Output Projection Bias',
+                explanation: 'Bias for the output projection. Since biases are 1D vectors, they work identically in both frameworks and need no transformation.',
+                codeLines: [29, 30, 31]
+            },
+            {
+                id: 'ff1_w', category: 'ffn',
+                openai: 'params["blocks"][b]["mlp"]["c_fc"]["w"]',
+                pytorch: 'ff.layers[0].weight',
+                sourceShape: '(768, 3072)', targetShape: '(3072, 768)',
+                operation: 'transpose', operationLabel: '.T',
+                description: 'FFN First Linear Layer Weight',
+                explanation: 'The feed-forward network first expands from 768 to 3072 dimensions (4× expansion). This is layers[0] in PyTorch. Transpose converts from TensorFlow shape (768, 3072) to PyTorch shape (3072, 768).',
+                codeLines: [33, 34, 35]
+            },
+            {
+                id: 'ff1_b', category: 'ffn',
+                openai: 'params["blocks"][b]["mlp"]["c_fc"]["b"]',
+                pytorch: 'ff.layers[0].bias',
+                sourceShape: '(3072,)', targetShape: '(3072,)',
+                operation: 'copy', operationLabel: 'Copy',
+                description: 'FFN First Linear Layer Bias',
+                explanation: 'Bias for the first linear layer (layers[0]). 1D vector needs no transformation.',
+                codeLines: [36, 37, 38]
+            },
+            {
+                id: 'ff2_w', category: 'ffn',
+                openai: 'params["blocks"][b]["mlp"]["c_proj"]["w"]',
+                pytorch: 'ff.layers[2].weight',
+                sourceShape: '(3072, 768)', targetShape: '(768, 3072)',
+                operation: 'transpose', operationLabel: '.T',
+                description: 'FFN Second Linear Layer Weight',
+                explanation: 'Projects back from 3072 to 768 dimensions. This is layers[2] in PyTorch because the FFN structure is: layers[0]=Linear(768→3072), layers[1]=GELU activation, layers[2]=Linear(3072→768). Transpose converts shapes.',
+                codeLines: [40, 41, 42]
+            },
+            {
+                id: 'ff2_b', category: 'ffn',
+                openai: 'params["blocks"][b]["mlp"]["c_proj"]["b"]',
+                pytorch: 'ff.layers[2].bias',
+                sourceShape: '(768,)', targetShape: '(768,)',
+                operation: 'copy', operationLabel: 'Copy',
+                description: 'FFN Second Linear Layer Bias',
+                explanation: 'Bias for the second linear layer (layers[2]). 1D vector needs no transformation.',
+                codeLines: [43, 44, 45]
+            },
+            {
+                id: 'ln1_g', category: 'layernorm',
+                openai: 'params["blocks"][b]["ln_1"]["g"]',
+                pytorch: 'norm1.scale',
+                sourceShape: '(768,)', targetShape: '(768,)',
+                operation: 'copy', operationLabel: 'Copy',
+                description: 'LayerNorm 1 Scale (γ/gamma)',
+                explanation: 'LayerNorm formula: output = γ × normalized + β. This is γ (gamma), the learnable scale parameter. OpenAI calls it "g". Applied before the attention layer.',
+                codeLines: [47, 48, 49]
+            },
+            {
+                id: 'ln1_b', category: 'layernorm',
+                openai: 'params["blocks"][b]["ln_1"]["b"]',
+                pytorch: 'norm1.shift',
+                sourceShape: '(768,)', targetShape: '(768,)',
+                operation: 'copy', operationLabel: 'Copy',
+                description: 'LayerNorm 1 Shift (β/beta)',
+                explanation: 'LayerNorm formula: output = γ × normalized + β. This is β (beta), the learnable shift/bias parameter. OpenAI calls it "b". Applied before the attention layer.',
+                codeLines: [50, 51, 52]
+            },
+            {
+                id: 'ln2_g', category: 'layernorm',
+                openai: 'params["blocks"][b]["ln_2"]["g"]',
+                pytorch: 'norm2.scale',
+                sourceShape: '(768,)', targetShape: '(768,)',
+                operation: 'copy', operationLabel: 'Copy',
+                description: 'LayerNorm 2 Scale (γ/gamma)',
+                explanation: 'The second LayerNorm in each transformer block, applied before the feed-forward network. This is the γ (gamma) scale parameter.',
+                codeLines: [54, 55, 56]
+            },
+            {
+                id: 'ln2_b', category: 'layernorm',
+                openai: 'params["blocks"][b]["ln_2"]["b"]',
+                pytorch: 'norm2.shift',
+                sourceShape: '(768,)', targetShape: '(768,)',
+                operation: 'copy', operationLabel: 'Copy',
+                description: 'LayerNorm 2 Shift (β/beta)',
+                explanation: 'The second LayerNorm in each transformer block, applied before the feed-forward network. This is the β (beta) shift parameter.',
+                codeLines: [57, 58, 59]
+            },
+            {
+                id: 'final_g', category: 'layernorm',
+                openai: 'params["g"]', pytorch: 'final_norm.scale',
+                sourceShape: '(768,)', targetShape: '(768,)',
+                operation: 'copy', operationLabel: 'Copy',
+                description: 'Final LayerNorm Scale (γ/gamma)',
+                explanation: 'The final LayerNorm applied after all 12 transformer blocks, before the output projection. This is the γ (gamma) scale parameter.',
+                codeLines: [61]
+            },
+            {
+                id: 'final_b', category: 'layernorm',
+                openai: 'params["b"]', pytorch: 'final_norm.shift',
+                sourceShape: '(768,)', targetShape: '(768,)',
+                operation: 'copy', operationLabel: 'Copy',
+                description: 'Final LayerNorm Shift (β/beta)',
+                explanation: 'The final LayerNorm applied after all 12 transformer blocks, before the output projection. This is the β (beta) shift parameter.',
+                codeLines: [62]
+            },
+            {
+                id: 'out_head', category: 'embeddings',
+                openai: 'params["wte"]', pytorch: 'out_head.weight',
+                sourceShape: '(50257, 768)', targetShape: '(50257, 768)',
+                operation: 'copy', operationLabel: 'Weight Tying',
+                description: 'Output Head (Language Model Head)',
+                explanation: 'The output projection that predicts the next token. It reuses the same weights as the token embeddings (params["wte"]) - this technique is called "weight tying" and reduces parameters while improving performance.',
+                codeLines: [63]
+            }
+        ];
+
+        var codeLines = [
+            "import numpy as np",
+            "",
+            "def load_weights_into_gpt(gpt, params):",
+            "    gpt.pos_emb.weight = assign(gpt.pos_emb.weight, params['wpe'])",
+            "    gpt.tok_emb.weight = assign(gpt.tok_emb.weight, params['wte'])",
+            "",
+            "    for b in range(len(params[\"blocks\"])):",
+            "        q_w, k_w, v_w = np.split(",
+            "            (params[\"blocks\"][b][\"attn\"][\"c_attn\"])[\"w\"], 3, axis=-1)",
+            "        gpt.trf_blocks[b].att.W_query.weight = assign(",
+            "            gpt.trf_blocks[b].att.W_query.weight, q_w.T)",
+            "        gpt.trf_blocks[b].att.W_key.weight = assign(",
+            "            gpt.trf_blocks[b].att.W_key.weight, k_w.T)",
+            "        gpt.trf_blocks[b].att.W_value.weight = assign(",
+            "            gpt.trf_blocks[b].att.W_value.weight, v_w.T)",
+            "",
+            "        q_b, k_b, v_b = np.split(",
+            "            (params[\"blocks\"][b][\"attn\"][\"c_attn\"])[\"b\"], 3, axis=-1)",
+            "        gpt.trf_blocks[b].att.W_query.bias = assign(",
+            "            gpt.trf_blocks[b].att.W_query.bias, q_b)",
+            "        gpt.trf_blocks[b].att.W_key.bias = assign(",
+            "            gpt.trf_blocks[b].att.W_key.bias, k_b)",
+            "        gpt.trf_blocks[b].att.W_value.bias = assign(",
+            "            gpt.trf_blocks[b].att.W_value.bias, v_b)",
+            "",
+            "        gpt.trf_blocks[b].att.out_proj.weight = assign(",
+            "            gpt.trf_blocks[b].att.out_proj.weight,",
+            "            params[\"blocks\"][b][\"attn\"][\"c_proj\"][\"w\"].T)",
+            "        gpt.trf_blocks[b].att.out_proj.bias = assign(",
+            "            gpt.trf_blocks[b].att.out_proj.bias,",
+            "            params[\"blocks\"][b][\"attn\"][\"c_proj\"][\"b\"])",
+            "",
+            "        gpt.trf_blocks[b].ff.layers[0].weight = assign(",
+            "            gpt.trf_blocks[b].ff.layers[0].weight,",
+            "            params[\"blocks\"][b][\"mlp\"][\"c_fc\"][\"w\"].T)",
+            "        gpt.trf_blocks[b].ff.layers[0].bias = assign(",
+            "            gpt.trf_blocks[b].ff.layers[0].bias,",
+            "            params[\"blocks\"][b][\"mlp\"][\"c_fc\"][\"b\"])",
+            "",
+            "        gpt.trf_blocks[b].ff.layers[2].weight = assign(",
+            "            gpt.trf_blocks[b].ff.layers[2].weight,",
+            "            params[\"blocks\"][b][\"mlp\"][\"c_proj\"][\"w\"].T)",
+            "        gpt.trf_blocks[b].ff.layers[2].bias = assign(",
+            "            gpt.trf_blocks[b].ff.layers[2].bias,",
+            "            params[\"blocks\"][b][\"mlp\"][\"c_proj\"][\"b\"])",
+            "",
+            "        gpt.trf_blocks[b].norm1.scale = assign(",
+            "            gpt.trf_blocks[b].norm1.scale,",
+            "            params[\"blocks\"][b][\"ln_1\"][\"g\"])",
+            "        gpt.trf_blocks[b].norm1.shift = assign(",
+            "            gpt.trf_blocks[b].norm1.shift,",
+            "            params[\"blocks\"][b][\"ln_1\"][\"b\"])",
+            "",
+            "        gpt.trf_blocks[b].norm2.scale = assign(",
+            "            gpt.trf_blocks[b].norm2.scale,",
+            "            params[\"blocks\"][b][\"ln_2\"][\"g\"])",
+            "        gpt.trf_blocks[b].norm2.shift = assign(",
+            "            gpt.trf_blocks[b].norm2.shift,",
+            "            params[\"blocks\"][b][\"ln_2\"][\"b\"])",
+            "",
+            "    gpt.final_norm.scale = assign(gpt.final_norm.scale, params[\"g\"])",
+            "    gpt.final_norm.shift = assign(gpt.final_norm.shift, params[\"b\"])",
+            "    gpt.out_head.weight = assign(gpt.out_head.weight, params[\"wte\"])"
+        ];
+
+        var currentFilter = 'all';
+        var expandedId = null;
+
+        function renderMappings() {
+            var list = document.getElementById('mappings-list');
+            list.innerHTML = '';
+
+            var filtered = currentFilter === 'all' ? mappings : mappings.filter(function(m) {
+                return m.category === currentFilter;
+            });
+
+            filtered.forEach(function(m) {
+                var row = document.createElement('div');
+                row.className = 'mapping-row' + (expandedId === m.id ? ' expanded' : '');
+                row.dataset.id = m.id;
+
+                var opClass = m.operation === 'transpose' ? 'transpose' : 
+                              m.operation === 'split' ? 'split' : 'copy';
+
+                row.innerHTML = 
+                    '<div class="mapping-summary">' +
+                        '<div class="mapping-source">' +
+                            '<div class="mapping-label">OpenAI</div>' +
+                            '<div class="mapping-name">' + escapeHtml(m.openai) + '</div>' +
+                            '<div class="mapping-shape">' + m.sourceShape + '</div>' +
+                        '</div>' +
+                        '<div class="mapping-arrow">' +
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                '<line x1="5" y1="12" x2="19" y2="12"/>' +
+                                '<polyline points="12,5 19,12 12,19"/>' +
+                            '</svg>' +
+                            '<div class="mapping-op ' + opClass + '">' + m.operationLabel + '</div>' +
+                        '</div>' +
+                        '<div class="mapping-target">' +
+                            '<div class="mapping-label">PyTorch</div>' +
+                            '<div class="mapping-name">' + escapeHtml(m.pytorch) + '</div>' +
+                            '<div class="mapping-shape">' + m.targetShape + '</div>' +
+                        '</div>' +
+                        '<div class="expand-icon">' +
+                            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                '<polyline points="6,9 12,15 18,9"/>' +
+                            '</svg>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="mapping-expanded">' +
+                        '<div class="expanded-left">' +
+                            '<div class="expanded-desc"><strong>' + m.description + '</strong></div>' +
+                            '<div class="transform-flow">' +
+                                '<div class="flow-box source">' + m.sourceShape + '</div>' +
+                                '<span class="flow-arrow">→</span>' +
+                                '<div class="flow-box op">' + m.operationLabel + '</div>' +
+                                '<span class="flow-arrow">→</span>' +
+                                '<div class="flow-box target">' + m.targetShape + '</div>' +
+                            '</div>' +
+                            '<div class="why-box">' +
+                                '<h4>💡 Why?</h4>' +
+                                '<p>' + m.explanation + '</p>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="expanded-right">' +
+                            '<div class="code-header">' +
+                                '<span class="code-title">Python Code</span>' +
+                                '<button class="code-btn" data-id="' + m.id + '">Full Code</button>' +
+                            '</div>' +
+                            '<div class="code-body">' + renderCode(m.codeLines) + '</div>' +
+                        '</div>' +
+                    '</div>';
+
+                row.querySelector('.mapping-summary').addEventListener('click', function() {
+                    toggleExpand(m.id);
+                });
+
+                row.querySelector('.code-btn').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    openModal(m.codeLines);
+                });
+
+                list.appendChild(row);
+            });
+        }
+
+        function toggleExpand(id) {
+            expandedId = expandedId === id ? null : id;
+            renderMappings();
+        }
+
+        function renderCode(highlightLines) {
+            var minL = Math.min.apply(null, highlightLines);
+            var maxL = Math.max.apply(null, highlightLines);
+            var start = Math.max(0, minL - 3);
+            var end = Math.min(codeLines.length, maxL + 3);
+
+            var html = '';
+            for (var i = start; i < end; i++) {
+                var num = i + 1;
+                var hl = highlightLines.indexOf(num) !== -1;
+                html += '<div class="code-line' + (hl ? ' highlighted' : '') + '">' +
+                    '<span class="code-line-num">' + num + '</span>' +
+                    '<span class="code-line-text">' + formatLine(codeLines[i]) + '</span>' +
+                '</div>';
+            }
+            return html;
+        }
+
+        function formatLine(line) {
+            if (!line) return '&nbsp;';
+            var s = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            if (s.trim().charAt(0) === '#') return '<span class="code-comment">' + s + '</span>';
+
+            var result = '';
+            var i = 0;
+            while (i < s.length) {
+                if (s.charAt(i) === '"') {
+                    var end = s.indexOf('"', i + 1);
+                    if (end !== -1) {
+                        result += '<span class="code-string">' + s.substring(i, end + 1) + '</span>';
+                        i = end + 1;
+                        continue;
+                    }
+                }
+                if (s.charAt(i) === "'") {
+                    var end = s.indexOf("'", i + 1);
+                    if (end !== -1) {
+                        result += '<span class="code-string">' + s.substring(i, end + 1) + '</span>';
+                        i = end + 1;
+                        continue;
+                    }
+                }
+                var kw = matchWord(s.substring(i), ['import','def','for','in','range','len','if','else','return','class','from','as']);
+                if (kw) { result += '<span class="code-keyword">' + kw + '</span>'; i += kw.length; continue; }
+                var fn = matchWord(s.substring(i), ['assign','split','np']);
+                if (fn) { result += '<span class="code-function">' + fn + '</span>'; i += fn.length; continue; }
+                var nm = matchNum(s.substring(i));
+                if (nm) { result += '<span class="code-number">' + nm + '</span>'; i += nm.length; continue; }
+                result += s.charAt(i);
+                i++;
+            }
+            return result;
+        }
+
+        function matchWord(s, words) {
+            for (var w = 0; w < words.length; w++) {
+                var word = words[w];
+                if (s.substring(0, word.length) === word) {
+                    var next = s.charAt(word.length);
+                    if (!next || !/[a-zA-Z0-9_]/.test(next)) return word;
+                }
+            }
+            return null;
+        }
+
+        function matchNum(s) {
+            var m = '';
+            for (var i = 0; i < s.length && s.charAt(i) >= '0' && s.charAt(i) <= '9'; i++) m += s.charAt(i);
+            if (m && !/[a-zA-Z_]/.test(s.charAt(m.length))) return m;
+            return null;
+        }
+
+        function escapeHtml(s) {
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function openModal(highlightLines) {
+            var html = '';
+            for (var i = 0; i < codeLines.length; i++) {
+                var num = i + 1;
+                var hl = highlightLines.indexOf(num) !== -1;
+                html += '<div class="code-line' + (hl ? ' highlighted' : '') + '">' +
+                    '<span class="code-line-num">' + num + '</span>' +
+                    '<span class="code-line-text">' + formatLine(codeLines[i]) + '</span>' +
+                '</div>';
+            }
+            document.getElementById('full-code').innerHTML = html;
+            document.getElementById('modal').classList.add('visible');
+            
+            setTimeout(function() {
+                var first = document.querySelector('#full-code .code-line.highlighted');
+                if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+
+        document.getElementById('modal-close').addEventListener('click', function() {
+            document.getElementById('modal').classList.remove('visible');
+        });
+
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target.id === 'modal') {
+                document.getElementById('modal').classList.remove('visible');
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') document.getElementById('modal').classList.remove('visible');
+        });
+
+        document.getElementById('filter-bar').addEventListener('click', function(e) {
+            if (e.target.classList.contains('filter-tab')) {
+                document.querySelectorAll('.filter-tab').forEach(function(t) { t.classList.remove('active'); });
+                e.target.classList.add('active');
+                currentFilter = e.target.dataset.filter;
+                expandedId = null;
+                renderMappings();
+            }
+        });
+
+        renderMappings();
+    </script>
+</body>
+</html>

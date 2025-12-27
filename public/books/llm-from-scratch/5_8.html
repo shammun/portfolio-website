@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive GPTDatasetV1 Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom Educational Theme */
+        :root {
+            --color-bg: #f8fafc;
+            --color-card: #ffffff;
+            --color-input-bg: #fef3c7;
+            --color-input-border: #f97316;
+            --color-target-bg: #ecfdf5;
+            --color-target-border: #14b8a6;
+            --color-overlap-bg: #ddd6fe;
+            --color-overlap-border: #8b5cf6;
+            --color-text-head: #1e293b;
+            --color-text-body: #64748b;
+        }
+
+        body {
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            font-family: system-ui, -apple-system, sans-serif;
+            color: var(--color-text-body);
+        }
+
+        h1, h2, h3 { color: var(--color-text-head); }
+
+        .card {
+            background: var(--color-card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(99, 102, 241, 0.06);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        /* Token Box Styling */
+        .token-box {
+            width: 46px;
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Menlo', 'Monaco', monospace;
+            font-size: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            background: #f1f5f9;
+            border: 2px solid #e2e8f0;
+            color: #94a3b8;
+            cursor: default;
+        }
+        
+        .token-box .id { font-weight: bold; font-size: 11px; }
+        .token-box .word { font-size: 9px; opacity: 0.8; white-space: nowrap; overflow: hidden; max-width: 100%; }
+
+        /* Active States */
+        .token-box.input { background: var(--color-input-bg); border-color: var(--color-input-border); color: #7c2d12; transform: translateY(-2px); }
+        .token-box.target { background: var(--color-target-bg); border-color: var(--color-target-border); color: #064e3b; }
+        .token-box.overlap { background: var(--color-overlap-bg); border-color: var(--color-overlap-border); color: #4c1d95; }
+        
+        /* Range Slider Customization */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+
+        /* Code Styling */
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .code-line { display: block; padding-left: 10px; border-left: 4px solid transparent; opacity: 0.7; }
+        .code-line.active { opacity: 1; background: rgba(255,255,255,0.05); }
+        .code-line.highlight-orange { border-left-color: #f97316; }
+        .code-line.highlight-purple { border-left-color: #8b5cf6; }
+        .code-line.highlight-teal { border-left-color: #14b8a6; }
+
+        /* Animation Classes */
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Table Row interaction */
+        tr.active-row { background-color: #eff6ff; border-left: 4px solid #6366f1; }
+        tr.active-row td { color: #1e293b; font-weight: 500; }
+        
+        /* Heatmap Grid */
+        .heatmap-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; }
+        .heatmap-cell { height: 8px; border-radius: 2px; background: #e2e8f0; }
+        .heatmap-cell.active { background: #8b5cf6; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 pb-20">
+
+    <!-- Header -->
+    <header class="max-w-6xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-800">Dataset Chunking & Stride</h1>
+            <p class="text-slate-500 mt-1">How GPTDatasetV1 creates training examples from raw text</p>
+        </div>
+        <button id="btn-view-code" class="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition shadow-lg">
+            <i class="fa-solid fa-code"></i> View Code
+        </button>
+    </header>
+
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Controls & Stats -->
+        <div class="lg:col-span-4 space-y-6">
+            <!-- Controls Card -->
+            <div class="card p-6">
+                <div class="flex items-center gap-2 mb-4 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    <i class="fa-solid fa-sliders"></i> Parameters
+                </div>
+
+                <!-- Max Length Slider -->
+                <div class="mb-6">
+                    <div class="flex justify-between mb-2">
+                        <label class="text-sm font-semibold text-slate-700">Context Length (max_length)</label>
+                        <span id="val-max-length" class="text-sm font-mono font-bold text-indigo-600 bg-indigo-50 px-2 rounded">5</span>
+                    </div>
+                    <input type="range" id="input-max-length" min="3" max="8" value="5" step="1">
+                    <p class="text-xs text-slate-500 mt-2">Tokens the model sees at once.</p>
+                </div>
+
+                <!-- Stride Slider -->
+                <div class="mb-4">
+                    <div class="flex justify-between mb-2">
+                        <label class="text-sm font-semibold text-slate-700">Stride</label>
+                        <span id="val-stride" class="text-sm font-mono font-bold text-indigo-600 bg-indigo-50 px-2 rounded">2</span>
+                    </div>
+                    <input type="range" id="input-stride" min="1" max="5" value="2" step="1">
+                    <p class="text-xs text-slate-500 mt-2">Step size between chunks. <br>Smaller stride = more overlap.</p>
+                </div>
+            </div>
+
+            <!-- Stats Card -->
+            <div class="card p-6">
+                <div class="flex items-center gap-2 mb-4 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    <i class="fa-solid fa-calculator"></i> Live Stats
+                </div>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                        <span class="text-sm text-slate-600">Total Tokens</span>
+                        <span class="font-mono font-bold text-slate-800">12</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                        <span class="text-sm text-slate-600">Generated Examples</span>
+                        <span id="stat-examples" class="font-mono font-bold text-indigo-600">4</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                        <span class="text-sm text-slate-600">Overlap/Chunk</span>
+                        <span id="stat-overlap-tokens" class="font-mono font-bold text-purple-600">3 tokens</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-600">Overlap %</span>
+                        <span id="stat-overlap-pct" class="font-mono font-bold text-slate-800">60%</span>
+                    </div>
+                </div>
+                <!-- Formula -->
+                <div class="mt-4 bg-slate-50 p-3 rounded text-xs text-slate-500 font-mono">
+                    N = (Total - max_len) // stride
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Visualization -->
+        <div class="lg:col-span-8 space-y-6">
+            
+            <!-- Main Visualization Card -->
+            <div class="card p-6 relative overflow-hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                        <i class="fa-solid fa-layer-group"></i> Sliding Window
+                    </div>
+                    <!-- Play Controls -->
+                    <div class="flex gap-2">
+                        <button id="btn-prev" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+                            <i class="fa-solid fa-chevron-left text-xs"></i>
+                        </button>
+                        <button id="btn-play" class="w-8 h-8 rounded-full bg-indigo-100 hover:bg-indigo-200 flex items-center justify-center text-indigo-600 transition">
+                            <i class="fa-solid fa-play text-xs pl-0.5"></i>
+                        </button>
+                        <button id="btn-next" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Token Bar -->
+                <div class="relative mb-8">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-xs font-semibold text-slate-400">0</span>
+                        <span class="text-xs font-semibold text-slate-400">11</span>
+                    </div>
+                    <!-- The Grid of Tokens -->
+                    <div id="token-bar" class="grid grid-cols-12 gap-1 md:gap-2">
+                        <!-- Tokens injected by JS -->
+                    </div>
+                    <!-- Legend -->
+                    <div class="flex gap-4 mt-4 justify-center text-xs">
+                        <div class="flex items-center gap-1.5"><div class="w-3 h-3 bg-orange-100 border border-orange-400 rounded"></div> Input Window</div>
+                        <div class="flex items-center gap-1.5"><div class="w-3 h-3 bg-purple-100 border border-purple-400 rounded"></div> Overlap w/ Prev</div>
+                    </div>
+                </div>
+
+                <!-- Current Chunk Detail View -->
+                <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 transition-all duration-300" id="detail-view">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider" id="chunk-indicator">Chunk 0 of 4</span>
+                    </div>
+
+                    <!-- Input Row -->
+                    <div class="mb-4">
+                        <div class="text-xs font-bold text-orange-600 mb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i> INPUT (Context)
+                        </div>
+                        <div class="flex gap-2 overflow-x-auto pb-1" id="detail-input-row">
+                            <!-- JS Injected -->
+                        </div>
+                    </div>
+
+                    <!-- Target Row -->
+                    <div>
+                        <div class="text-xs font-bold text-teal-600 mb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-bullseye"></i> TARGET (Next Token)
+                        </div>
+                        <div class="flex gap-2 overflow-x-auto pb-1" id="detail-target-row">
+                            <!-- JS Injected -->
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-500 italic">
+                        <i class="fa-solid fa-lightbulb text-yellow-500 mr-1"></i>
+                        The target is always the input shifted by <span class="font-bold">1 position</span>.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="card p-0 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    <i class="fa-solid fa-table-list"></i> Generated Chunks Table
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-xs text-slate-500 bg-slate-50 border-b border-slate-100">
+                                <th class="p-3 font-semibold w-12 text-center">#</th>
+                                <th class="p-3 font-semibold w-12 text-center">Start</th>
+                                <th class="p-3 font-semibold">Input Sequence</th>
+                                <th class="p-3 font-semibold">Target Sequence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chunks-table-body" class="text-sm">
+                            <!-- JS Injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Key Takeaway -->
+    <section class="max-w-6xl mx-auto mt-8 px-4 md:px-0">
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-700 rounded-2xl p-6 md:p-8 text-white shadow-xl">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-star text-yellow-300"></i> Key Takeaway
+            </h3>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <p class="mb-2 opacity-90">GPTDatasetV1 transforms text into training data by:</p>
+                    <ul class="space-y-1 text-sm opacity-80 list-disc list-inside">
+                        <li>Sliding a window of size <code>max_length</code> across tokens.</li>
+                        <li>Moving the window by <code>stride</code> tokens each step.</li>
+                        <li>Creating targets by shifting input right by 1.</li>
+                    </ul>
+                </div>
+                <div class="bg-white/10 rounded-lg p-4 border border-white/20">
+                    <p class="text-sm font-semibold mb-2">Stride Trade-off:</p>
+                    <ul class="text-xs space-y-2 opacity-90">
+                        <li class="flex items-center gap-2">
+                            <span class="w-1 h-4 bg-purple-300 rounded-full"></span>
+                            <span><strong>Small Stride</strong> = More overlap, more examples (redundant).</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-1 h-4 bg-orange-300 rounded-full"></span>
+                            <span><strong>Stride = Max Length</strong> = No overlap, unique examples.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Modal -->
+    <div id="code-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-slate-700">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-4 border-b border-slate-700">
+                <h3 class="text-white font-bold flex items-center gap-2">
+                    <i class="fa-brands fa-python text-yellow-400"></i> GPTDatasetV1 Implementation
+                </h3>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <!-- Code Content -->
+            <div class="overflow-y-auto p-0 flex-1 relative bg-slate-900">
+                <pre><code id="code-block" class="language-python block"></code></pre>
+            </div>
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-slate-700 bg-slate-800 text-xs text-slate-400 flex justify-between">
+                <span>PyTorch Implementation</span>
+                <span id="modal-status">Highlighting logic based on visualization...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- Data & Config ---
+        const rawTokens = [
+            { id: 10, word: "The" }, { id: 20, word: "cat" }, { id: 30, word: "sat" }, 
+            { id: 40, word: "on" }, { id: 50, word: "the" }, { id: 60, word: "mat" },
+            { id: 70, word: "The" }, { id: 80, word: "dog" }, { id: 90, word: "barked" }, 
+            { id: 100, word: "at" }, { id: 110, word: "the" }, { id: 120, word: "cat" }
+        ];
+
+        // State
+        const state = {
+            maxLength: 5,
+            stride: 2,
+            chunks: [],
+            currentChunkIdx: 0,
+            isPlaying: false,
+            timer: null
+        };
+
+        // DOM Elements
+        const els = {
+            sliderMax: document.getElementById('input-max-length'),
+            sliderStride: document.getElementById('input-stride'),
+            valMax: document.getElementById('val-max-length'),
+            valStride: document.getElementById('val-stride'),
+            tokenBar: document.getElementById('token-bar'),
+            detailInput: document.getElementById('detail-input-row'),
+            detailTarget: document.getElementById('detail-target-row'),
+            chunkIndicator: document.getElementById('chunk-indicator'),
+            tableBody: document.getElementById('chunks-table-body'),
+            statExamples: document.getElementById('stat-examples'),
+            statOverlap: document.getElementById('stat-overlap-tokens'),
+            statOverlapPct: document.getElementById('stat-overlap-pct'),
+            btnPlay: document.getElementById('btn-play'),
+            btnPrev: document.getElementById('btn-prev'),
+            btnNext: document.getElementById('btn-next'),
+            modal: document.getElementById('code-modal'),
+            btnViewCode: document.getElementById('btn-view-code'),
+            btnCloseModal: document.getElementById('btn-close-modal'),
+            codeBlock: document.getElementById('code-block')
+        };
+
+        // --- Core Logic ---
+
+        function calculateChunks() {
+            const chunks = [];
+            const n = rawTokens.length;
+            
+            // Replicating: for i in range(0, len(token_ids) - max_length, stride):
+            // The limit logic in Python `range(start, stop)` means it stops before `stop`.
+            // So i goes up to `n - maxLength - 1`. 
+            // Actually, Python range stops *before* the value. 
+            // If len=12, max=5, len-max = 7. range(0, 7) -> 0,1,2,3,4,5,6.
+            // If i=6, input=[6:11] (5 tokens), target=[7:12] (5 tokens). Perfect fit.
+            
+            const limit = n - state.maxLength; 
+
+            for (let i = 0; i < limit; i += state.stride) {
+                const inputSlice = rawTokens.slice(i, i + state.maxLength);
+                const targetSlice = rawTokens.slice(i + 1, i + state.maxLength + 1);
+                
+                chunks.push({
+                    id: chunks.length,
+                    startIdx: i,
+                    input: inputSlice,
+                    target: targetSlice
+                });
+            }
+            
+            state.chunks = chunks;
+            
+            // Reset index if out of bounds
+            if (state.currentChunkIdx >= chunks.length) {
+                state.currentChunkIdx = 0;
+            }
+        }
+
+        function getOverlapIndices(chunkIdx) {
+            if (chunkIdx === 0) return [];
+            const currentStart = state.chunks[chunkIdx].startIdx;
+            const prevStart = state.chunks[chunkIdx - 1].startIdx;
+            const prevEnd = prevStart + state.maxLength;
+            
+            // Indices in current chunk that were also in prev chunk
+            // Overlap is range [currentStart, prevEnd)
+            const indices = [];
+            for (let i = currentStart; i < prevEnd; i++) {
+                indices.push(i);
+            }
+            return indices;
+        }
+
+        // --- Rendering ---
+
+        function createTokenBox(token, type) {
+            const div = document.createElement('div');
+            div.className = `token-box ${type}`;
+            div.innerHTML = `
+                <span class="id">${token.id}</span>
+                <span class="word">"${token.word}"</span>
+            `;
+            return div;
+        }
+
+        function renderStats() {
+            els.valMax.textContent = state.maxLength;
+            els.valStride.textContent = state.stride;
+            els.statExamples.textContent = state.chunks.length;
+            
+            const overlapCount = Math.max(0, state.maxLength - state.stride);
+            const overlapPct = Math.round((overlapCount / state.maxLength) * 100);
+            
+            els.statOverlap.textContent = `${overlapCount} tokens`;
+            els.statOverlapPct.textContent = `${overlapPct}%`;
+        }
+
+        function renderTokenBar() {
+            els.tokenBar.innerHTML = '';
+            
+            const currentChunk = state.chunks[state.currentChunkIdx];
+            if (!currentChunk) return;
+
+            const inputStart = currentChunk.startIdx;
+            const inputEnd = inputStart + state.maxLength; // Exclusive
+            
+            // Determine overlap with PREVIOUS chunk for visualization
+            const overlaps = getOverlapIndices(state.currentChunkIdx);
+
+            rawTokens.forEach((token, idx) => {
+                const div = document.createElement('div');
+                div.className = 'token-box';
+                div.innerHTML = `<span class="id">${token.id}</span><span class="word">${token.word}</span>`;
+
+                // Styling logic based on current chunk
+                const isInput = idx >= inputStart && idx < inputEnd;
+                const isOverlap = overlaps.includes(idx);
+                
+                if (isOverlap) {
+                    div.classList.add('overlap');
+                    // Add a tiny label for overlap if space permits, or tooltip
+                    div.title = "Overlap with previous chunk";
+                } else if (isInput) {
+                    div.classList.add('input');
+                }
+
+                // Dim tokens not in current window
+                if (!isInput) {
+                    div.style.opacity = '0.5';
+                    div.style.transform = 'scale(0.9)';
+                    div.style.background = '#f8fafc';
+                } else {
+                    div.style.opacity = '1';
+                }
+
+                els.tokenBar.appendChild(div);
+            });
+        }
+
+        function renderDetailView() {
+            const chunk = state.chunks[state.currentChunkIdx];
+            if (!chunk) return;
+
+            els.chunkIndicator.textContent = `Chunk ${state.currentChunkIdx + 1} of ${state.chunks.length}`;
+
+            // Render Input Row
+            els.detailInput.innerHTML = '';
+            chunk.input.forEach(token => {
+                els.detailInput.appendChild(createTokenBox(token, 'input'));
+            });
+
+            // Render Target Row
+            els.detailTarget.innerHTML = '';
+            chunk.target.forEach(token => {
+                els.detailTarget.appendChild(createTokenBox(token, 'target'));
+            });
+        }
+
+        function renderTable() {
+            els.tableBody.innerHTML = '';
+            
+            state.chunks.forEach((chunk, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = `border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition ${idx === state.currentChunkIdx ? 'active-row' : ''}`;
+                
+                // Helper to format tokens
+                const inputStr = '[' + chunk.input.map(t => t.id).join(',') + ']';
+                const targetStr = '[' + chunk.target.map(t => t.id).join(',') + ']';
+                
+                tr.innerHTML = `
+                    <td class="p-3 text-center text-slate-400 text-xs">${idx}</td>
+                    <td class="p-3 text-center font-mono text-xs">${chunk.startIdx}</td>
+                    <td class="p-3">
+                        <div class="text-xs font-mono text-slate-700">${inputStr}</div>
+                        <div class="text-[10px] text-slate-400 truncate max-w-[150px]">"${chunk.input.map(t=>t.word).join(' ')}"</div>
+                    </td>
+                    <td class="p-3">
+                        <div class="text-xs font-mono text-teal-700">${targetStr}</div>
+                         <div class="text-[10px] text-teal-500/70 truncate max-w-[150px]">"${chunk.target.map(t=>t.word).join(' ')}"</div>
+                    </td>
+                `;
+                
+                tr.onclick = () => {
+                    pause();
+                    state.currentChunkIdx = idx;
+                    updateUI();
+                };
+                
+                els.tableBody.appendChild(tr);
+            });
+        }
+
+        function updateUI() {
+            renderStats();
+            renderTokenBar();
+            renderDetailView();
+            renderTable();
+            updateCodeHighlight();
+        }
+
+        function handleConfigChange() {
+            state.maxLength = parseInt(els.sliderMax.value);
+            
+            // Update stride max to prevent broken logic (Stride shouldn't strictly be > max_length usually)
+            els.sliderStride.max = state.maxLength;
+            if(parseInt(els.sliderStride.value) > state.maxLength) {
+                els.sliderStride.value = state.maxLength;
+            }
+            state.stride = parseInt(els.sliderStride.value);
+            
+            calculateChunks();
+            updateUI();
+        }
+
+        // --- Animation ---
+
+        function nextStep() {
+            if (state.chunks.length === 0) return;
+            state.currentChunkIdx = (state.currentChunkIdx + 1) % state.chunks.length;
+            updateUI();
+            
+            // Stop at end if playing
+            if (state.isPlaying && state.currentChunkIdx === state.chunks.length - 1) {
+                pause();
+            }
+        }
+
+        function prevStep() {
+            if (state.chunks.length === 0) return;
+            state.currentChunkIdx = (state.currentChunkIdx - 1 + state.chunks.length) % state.chunks.length;
+            updateUI();
+        }
+
+        function togglePlay() {
+            if (state.isPlaying) {
+                pause();
+            } else {
+                play();
+            }
+        }
+
+        function play() {
+            if (state.currentChunkIdx === state.chunks.length - 1) {
+                state.currentChunkIdx = -1; // Reset to start loop
+            }
+            state.isPlaying = true;
+            els.btnPlay.innerHTML = '<i class="fa-solid fa-pause text-xs"></i>';
+            nextStep(); // Immediate step
+            state.timer = setInterval(nextStep, 1500);
+        }
+
+        function pause() {
+            state.isPlaying = false;
+            els.btnPlay.innerHTML = '<i class="fa-solid fa-play text-xs pl-0.5"></i>';
+            clearInterval(state.timer);
+        }
+
+        // --- Code Modal ---
+
+        const codeContent = `
+import torch
+from torch.utils.data import Dataset
+
+class GPTDatasetV1(Dataset):
+    # SECTION 1: Initialization
+    def __init__(self, txt, tokenizer, max_length, stride):
+        self.input_ids = []
+        self.target_ids = []
+        
+        # Tokenize the entire text
+        token_ids = tokenizer.encode(txt)
+
+        # SECTION 2: The Chunking Loop
+        # Create overlapping chunks for training
+        for i in range(0, len(token_ids) - max_length, stride):
+            
+            # Input is the context window
+            input_chunk = token_ids[i : i + max_length]
+            
+            # Target is input shifted by 1 (next token prediction)
+            target_chunk = token_ids[i + 1 : i + max_length + 1]
+            
+            self.input_ids.append(torch.tensor(input_chunk))
+            self.target_ids.append(torch.tensor(target_chunk))
+
+    def __len__(self):
+        return len(self.input_ids)
+
+    def __getitem__(self, idx):
+        return self.input_ids[idx], self.target_ids[idx]
+`;
+
+        function renderCode() {
+            // Simple syntax highlighting
+            let html = codeContent.trim().split('\n').map((line, idx) => {
+                // Syntax coloring (basic regex for demo)
+                let colored = line
+                    .replace(/(class|def|import|from|return|for|in|self)/g, '<span class="text-purple-400">$1</span>')
+                    .replace(/(torch|Dataset|GPTDatasetV1)/g, '<span class="text-yellow-300">$1</span>')
+                    .replace(/(#.*)/g, '<span class="text-slate-500">$1</span>')
+                    .replace(/('.*?')/g, '<span class="text-green-400">$1</span>');
+                
+                return `<div class="code-line" id="line-${idx}">${colored}</div>`;
+            }).join('');
+            
+            els.codeBlock.innerHTML = html;
+        }
+
+        function updateCodeHighlight() {
+            // Clear highlights
+            document.querySelectorAll('.code-line').forEach(el => {
+                el.className = 'code-line';
+            });
+
+            // Logic to highlight based on state
+            // Lines are approximate based on the string literal above
+            
+            const highlightRange = (start, end, color) => {
+                for(let i=start; i<=end; i++) {
+                    const el = document.getElementById(`line-${i}`);
+                    if(el) el.classList.add('active', `highlight-${color}`);
+                }
+            };
+
+            // Highlighting Logic
+            // Section 2 (Loop) is most relevant to the visualizer
+            highlightRange(13, 23, 'purple'); 
+            
+            // Specifically highlight input/target creation
+            highlightRange(16, 17, 'orange'); // Input
+            highlightRange(20, 21, 'teal');   // Target
+        }
+
+        // --- Event Listeners ---
+
+        els.sliderMax.addEventListener('input', handleConfigChange);
+        els.sliderStride.addEventListener('input', handleConfigChange);
+        
+        els.btnNext.addEventListener('click', () => { pause(); nextStep(); });
+        els.btnPrev.addEventListener('click', () => { pause(); prevStep(); });
+        els.btnPlay.addEventListener('click', togglePlay);
+
+        els.btnViewCode.addEventListener('click', () => {
+            renderCode();
+            updateCodeHighlight();
+            els.modal.classList.remove('hidden');
+        });
+
+        els.btnCloseModal.addEventListener('click', () => {
+            els.modal.classList.add('hidden');
+        });
+
+        els.modal.addEventListener('click', (e) => {
+            if (e.target === els.modal) els.modal.classList.add('hidden');
+        });
+
+        // Initialize
+        calculateChunks();
+        updateUI();
+
+    </script>
+</body>
+</html>

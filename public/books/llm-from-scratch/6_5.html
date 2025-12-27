@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fine-Tuning GPT: Architecture Transformation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        /* --- RESET & BASICS --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            /* Removed explicit overflow-y to allow natural document flow and padding */
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 80px; /* Robust outer spacing at the bottom */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header { text-align: center; margin-bottom: 5px; }
+        h1 { font-size: 1.8rem; color: #1e293b; margin-bottom: 5px; }
+        .subtitle { color: #64748b; font-size: 1rem; }
+
+        /* --- STEP NAVIGATION (Top) --- */
+        .steps-overview {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+        }
+
+        .steps-grid {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            min-width: 800px; 
+        }
+
+        .step-card {
+            flex: 1;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 90px;
+        }
+
+        .step-card:hover { transform: translateY(-2px); border-color: #8b5cf6; }
+        .step-card.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border-color: #6d28d9;
+            color: white;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .step-card.active .step-desc { color: #e9d5ff; }
+        .step-icon { font-size: 1.4rem; margin-bottom: 5px; }
+        .step-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        
+        /* --- TOOLBAR (New Control Area) --- */
+        .toolbar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 10px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .control-btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+        .control-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
+        .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .control-btn.play {
+            background: #8b5cf6;
+            color: white;
+            border-color: #7c3aed;
+            min-width: 140px;
+            justify-content: center;
+        }
+        .control-btn.play:hover { background: #7c3aed; }
+        .control-btn.play.active { background: #ef4444; border-color: #dc2626; }
+        .control-btn.play.active:hover { background: #dc2626; }
+
+        /* --- MAIN CONTENT AREA --- */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr; /* Balanced proportions */
+            gap: 25px;
+            /* Explicit Tall Height for Readability */
+            height: 600px; 
+            align-items: stretch; /* Ensure equal height */
+            margin-bottom: 40px; /* Explicit margin to force separation from bottom edge */
+        }
+
+        /* --- LEFT: VISUALIZATION (SVG) --- */
+        .viz-panel {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            border: 1px solid #e2e8f0;
+            height: 100%; /* Fill the 850px */
+            overflow: hidden;
+        }
+
+        /* SVG Sizing */
+        svg { 
+            width: auto; 
+            height: auto; 
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        /* Animation Classes */
+        .svg-elem { transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; }
+        .hidden-elem { opacity: 0; transform: translateX(30px); pointer-events: none; }
+        
+        /* Colors */
+        .fill-default { fill: #ffffff; stroke: #94a3b8; stroke-width: 2px; }
+        .fill-frozen { fill: #fff7ed; stroke: #f97316; stroke-width: 2.5px; } /* Orange */
+        .fill-trainable { fill: #f0fdfa; stroke: #14b8a6; stroke-width: 3px; filter: drop-shadow(0 0 6px rgba(20, 184, 166, 0.3)); } /* Teal */
+        
+        /* Text */
+        text { font-family: 'Segoe UI', sans-serif; pointer-events: none; }
+        .label-main { font-weight: 700; font-size: 16px; fill: #334155; }
+        .label-sub { font-size: 13px; fill: #64748b; }
+        .label-container { font-size: 14px; fill: #3b82f6; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Connectors */
+        .arrow-line { stroke: #cbd5e1; stroke-width: 2; fill: none; marker-end: url(#arrowhead); transition: stroke 0.3s; }
+        .arrow-line.active { stroke: #8b5cf6; stroke-width: 3; stroke-dasharray: 8; animation: flow 1s linear infinite; marker-end: url(#arrowhead-active); }
+        
+        /* Container Boxes */
+        .container-box { fill: rgba(248, 250, 252, 0.5); stroke: #3b82f6; stroke-width: 2; stroke-dasharray: 8 4; rx: 16; }
+
+        @keyframes flow { to { stroke-dashoffset: -16; } }
+
+        /* --- TOOLTIP STYLES --- */
+        .arch-tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.98);
+            color: #f1f5f9;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid #334155;
+            z-index: 50;
+            width: 280px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            transform: translateY(10px);
+        }
+        .arch-tooltip.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+        .arch-header {
+            font-weight: 700;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #475569;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .arch-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .badge-blue { background: #1e40af; color: #bfdbfe; }
+        .badge-green { background: #166534; color: #bbf7d0; }
+
+        .arch-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .arch-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.05);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+        }
+        .arch-step i { color: #8b5cf6; font-size: 1rem; }
+        .arch-arrow { 
+            text-align: center; 
+            color: #64748b; 
+            font-size: 0.8rem; 
+            height: 12px; 
+            line-height: 12px;
+        }
+
+        /* --- RIGHT: EXPLANATION --- */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100%; /* Fill the 850px */
+            min-width: 0; 
+        }
+
+        .explanation-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            
+            flex: 1; /* Take all remaining space (Result: ~500px+) */
+            overflow-y: auto; /* Scroll internally only if text is massive */
+            min-height: 0;
+        }
+
+        .step-heading {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .step-emoji-large { font-size: 2rem; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .step-title-large { font-size: 1.25rem; font-weight: 700; color: #1e293b; }
+        
+        .content-text { line-height: 1.6; color: #475569; font-size: 1rem; }
+        .content-text p { margin-bottom: 12px; }
+        .content-text ul { padding-left: 20px; margin-bottom: 15px; }
+        .content-text li { margin-bottom: 6px; }
+
+        .key-insight {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .insight-icon { color: #16a34a; font-size: 1.2rem; margin-top: 2px; }
+        .insight-text { font-size: 0.95rem; color: #166534; font-weight: 600; }
+
+        /* Code Preview Box */
+        .code-preview {
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 140px; /* Fixed reasonable height */
+            flex-shrink: 0;
+        }
+        .code-preview-header {
+            background: #0f172a;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            border-bottom: 1px solid #334155;
+        }
+        .code-view-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .code-view-btn:hover { background: #2563eb; }
+
+        pre { margin: 0; padding: 15px; font-size: 0.9rem; overflow-x: auto; flex: 1; }
+
+        /* --- MODAL --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.visible { display: flex; animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 1000px;
+            height: 90vh;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+        }
+        .close-btn { font-size: 1.5rem; color: #64748b; cursor: pointer; background: none; border: none; }
+        
+        .modal-body { flex: 1; overflow-y: auto; background: #0f172a; position: relative; }
+        
+        .code-line { display: flex; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.5; }
+        .line-num { 
+            width: 50px; text-align: right; padding-right: 15px; 
+            color: #475569; background: #0f172a; border-right: 1px solid #1e293b; 
+            user-select: none;
+        }
+        .line-code { padding-left: 15px; color: #e2e8f0; white-space: pre; flex: 1; }
+        
+        .code-line.highlight { background: rgba(139, 92, 246, 0.15); border-left: 4px solid #8b5cf6; }
+        .code-line.highlight .line-num { color: #a78bfa; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Fine-Tuning GPT: Architecture Transformation</h1>
+            <p class="subtitle">From General Language Model to Specialized Classifier</p>
+        </header>
+
+        <!-- Step Navigation -->
+        <div class="steps-overview">
+            <div class="steps-grid" id="steps-container">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <!-- NEW CONTROLS TOOLBAR -->
+        <div class="toolbar">
+            <button class="control-btn" id="prev-btn" onclick="prevStep()">
+                <i class="ph ph-arrow-left"></i> Previous
+            </button>
+            <button class="control-btn play" id="play-btn" onclick="togglePlay()">
+                <i class="ph ph-play" id="play-icon"></i> <span id="play-text">Auto Play</span>
+            </button>
+            <button class="control-btn" id="next-btn" onclick="nextStep()">
+                Next <i class="ph ph-arrow-right"></i>
+            </button>
+            <div style="font-size: 0.9rem; color: #64748b; font-weight: 500; margin-left: 10px;" id="step-indicator">Step 1 of 7</div>
+        </div>
+
+        <div class="main-content">
+            <!-- Left: Architecture Diagram -->
+            <div class="viz-panel">
+                <div style="position: absolute; top: 15px; left: 15px; z-index: 10; display: flex; gap: 10px;">
+                    <div class="key-item" style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; background: white; padding: 6px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="width: 14px; height: 14px; background: white; border: 2px solid #94a3b8; border-radius: 3px;"></div> Original
+                    </div>
+                    <div class="key-item" style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #ea580c; background: white; padding: 6px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="width: 14px; height: 14px; background: #fff7ed; border: 2px solid #f97316; border-radius: 3px;"></div> Frozen 🔒
+                    </div>
+                    <div class="key-item" style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #0d9488; background: white; padding: 6px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="width: 14px; height: 14px; background: #f0fdfa; border: 2px solid #14b8a6; border-radius: 3px;"></div> Trainable ✨
+                    </div>
+                </div>
+
+                <!-- Tooltip Container -->
+                <div id="arch-tooltip" class="arch-tooltip">
+                    <!-- Dynamic Content -->
+                </div>
+
+                <!-- SVG with adjusted viewBox for more top spacing -->
+                <svg id="architecture-svg" viewBox="0 -50 800 850">
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e1" />
+                        </marker>
+                        <marker id="arrowhead-active" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6" />
+                        </marker>
+                    </defs>
+
+                    <!-- Center X coordinate for main flow: 400 -->
+
+                    <!-- Input Section -->
+                    <g id="viz-input" transform="translate(250, 20)">
+                        <rect width="300" height="36" rx="8" class="svg-elem fill-default" />
+                        <text x="150" y="24" text-anchor="middle" class="label-main">Input Text</text>
+                    </g>
+                    
+                    <line x1="400" y1="56" x2="400" y2="90" class="arrow-line" />
+
+                    <!-- MODEL CONTAINER -->
+                    <g id="viz-container-box">
+                        <rect x="150" y="90" width="500" height="560" class="container-box" />
+                        <text x="640" y="105" text-anchor="end" class="label-container">GPT-2 Model</text>
+                    </g>
+
+                    <!-- Embedding Section -->
+                    <g id="viz-emb" transform="translate(250, 120)">
+                        <rect width="300" height="50" rx="8" class="svg-elem fill-default" />
+                        <text x="150" y="20" text-anchor="middle" class="label-main">Embeddings</text>
+                        <text x="150" y="40" text-anchor="middle" class="label-sub">Tokens + Positional</text>
+                        <g class="lock-icon" opacity="0" transform="translate(270, 15)">
+                            <path d="M5 0 L15 0 L15 10 L5 10 Z" fill="none" stroke="#f97316" stroke-width="2"/>
+                            <path d="M10 0 L10 -5 Q10 -10 5 -10 Q0 -10 0 -5 L0 0" fill="none" stroke="#f97316" stroke-width="2" transform="translate(5,0)"/>
+                        </g>
+                    </g>
+
+                    <line x1="400" y1="170" x2="400" y2="210" class="arrow-line" />
+
+                    <!-- TRANSFORMER STACK -->
+                    <g transform="translate(180, 210)">
+                        
+                        <!-- 1. The Stack (Layers 0-10) -->
+                        <g id="viz-stack" style="cursor: pointer;">
+                            <rect x="10" y="10" width="440" height="130" rx="10" class="svg-elem fill-default" opacity="0.4" transform="translate(8,8)" />
+                            <rect x="5" y="5" width="440" height="130" rx="10" class="svg-elem fill-default" opacity="0.7" transform="translate(4,4)" />
+                            <rect x="0" y="0" width="440" height="130" rx="10" class="svg-elem fill-default" />
+                            
+                            <text x="220" y="55" text-anchor="middle" class="label-main" style="font-size: 18px;">Transformer Stack</text>
+                            <text x="220" y="80" text-anchor="middle" class="label-sub">Blocks 0 - 10</text>
+                            <text x="220" y="100" text-anchor="middle" class="label-sub">(11 Layers Total)</text>
+                        </g>
+
+                        <!-- Connector -->
+                        <line x1="220" y1="130" x2="220" y2="160" class="arrow-line" />
+
+                        <!-- 2. The Final Block (Layer 11) -->
+                        <g id="viz-block11" transform="translate(0, 160)" style="cursor: pointer;">
+                            <rect width="440" height="90" rx="10" class="svg-elem fill-default" />
+                            <text x="220" y="40" text-anchor="middle" class="label-main">Transformer Block 11</text>
+                            <text x="220" y="65" text-anchor="middle" class="label-sub">Self-Attention & MLP</text>
+                        </g>
+
+                        <!-- Loop Indicator -->
+                        <g transform="translate(460, 0)">
+                             <path d="M 0 30 L 20 30 L 20 220 L 0 220" fill="none" stroke="#94a3b8" stroke-width="2" />
+                             <text x="30" y="135" class="label-main" style="fill: #64748b; font-size: 14px;">Repeated 12×</text>
+                        </g>
+
+                    </g>
+
+                    <line x1="400" y1="460" x2="400" y2="500" class="arrow-line" />
+
+                    <!-- Final Norm -->
+                    <g id="viz-norm" transform="translate(250, 500)">
+                        <rect width="300" height="50" rx="8" class="svg-elem fill-default" />
+                        <text x="150" y="30" text-anchor="middle" class="label-main">Final LayerNorm</text>
+                    </g>
+
+                    <line x1="400" y1="550" x2="400" y2="590" class="arrow-line" />
+
+                    <!-- HEADS -->
+                    <g transform="translate(200, 590)">
+                        <!-- Old Head -->
+                        <g id="viz-head-old" class="svg-elem">
+                            <rect width="400" height="80" rx="8" class="fill-default" style="fill: #e2e8f0;" />
+                            <text x="200" y="35" text-anchor="middle" class="label-main">Original LM Head</text>
+                            <text x="200" y="55" text-anchor="middle" class="label-sub">Linear (768 → 50,257)</text>
+                        </g>
+
+                        <!-- New Head -->
+                        <g id="viz-head-new" class="svg-elem hidden-elem">
+                            <rect width="400" height="80" rx="8" class="fill-trainable" />
+                            <text x="200" y="35" text-anchor="middle" class="label-main" fill="#134e4a">Classifier Head</text>
+                            <text x="200" y="55" text-anchor="middle" class="label-sub" fill="#115e59">Linear (768 → 2)</text>
+                        </g>
+                    </g>
+
+                    <line x1="400" y1="670" x2="400" y2="710" class="arrow-line" />
+
+                    <!-- Output -->
+                    <g id="viz-output" transform="translate(200, 710)" class="svg-elem" style="opacity: 0;">
+                        <text x="200" y="20" text-anchor="middle" class="label-main">Prediction Probabilities</text>
+                        
+                        <g transform="translate(40, 30)">
+                            <rect x="0" y="0" width="140" height="40" rx="6" fill="#ef4444" fill-opacity="0.1" stroke="#ef4444" stroke-width="2" />
+                            <text x="70" y="25" text-anchor="middle" fill="#ef4444" font-weight="bold" font-size="14px">Spam</text>
+                        </g>
+                        
+                        <g transform="translate(220, 30)">
+                            <rect x="0" y="0" width="140" height="40" rx="6" fill="#22c55e" fill-opacity="0.1" stroke="#22c55e" stroke-width="2" />
+                            <text x="70" y="25" text-anchor="middle" fill="#22c55e" font-weight="bold" font-size="14px">Not Spam</text>
+                        </g>
+                    </g>
+                    
+                    <!-- Token Flow Indicator -->
+                    <circle id="data-packet" r="8" fill="#8b5cf6" style="opacity: 0; filter: drop-shadow(0 0 4px #8b5cf6);" />
+
+                </svg>
+            </div>
+
+            <!-- Right: Explanation & Code -->
+            <div class="info-panel">
+                
+                <!-- 1. Scrollable Explanation -->
+                <div class="explanation-card">
+                    <div id="step-content">
+                        <!-- Injected JS Content -->
+                    </div>
+                </div>
+
+                <!-- 2. Fixed Code Preview -->
+                <div class="code-preview">
+                    <div class="code-preview-header">
+                        <span>PyTorch Logic</span>
+                        <button class="code-view-btn" onclick="openModal()">
+                            <i class="ph ph-code"></i> View Full Code
+                        </button>
+                    </div>
+                    <pre><code class="language-python" id="preview-code"># Code snippet loads here...</code></pre>
+                </div>
+                
+                <!-- Removed bottom controls -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Code Modal -->
+    <div class="modal" id="code-modal" onclick="if(event.target === this) closeModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="color: #1e293b;">Complete Implementation</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="full-code-container">
+                    <!-- Lines injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- CONTENT CONFIGURATION --- */
+        const steps = [
+            {
+                id: 1,
+                emoji: "🏛️",
+                title: "Original GPT",
+                descTitle: "The Pretrained Giant",
+                description: `
+                    <p>We start with a standard <strong>GPT-2 Small</strong> model (124 Million parameters). This model was trained on the internet to predict the next word in a sentence.</p>
+                    <p>Notice the <strong>Output Head</strong> at the bottom. It maps the internal representation (768 dimensions) to the entire English vocabulary (50,257 words).</p>
+                    <ul>
+                        <li><strong>Goal:</strong> We want to classify Spam, not predict the next word.</li>
+                        <li><strong>Problem:</strong> The 50,257 outputs are unnecessary and computationally expensive for a simple Yes/No task.</li>
+                    </ul>
+                `,
+                codeSnippet: `model = GPT2Model.from_pretrained('gpt2')
+# Output: (Batch, Seq_Len, 50257)
+# This is too big for binary classification!`,
+                highlightLines: [6, 7, 8, 9, 10, 11],
+                insight: "",
+                vizState: {
+                    emb: 'default', stack: 'default', block11: 'default', norm: 'default', 
+                    headOld: 'visible', headNew: 'hidden', output: 'hidden', packet: 'hidden'
+                }
+            },
+            {
+                id: 2,
+                emoji: "❄️",
+                title: "Freeze Weights",
+                descTitle: "Locking the Knowledge",
+                description: `
+                    <p>Before we modify anything, we <strong>freeze</strong> the entire model. We set <code>requires_grad = False</code> for every parameter.</p>
+                    <p>This turns the model into a read-only feature extractor. We do this to preserve the grammar and reasoning capabilities GPT-2 learned during pretraining.</p>
+                    <ul>
+                        <li><strong>Orange Color:</strong> Indicates layers are frozen (weights won't change).</li>
+                        <li><strong>Efficiency:</strong> Frozen layers don't need gradient calculation, saving massive memory.</li>
+                    </ul>
+                `,
+                codeSnippet: `# Freeze ALL parameters first
+for param in model.parameters():
+    param.requires_grad = False`,
+                highlightLines: [15, 16, 17, 18],
+                insight: "Freezing prevents 'catastrophic forgetting', where the model loses its English knowledge while trying to learn the new task.",
+                vizState: {
+                    emb: 'frozen', stack: 'frozen', block11: 'frozen', norm: 'frozen', 
+                    headOld: 'frozen', headNew: 'hidden', output: 'hidden', packet: 'hidden'
+                }
+            },
+            {
+                id: 3,
+                emoji: "🔄",
+                title: "Replace Head",
+                descTitle: "Surgical Replacement",
+                description: `
+                    <p>Now we perform surgery. We remove the massive language head (50,257 outputs) and replace it with a tiny <strong>Classification Head</strong> (2 outputs).</p>
+                    <p>The new head is initialized with random weights, so it is <strong>Trainable</strong> (Teal color).</p>
+                    <ul>
+                        <li><strong>Input:</strong> 768 dimensions (from the model).</li>
+                        <li><strong>Output:</strong> 2 dimensions (Spam score, Not-Spam score).</li>
+                    </ul>
+                `,
+                codeSnippet: `model.out_head = nn.Linear(768, 2)
+# New layer is trainable by default
+# Params: 768 * 2 + 2 (bias) = 1538`,
+                highlightLines: [22, 23, 24, 25, 26, 27],
+                insight: "We just reduced the parameter count by 38 million! The model is now much lighter for our specific task.",
+                vizState: {
+                    emb: 'frozen', stack: 'frozen', block11: 'frozen', norm: 'frozen', 
+                    headOld: 'hidden', headNew: 'trainable', output: 'hidden', packet: 'hidden'
+                }
+            },
+            {
+                id: 4,
+                emoji: "🔓",
+                title: "Unfreeze Block",
+                descTitle: "Selective Fine-Tuning",
+                description: `
+                    <p>To get better accuracy, we <strong>unfreeze</strong> the last Transformer Block (Block 11).</p>
+                    <p>The top layers of neural networks learn abstract, high-level concepts. By allowing this block to update, we let the model adapt its "understanding" specifically for spam detection.</p>
+                `,
+                codeSnippet: `# Unfreeze the last block
+for param in model.trf_blocks[-1].parameters():
+    param.requires_grad = True`,
+                highlightLines: [31, 32, 33],
+                insight: "This is the 'Sweet Spot': We keep the foundation frozen (speed/stability) but tune the top for accuracy.",
+                vizState: {
+                    emb: 'frozen', stack: 'frozen', block11: 'trainable', norm: 'frozen', 
+                    headOld: 'hidden', headNew: 'trainable', output: 'hidden', packet: 'hidden'
+                }
+            },
+            {
+                id: 5,
+                emoji: "⚖️",
+                title: "Unfreeze Norm",
+                descTitle: "Stabilizing the Flow",
+                description: `
+                    <p>We also unfreeze the <strong>Final LayerNorm</strong>.</p>
+                    <p>This layer sits between our fine-tuning block and our new head. Since the data distribution changing in the last block, this normalization layer needs to adapt to ensure the Classifier Head receives stable inputs.</p>
+                `,
+                codeSnippet: `# Unfreeze final LayerNorm
+for param in model.final_norm.parameters():
+    param.requires_grad = True`,
+                highlightLines: [37, 38, 39],
+                insight: "LayerNorm has very few parameters but significantly impacts training stability.",
+                vizState: {
+                    emb: 'frozen', stack: 'frozen', block11: 'trainable', norm: 'trainable', 
+                    headOld: 'hidden', headNew: 'trainable', output: 'hidden', packet: 'hidden'
+                }
+            },
+            {
+                id: 6,
+                emoji: "🎯",
+                title: "The Last Token",
+                descTitle: "How Prediction Works",
+                description: `
+                    <p>The architecture is ready. Now, how does data flow?</p>
+                    <p>When we feed a sentence <em>"You won cash"</em>, the model processes all tokens. However, GPT is <strong>causal</strong> (it reads left-to-right). This means the <strong>Last Token</strong> has "seen" the entire sentence.</p>
+                    <p>We discard the outputs for "You", "won", and "cash", and <strong>only use the final vector</strong> to feed our classifier.</p>
+                `,
+                codeSnippet: `outputs = model(inputs)
+# Take the vector of the last token
+last_token_vector = outputs[:, -1, :]
+logits = model.out_head(last_token_vector)`,
+                highlightLines: [47, 48, 49, 50, 51],
+                insight: "If we used the first token, it would have no information about the rest of the sentence due to attention masking!",
+                vizState: {
+                    emb: 'frozen', stack: 'frozen', block11: 'trainable', norm: 'trainable', 
+                    headOld: 'hidden', headNew: 'trainable', output: 'hidden', packet: 'animate'
+                }
+            },
+            {
+                id: 7,
+                emoji: "📊",
+                title: "Summary",
+                descTitle: "The Final Hybrid Model",
+                description: `
+                    <p>We have successfully transformed a generic Language Model into a Spam Classifier.</p>
+                    <p><strong>Final Stats:</strong></p>
+                    <ul>
+                        <li><strong>Frozen Params:</strong> ~117M (94%) - General English knowledge.</li>
+                        <li><strong>Trainable Params:</strong> ~7M (6%) - Spam detection logic.</li>
+                    </ul>
+                    <p>This hybrid approach allows us to train state-of-the-art models on small datasets in minutes.</p>
+                `,
+                codeSnippet: `# Final Trainable Components:
+# 1. Transformer Block 11
+# 2. Final LayerNorm
+# 3. New Classifier Head`,
+                highlightLines: [58, 59, 60, 61],
+                insight: "You now understand Transfer Learning!",
+                vizState: {
+                    emb: 'frozen', stack: 'frozen', block11: 'trainable', norm: 'trainable', 
+                    headOld: 'hidden', headNew: 'trainable', output: 'visible', packet: 'hidden'
+                }
+            }
+        ];
+
+        const fullSourceCode = `import torch
+import torch.nn as nn
+from transformers import GPT2Model
+
+# ==========================================
+# STEP 1: LOAD PRETRAINED MODEL
+# ==========================================
+model = GPT2Model.from_pretrained('gpt2')
+# The model comes with a language head (768 -> 50257)
+# and 124M parameters trained on WebText.
+
+
+# ==========================================
+# STEP 2: FREEZE ALL LAYERS
+# ==========================================
+# We iterate through every parameter and lock it.
+for param in model.parameters():
+    param.requires_grad = False
+    
+# Now the model is a read-only feature extractor.
+
+
+# ==========================================
+# STEP 3: REPLACE OUTPUT HEAD
+# ==========================================
+# We replace the old head with a new binary classifier.
+# in_features=768 (GPT-2 hidden size)
+# out_features=2 (Spam vs Not Spam)
+model.out_head = nn.Linear(768, 2)
+
+# Note: New layers created in PyTorch have 
+# requires_grad=True by default.
+
+
+# ==========================================
+# STEP 4: UNFREEZE LAST BLOCK
+# ==========================================
+# We find the last transformer block (index -1)
+# and unfreeze its parameters for fine-tuning.
+for param in model.trf_blocks[-1].parameters():
+    param.requires_grad = True
+
+
+# ==========================================
+# STEP 5: UNFREEZE FINAL NORM
+# ==========================================
+# The normalization layer before the head should
+# also adapt to the new task.
+for param in model.final_norm.parameters():
+    param.requires_grad = True
+
+
+# ==========================================
+# STEP 6: FORWARD PASS LOGIC
+# ==========================================
+def forward(inputs):
+    # Pass inputs through the model
+    # Shape: [Batch, Sequence_Length, 768]
+    hidden_states = model(inputs)
+    
+    # Select the LAST token's embedding
+    # Shape: [Batch, 768]
+    last_token_vector = hidden_states[:, -1, :]
+    
+    # Pass through our new classifier head
+    # Shape: [Batch, 2]
+    logits = model.out_head(last_token_vector)
+    
+    return logits
+
+
+# ==========================================
+# STEP 7: SUMMARY
+# ==========================================
+# We now have a hybrid model:
+# - Bottom 95% is frozen (General Knowledge)
+# - Top 5% is trainable (Task Specific)
+`;
+
+        /* --- STATE MANAGEMENT --- */
+        let currentStep = 0;
+        let isPlaying = false;
+        let playInterval = null;
+        
+        /* --- INITIALIZATION --- */
+        function init() {
+            renderStepsNav();
+            renderModalCode();
+            loadStep(0);
+            setupInteractions();
+        }
+
+        /* --- INTERACTIVITY --- */
+        function setupInteractions() {
+            const tooltip = document.getElementById('arch-tooltip');
+            const stack = document.getElementById('viz-stack');
+            const block11 = document.getElementById('viz-block11');
+
+            const layers = [
+                { icon: "ph-circles-three-plus", text: "LayerNorm 1" },
+                { icon: "ph-arrows-split", text: "Masked Multi-Head Attn" },
+                { icon: "ph-drop", text: "Dropout" },
+                { icon: "ph-plus", text: "Add (Residual)" },
+                { icon: "ph-circles-three-plus", text: "LayerNorm 2" },
+                { icon: "ph-function", text: "Feed Forward (MLP)" },
+                { icon: "ph-drop", text: "Dropout" },
+                { icon: "ph-plus", text: "Add (Residual)" }
+            ];
+
+            function generateContent(title, count, badgeClass) {
+                let html = `
+                    <div class="arch-header">
+                        <span>${title}</span>
+                        <span class="arch-badge ${badgeClass}">${count}</span>
+                    </div>
+                    <div class="arch-flow">
+                `;
+                layers.forEach((l, i) => {
+                    html += `
+                        <div class="arch-step">
+                            <i class="ph-fill ${l.icon}"></i>
+                            <span>${l.text}</span>
+                        </div>
+                    `;
+                    if (i < layers.length - 1) {
+                        html += `<div class="arch-arrow"><i class="ph-bold ph-arrow-down"></i></div>`;
+                    }
+                });
+                html += `</div>`;
+                return html;
+            }
+
+            function showTooltip(el, title, count, badgeClass) {
+                // Generate content
+                tooltip.innerHTML = generateContent(title, count, badgeClass);
+                
+                // Position logic
+                const rect = el.getBoundingClientRect();
+                const panelRect = document.querySelector('.viz-panel').getBoundingClientRect();
+                
+                // Calculate position relative to panel container
+                let top = rect.top - panelRect.top;
+                let left = rect.right - panelRect.left + 20;
+
+                // Edge detection (if goes off right edge)
+                if (left + 280 > panelRect.width) {
+                    left = rect.left - panelRect.left - 300; // Show on left side
+                }
+
+                tooltip.style.top = Math.max(10, top) + 'px'; // Prevent top overflow
+                tooltip.style.left = left + 'px';
+                tooltip.classList.add('active');
+            }
+
+            stack.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showTooltip(stack, 'Transformer Stack', 'Repeated 11x', 'badge-blue');
+            });
+
+            block11.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showTooltip(block11, 'Transformer Block', 'Single Block (1x)', 'badge-green');
+            });
+
+            // Hide on click outside
+            document.addEventListener('click', () => {
+                tooltip.classList.remove('active');
+            });
+        }
+
+        /* --- RENDERING --- */
+        function renderStepsNav() {
+            const container = document.getElementById('steps-container');
+            container.innerHTML = steps.map((s, index) => `
+                <div class="step-card" onclick="loadStep(${index})" id="step-card-${index}">
+                    <div class="step-icon">${s.emoji}</div>
+                    <div class="step-title">Step ${s.id}</div>
+                    <div style="font-size: 10px; color: #64748b; margin-top:2px;">${s.title}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderModalCode() {
+            const container = document.getElementById('full-code-container');
+            const lines = fullSourceCode.split('\n');
+            container.innerHTML = lines.map((line, i) => `
+                <div class="code-line" id="code-line-${i+1}">
+                    <div class="line-num">${i+1}</div>
+                    <div class="line-code">${escapeHtml(line)}</div>
+                </div>
+            `).join('');
+        }
+
+        function loadStep(index) {
+            currentStep = index;
+            const step = steps[index];
+
+            // 1. Update Navigation UI
+            document.querySelectorAll('.step-card').forEach((el, i) => {
+                el.classList.toggle('active', i === index);
+            });
+            document.getElementById('prev-btn').disabled = index === 0;
+            // Removed next-btn disabled logic if playing loops, but for manual nav we keep it
+            // Actually let's keep it simple for manual nav
+            document.getElementById('next-btn').disabled = index === steps.length - 1 && !isPlaying;
+            document.getElementById('step-indicator').textContent = `Step ${index + 1} of ${steps.length}`;
+
+            // 2. Update Explanation
+            const contentDiv = document.getElementById('step-content');
+            
+            let insightHtml = '';
+            if (step.insight) {
+                insightHtml = `
+                <div class="key-insight">
+                    <i class="ph ph-lightbulb insight-icon"></i>
+                    <div class="insight-text">${step.insight}</div>
+                </div>`;
+            }
+
+            contentDiv.innerHTML = `
+                <div class="step-heading">
+                    <div class="step-emoji-large">${step.emoji}</div>
+                    <div>
+                        <div style="font-size: 0.85rem; color: #64748b; text-transform:uppercase; letter-spacing:1px; font-weight:600;">Step ${step.id}</div>
+                        <div class="step-title-large">${step.descTitle}</div>
+                    </div>
+                </div>
+                <div class="content-text">${step.description}</div>
+                ${insightHtml}
+            `;
+
+            // 3. Update Code Preview
+            const previewBlock = document.getElementById('preview-code');
+            previewBlock.textContent = step.codeSnippet;
+            hljs.highlightElement(previewBlock);
+
+            // 4. Update SVG Visualization
+            updateViz(step.vizState);
+        }
+
+        function updateViz(state) {
+            // Helper to set class for groups
+            const setClass = (id, status) => {
+                const el = document.getElementById(`viz-${id}`);
+                const rect = el.querySelector('rect');
+                if(!el || !rect) return; // safety
+                
+                // Reset
+                rect.classList.remove('fill-default', 'fill-frozen', 'fill-trainable', 'faded-elem');
+                el.classList.remove('hidden-elem');
+                
+                // Set text colors based on status (optional detail)
+                if (status === 'hidden') {
+                    el.classList.add('hidden-elem');
+                } else {
+                    rect.classList.add(`fill-${status}`);
+                    // Add lock icon visibility logic if needed
+                    const lock = el.querySelector('.lock-icon');
+                    if(lock) lock.style.opacity = (status === 'frozen') ? 1 : 0;
+                }
+            };
+
+            setClass('emb', state.emb);
+            setClass('stack', state.stack);
+            setClass('block11', state.block11);
+            setClass('norm', state.norm);
+            
+            // Special handling for heads switching
+            const oldHead = document.getElementById('viz-head-old');
+            const newHead = document.getElementById('viz-head-new');
+            
+            if (state.headOld === 'hidden') {
+                oldHead.classList.add('hidden-elem');
+            } else {
+                oldHead.classList.remove('hidden-elem');
+                oldHead.querySelector('rect').className = (state.headOld === 'frozen') ? 'fill-frozen' : 'fill-default';
+            }
+
+            if (state.headNew === 'hidden') {
+                newHead.classList.add('hidden-elem');
+            } else {
+                newHead.classList.remove('hidden-elem');
+                newHead.querySelector('rect').className = 'fill-trainable';
+            }
+
+            // Output Visibility
+            const outGroup = document.getElementById('viz-output');
+            outGroup.style.opacity = (state.output === 'visible') ? 1 : 0;
+
+            // Packet Animation
+            const packet = document.getElementById('data-packet');
+            if (state.packet === 'animate') {
+                packet.style.opacity = 1;
+                // Update path coordinates for new taller SVG
+                packet.innerHTML = `<animateMotion path="M 400 56 L 400 710" dur="2s" repeatCount="indefinite" />`;
+            } else {
+                packet.style.opacity = 0;
+                packet.innerHTML = '';
+            }
+            
+            // Activate Arrow Lines
+            document.querySelectorAll('.arrow-line').forEach(line => {
+                if (state.packet === 'animate') line.classList.add('active');
+                else line.classList.remove('active');
+            });
+        }
+
+        /* --- CONTROLS --- */
+        function nextStep() {
+            if (currentStep < steps.length - 1) {
+                loadStep(currentStep + 1);
+            } else if (isPlaying) {
+                // Loop back to start if playing
+                loadStep(0);
+            }
+        }
+
+        function prevStep() {
+            if (isPlaying) stopPlay();
+            if (currentStep > 0) loadStep(currentStep - 1);
+        }
+
+        /* --- PLAYBACK LOGIC --- */
+        function togglePlay() {
+            if (isPlaying) {
+                stopPlay();
+            } else {
+                startPlay();
+            }
+        }
+
+        function startPlay() {
+            isPlaying = true;
+            const btn = document.getElementById('play-btn');
+            const icon = document.getElementById('play-icon');
+            const text = document.getElementById('play-text');
+            
+            btn.classList.add('active');
+            icon.classList.remove('ph-play');
+            icon.classList.add('ph-pause');
+            text.textContent = 'Pause';
+            
+            // If already at the end, start over immediately
+            if (currentStep === steps.length - 1) {
+                loadStep(0);
+            } else {
+                nextStep(); // Advance one immediately for responsiveness
+            }
+
+            playInterval = setInterval(nextStep, 3000); // 3 seconds per step
+        }
+
+        function stopPlay() {
+            isPlaying = false;
+            clearInterval(playInterval);
+            
+            const btn = document.getElementById('play-btn');
+            const icon = document.getElementById('play-icon');
+            const text = document.getElementById('play-text');
+            
+            btn.classList.remove('active');
+            icon.classList.remove('ph-pause');
+            icon.classList.add('ph-play');
+            text.textContent = 'Auto Play';
+            
+            // Reset button states for manual mode
+            document.getElementById('next-btn').disabled = currentStep === steps.length - 1;
+        }
+
+        /* --- MODAL LOGIC --- */
+        function openModal() {
+            if (isPlaying) stopPlay(); // Stop playing when opening code
+            const modal = document.getElementById('code-modal');
+            modal.classList.add('visible');
+            
+            // Clear previous highlights
+            document.querySelectorAll('.code-line.highlight').forEach(el => el.classList.remove('highlight'));
+            
+            // Highlight current step lines
+            const step = steps[currentStep];
+            if (step.highlightLines) {
+                step.highlightLines.forEach(lineNum => {
+                    const el = document.getElementById(`code-line-${lineNum}`);
+                    if (el) el.classList.add('highlight');
+                });
+                
+                // Scroll to first highlighted line
+                setTimeout(() => {
+                    const first = document.getElementById(`code-line-${step.highlightLines[0]}`);
+                    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('code-modal').classList.remove('visible');
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;")
+                       .replace(/</g, "&lt;")
+                       .replace(/>/g, "&gt;")
+                       .replace(/"/g, "&quot;")
+                       .replace(/'/g, "&#039;");
+        }
+
+        /* --- KEYBOARD SUPPORT --- */
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                if(isPlaying) stopPlay();
+                nextStep();
+            }
+            if (e.key === 'ArrowLeft') {
+                if(isPlaying) stopPlay();
+                prevStep();
+            }
+            if (e.key === 'Escape') closeModal();
+            if (e.key === ' ') { // Spacebar to toggle play
+                e.preventDefault(); // Prevent scroll
+                togglePlay();
+            }
+        });
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>

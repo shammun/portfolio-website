@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Scaling in LLMs - Interactive Visualization</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Playfair+Display:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient-start: #fafbff;
+            --bg-gradient-end: #f5f7ff;
+            --card-bg: #ffffff;
+            --card-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
+            --card-shadow-hover: 0 8px 32px rgba(99, 102, 241, 0.18);
+            
+            /* Orange tones for input/logits */
+            --orange-500: #f97316;
+            --orange-400: #fb923c;
+            --orange-300: #fdba74;
+            --orange-200: #fed7aa;
+            --orange-100: #ffedd5;
+            
+            /* Teal tones for output/probabilities */
+            --teal-600: #0d9488;
+            --teal-500: #14b8a6;
+            --teal-400: #2dd4bf;
+            --teal-300: #5eead4;
+            --teal-200: #99f6e4;
+            --teal-100: #ccfbf1;
+            
+            /* Purple tones for actions/temperature */
+            --purple-600: #7c3aed;
+            --purple-500: #8b5cf6;
+            --purple-400: #a78bfa;
+            --purple-300: #c4b5fd;
+            --purple-200: #ddd6fe;
+            --purple-100: #ede9fe;
+            
+            /* Text colors */
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            
+            /* Borders */
+            --border-light: #e2e8f0;
+            --border-focus: var(--purple-400);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--purple-500);
+            margin-bottom: 12px;
+        }
+        
+        .header h1 {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 36px;
+            font-weight: 400;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            padding: 28px;
+            margin-bottom: 24px;
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: var(--card-shadow-hover);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+        
+        /* Context Card */
+        .context-card {
+            background: linear-gradient(135deg, var(--purple-100) 0%, var(--teal-100) 100%);
+            border: 1px solid var(--purple-200);
+        }
+        
+        .context-text {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 18px;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        
+        .context-text .highlight {
+            background: var(--purple-200);
+            padding: 4px 12px;
+            border-radius: 6px;
+            color: var(--purple-600);
+            font-weight: 500;
+        }
+        
+        .context-text .blank {
+            display: inline-block;
+            width: 80px;
+            border-bottom: 3px dashed var(--teal-500);
+            margin-left: 4px;
+        }
+        
+        /* Temperature Control */
+        .temperature-section {
+            margin-bottom: 8px;
+        }
+        
+        .temperature-display {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .temperature-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--purple-600);
+            line-height: 1;
+        }
+        
+        .temperature-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .slider-container {
+            position: relative;
+            padding: 0 10px;
+            margin-bottom: 24px;
+        }
+        
+        .slider-track {
+            position: relative;
+            height: 8px;
+            background: linear-gradient(90deg, var(--orange-300) 0%, var(--purple-300) 50%, var(--teal-300) 100%);
+            border-radius: 4px;
+        }
+        
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: transparent;
+            cursor: pointer;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            background: var(--card-bg);
+            border: 3px solid var(--purple-500);
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+        
+        .slider::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            background: var(--card-bg);
+            border: 3px solid var(--purple-500);
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+        
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        /* Preset Buttons */
+        .presets {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .preset-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 20px;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            background: var(--card-bg);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 100px;
+        }
+        
+        .preset-btn:hover {
+            border-color: var(--purple-300);
+            background: var(--purple-100);
+        }
+        
+        .preset-btn.active {
+            border-color: var(--purple-500);
+            background: var(--purple-100);
+        }
+        
+        .preset-btn .icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+        
+        .preset-btn .name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .preset-btn .value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        /* Regime Badge */
+        .regime-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .regime-badge.sharp {
+            background: var(--orange-100);
+            color: var(--orange-500);
+        }
+        
+        .regime-badge.normal {
+            background: var(--purple-100);
+            color: var(--purple-600);
+        }
+        
+        .regime-badge.flat {
+            background: var(--teal-100);
+            color: var(--teal-600);
+        }
+        
+        /* Probability Distribution */
+        .distribution-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .view-code-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: var(--purple-100);
+            border: 1px solid var(--purple-200);
+            border-radius: 8px;
+            color: var(--purple-600);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .view-code-btn:hover {
+            background: var(--purple-200);
+            border-color: var(--purple-300);
+        }
+        
+        .bars-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .bar-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 70px;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .bar-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            text-align: right;
+        }
+        
+        .bar-track {
+            height: 28px;
+            background: var(--bg-gradient-end);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--teal-400), var(--teal-500));
+            border-radius: 6px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .bar-fill.top-1 {
+            background: linear-gradient(90deg, var(--teal-500), var(--teal-600));
+        }
+        
+        .bar-fill.top-2 {
+            background: linear-gradient(90deg, var(--teal-400), var(--teal-500));
+        }
+        
+        .bar-fill.top-3 {
+            background: linear-gradient(90deg, var(--teal-300), var(--teal-400));
+        }
+        
+        .bar-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-align: left;
+        }
+        
+        .bar-value.highlight {
+            color: var(--teal-600);
+            font-weight: 600;
+        }
+        
+        .top-badge {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            background: var(--teal-100);
+            color: var(--teal-600);
+        }
+        
+        /* Metrics */
+        .metrics-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+            flex-wrap: wrap;
+        }
+        
+        .metric {
+            flex: 1;
+            min-width: 140px;
+            padding: 12px 16px;
+            background: var(--bg-gradient-end);
+            border-radius: 10px;
+        }
+        
+        .metric-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        
+        .metric-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        /* Math Section */
+        .math-section {
+            margin-top: 0;
+        }
+        
+        .math-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        
+        @media (max-width: 700px) {
+            .math-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .math-column {
+            padding: 16px;
+            background: var(--bg-gradient-end);
+            border-radius: 12px;
+        }
+        
+        .math-column-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .math-column-title.logits {
+            color: var(--orange-500);
+        }
+        
+        .math-column-title.scaled {
+            color: var(--purple-500);
+        }
+        
+        .math-column-title.probs {
+            color: var(--teal-600);
+        }
+        
+        .math-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .math-row:last-child {
+            border-bottom: none;
+        }
+        
+        .math-token {
+            color: var(--text-secondary);
+        }
+        
+        .math-value {
+            font-weight: 500;
+        }
+        
+        .math-value.logit {
+            color: var(--orange-500);
+        }
+        
+        .math-value.scaled {
+            color: var(--purple-600);
+        }
+        
+        .math-value.prob {
+            color: var(--teal-600);
+        }
+        
+        .math-formula {
+            text-align: center;
+            padding: 16px;
+            background: var(--purple-100);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .math-formula code {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            color: var(--purple-600);
+        }
+        
+        .math-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 20px;
+        }
+        
+        /* Takeaway Card */
+        .takeaway-card {
+            background: linear-gradient(135deg, var(--purple-100) 0%, var(--teal-100) 100%);
+            border: 1px solid var(--purple-200);
+        }
+        
+        .takeaway-list {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+        
+        .takeaway-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+        }
+        
+        .takeaway-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .takeaway-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .takeaway-icon.sharp {
+            background: var(--orange-200);
+        }
+        
+        .takeaway-icon.normal {
+            background: var(--purple-200);
+        }
+        
+        .takeaway-icon.flat {
+            background: var(--teal-200);
+        }
+        
+        .takeaway-text {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        
+        .takeaway-text strong {
+            color: var(--purple-600);
+        }
+        
+        .takeaway-summary {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 10px;
+        }
+        
+        /* Code Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            padding: 20px;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            max-width: 800px;
+            width: 100%;
+            max-height: 85vh;
+            overflow: hidden;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--bg-gradient-end);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 18px;
+            transition: all 0.2s ease;
+        }
+        
+        .modal-close:hover {
+            background: var(--purple-100);
+            color: var(--purple-600);
+        }
+        
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(85vh - 70px);
+        }
+        
+        .code-section {
+            margin-bottom: 24px;
+        }
+        
+        .code-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .code-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--purple-600);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .code-section-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: var(--purple-400);
+            border-radius: 2px;
+        }
+        
+        .code-block {
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 16px;
+            overflow-x: auto;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+        
+        .code-block.highlighted {
+            box-shadow: 0 0 0 2px var(--purple-400);
+        }
+        
+        .code-block .keyword {
+            color: #c084fc;
+        }
+        
+        .code-block .function {
+            color: #67e8f9;
+        }
+        
+        .code-block .string {
+            color: #86efac;
+        }
+        
+        .code-block .number {
+            color: #fcd34d;
+        }
+        
+        .code-block .comment {
+            color: #64748b;
+            font-style: italic;
+        }
+        
+        .code-block .operator {
+            color: #f472b6;
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 20px 16px;
+            }
+            
+            .header h1 {
+                font-size: 28px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .temperature-value {
+                font-size: 36px;
+            }
+            
+            .bar-row {
+                grid-template-columns: 60px 1fr 55px;
+                gap: 8px;
+            }
+            
+            .bar-label {
+                font-size: 11px;
+            }
+            
+            .presets {
+                gap: 8px;
+            }
+            
+            .preset-btn {
+                padding: 10px 14px;
+                min-width: 80px;
+            }
+            
+            .metrics-row {
+                flex-direction: column;
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+        .card:nth-child(5) { animation-delay: 0.5s; }
+        
+        /* Two-column layout */
+        .two-column-layout {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 24px;
+        }
+        
+        @media (max-width: 900px) {
+            .two-column-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .two-column-layout .card {
+            margin-bottom: 0;
+        }
+        
+        .temperature-section {
+            margin-bottom: 0;
+        }
+        
+        .temperature-display {
+            margin-bottom: 16px;
+        }
+        
+        .temperature-value {
+            font-size: 36px;
+        }
+        
+        .presets {
+            gap: 8px;
+        }
+        
+        .preset-btn {
+            padding: 10px 14px;
+            min-width: 85px;
+        }
+        
+        .slider-container {
+            margin-bottom: 16px;
+        }
+        
+        /* Sampling simulation */
+        .sampling-card {
+            margin-top: 24px;
+        }
+        
+        .sampling-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .sample-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: var(--teal-500);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .sample-btn:hover {
+            background: var(--teal-600);
+        }
+        
+        .sample-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .sampling-results {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .sample-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-gradient-end);
+            border-radius: 20px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .sample-chip .token {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .sample-chip .count {
+            background: var(--teal-500);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .sample-chip.top-token {
+            background: var(--teal-100);
+            border: 1px solid var(--teal-300);
+        }
+        
+        .sample-chip.top-token .count {
+            background: var(--teal-600);
+        }
+        
+        .sampling-note {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        
+        .sampling-visual {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            padding: 12px;
+            background: var(--bg-gradient-end);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            min-height: 60px;
+        }
+        
+        .sample-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            animation: popIn 0.2s ease;
+            cursor: default;
+        }
+        
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .sample-dot.forward { background: var(--teal-600); }
+        .sample-dot.toward { background: var(--teal-400); }
+        .sample-dot.closer { background: var(--purple-500); }
+        .sample-dot.you { background: var(--purple-300); }
+        .sample-dot.inches { background: var(--orange-500); }
+        .sample-dot.every { background: var(--orange-300); }
+        .sample-dot.moves { background: #f87171; }
+        .sample-dot.pizza { background: #a1a1aa; }
+        .sample-dot.effort { background: #71717a; }
+        
+        .sampling-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        
+        .legend-dot.forward { background: var(--teal-600); }
+        .legend-dot.toward { background: var(--teal-400); }
+        .legend-dot.closer { background: var(--purple-500); }
+        .legend-dot.you { background: var(--purple-300); }
+        .legend-dot.inches { background: var(--orange-500); }
+        .legend-dot.every { background: var(--orange-300); }
+        .legend-dot.moves { background: #f87171; }
+        .legend-dot.pizza { background: #a1a1aa; }
+        .legend-dot.effort { background: #71717a; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Temperature Scaling</h1>
+            <p>Explore how temperature transforms probability distributions during text generation. Move the slider to see the effect in real-time.</p>
+        </header>
+        
+        <!-- Context Card -->
+        <div class="card context-card">
+            <div class="card-title" style="text-align: center; margin-bottom: 12px;">Input Context</div>
+            <div class="context-text">
+                <span class="highlight">"Every effort moves you</span><span class="blank"></span>"
+            </div>
+        </div>
+        
+        <!-- Two Column Layout: Temperature Control + Probability Distribution -->
+        <div class="two-column-layout">
+            <!-- Temperature Control -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Temperature Control</span>
+                    <span class="regime-badge normal" id="regime-badge">
+                        <span id="regime-icon">⚖️</span>
+                        <span id="regime-text">Normal</span>
+                    </span>
+                </div>
+                
+                <div class="temperature-section">
+                    <div class="temperature-display">
+                        <div class="temperature-value">T = <span id="temp-value">1.00</span></div>
+                        <div class="temperature-label">Temperature Parameter</div>
+                    </div>
+                    
+                    <div class="slider-container">
+                        <div class="slider-track"></div>
+                        <input type="range" class="slider" id="temp-slider" 
+                               min="0.1" max="2.0" step="0.01" value="1.0"
+                               aria-label="Temperature slider">
+                    </div>
+                    <div class="slider-labels">
+                        <span>0.1 (Sharp)</span>
+                        <span>2.0 (Flat)</span>
+                    </div>
+                    
+                    <div class="presets">
+                        <button class="preset-btn" data-temp="0.1" aria-label="Set temperature to 0.1">
+                            <span class="icon">🎯</span>
+                            <span class="name">Sharp</span>
+                            <span class="value">T = 0.1</span>
+                        </button>
+                        <button class="preset-btn active" data-temp="1.0" aria-label="Set temperature to 1.0">
+                            <span class="icon">⚖️</span>
+                            <span class="name">Normal</span>
+                            <span class="value">T = 1.0</span>
+                        </button>
+                        <button class="preset-btn" data-temp="2.0" aria-label="Set temperature to 2.0">
+                            <span class="icon">🌊</span>
+                            <span class="name">Flat</span>
+                            <span class="value">T = 2.0</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Probability Distribution -->
+            <div class="card">
+                <div class="distribution-header">
+                    <span class="card-title">Probability Distribution</span>
+                    <button class="view-code-btn" id="view-code-btn" aria-label="View code">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg>
+                        View Code
+                    </button>
+                </div>
+                
+                <div class="bars-container" id="bars-container">
+                    <!-- Bars will be generated by JavaScript -->
+                </div>
+                
+                <div class="metrics-row">
+                    <div class="metric">
+                        <div class="metric-label">Greedy Selection</div>
+                        <div class="metric-value" id="greedy-selection">forward</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Top-3 Coverage</div>
+                        <div class="metric-value" id="top3-coverage">99.5%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Entropy</div>
+                        <div class="metric-value" id="entropy">0.82</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sampling Simulation -->
+        <div class="card sampling-card">
+            <div class="sampling-header">
+                <span class="card-title">Sampling Simulation: 100 Predictions</span>
+                <button class="sample-btn" id="sample-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                    </svg>
+                    Resample
+                </button>
+            </div>
+            
+            <div class="sampling-legend" id="sampling-legend">
+                <!-- Legend will be generated by JavaScript -->
+            </div>
+            
+            <div class="sampling-visual" id="sampling-visual">
+                <!-- Sample dots will be generated by JavaScript -->
+            </div>
+            
+            <div class="sampling-results" id="sampling-results">
+                <!-- Sample chips will be generated by JavaScript -->
+            </div>
+            
+            <div class="sampling-note">
+                Each square represents one sample from the probability distribution. Click "Resample" to see how results vary with randomness.
+            </div>
+        </div>
+        
+        <!-- Math Section -->
+        <div class="card math-section">
+            <div class="card-header">
+                <span class="card-title">The Math: Step by Step</span>
+            </div>
+            
+            <div class="math-formula">
+                <code>scaled_logits = logits / T → softmax(scaled_logits) → probabilities</code>
+            </div>
+            
+            <div class="math-grid">
+                <div class="math-column">
+                    <div class="math-column-title logits">Raw Logits</div>
+                    <div id="logits-column">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+                <div class="math-column">
+                    <div class="math-column-title scaled">Scaled (÷ T)</div>
+                    <div id="scaled-column">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+                <div class="math-column">
+                    <div class="math-column-title probs">Probabilities</div>
+                    <div id="probs-column">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Takeaway Card -->
+        <div class="card takeaway-card">
+            <div class="card-header">
+                <span class="card-title">Key Takeaway</span>
+            </div>
+            
+            <ul class="takeaway-list">
+                <li>
+                    <div class="takeaway-icon sharp">🎯</div>
+                    <div class="takeaway-text">
+                        <strong>T &lt; 1 → Sharp</strong> — More deterministic; consistently picks the highest-probability token. Best for factual tasks and code generation.
+                    </div>
+                </li>
+                <li>
+                    <div class="takeaway-icon normal">⚖️</div>
+                    <div class="takeaway-text">
+                        <strong>T = 1 → Normal</strong> — Standard softmax behavior. Balanced between consistency and variety.
+                    </div>
+                </li>
+                <li>
+                    <div class="takeaway-icon flat">🌊</div>
+                    <div class="takeaway-text">
+                        <strong>T &gt; 1 → Flat</strong> — More creative and diverse; may pick surprising alternatives. Best for creative writing and brainstorming.
+                    </div>
+                </li>
+            </ul>
+            
+            <div class="takeaway-summary">
+                Temperature is your creativity dial: lower values produce focused, predictable outputs while higher values encourage exploration. The formula is elegantly simple—just divide logits by T before softmax—but the effect on generation quality is profound.
+            </div>
+        </div>
+    </div>
+    
+    <!-- Code Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">PyTorch Implementation</span>
+                <button class="modal-close" id="modal-close" aria-label="Close modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="code-section">
+                    <div class="code-section-title">Core Function: softmax_with_temperature</div>
+                    <pre class="code-block highlighted"><span class="keyword">def</span> <span class="function">softmax_with_temperature</span>(logits, temperature):
+    <span class="string">"""
+    Applies softmax to the logits with the specified temperature.
+    
+    Parameters:
+    - logits (torch.Tensor): Raw output scores from the model
+    - temperature (float): Temperature value to scale the logits
+    
+    Returns:
+    - torch.Tensor: Probability distribution after softmax
+    """</span>
+    <span class="comment"># Scale the logits by dividing by the temperature</span>
+    scaled_logits <span class="operator">=</span> logits <span class="operator">/</span> temperature
+    <span class="comment"># Apply softmax to convert scaled logits to probabilities</span>
+    probabilities <span class="operator">=</span> torch.<span class="function">softmax</span>(scaled_logits, dim<span class="operator">=</span><span class="number">-1</span>)
+    <span class="keyword">return</span> probabilities</pre>
+                </div>
+                
+                <div class="code-section">
+                    <div class="code-section-title">Example Usage</div>
+                    <pre class="code-block"><span class="comment"># Example vocabulary (token_id: word)</span>
+vocab <span class="operator">=</span> {
+    <span class="string">"closer"</span>: <span class="number">0</span>, <span class="string">"every"</span>: <span class="number">1</span>, <span class="string">"effort"</span>: <span class="number">2</span>,
+    <span class="string">"forward"</span>: <span class="number">3</span>, <span class="string">"inches"</span>: <span class="number">4</span>, <span class="string">"moves"</span>: <span class="number">5</span>,
+    <span class="string">"pizza"</span>: <span class="number">6</span>, <span class="string">"toward"</span>: <span class="number">7</span>, <span class="string">"you"</span>: <span class="number">8</span>,
+}
+inverse_vocab <span class="operator">=</span> {v: k <span class="keyword">for</span> k, v <span class="keyword">in</span> vocab.<span class="function">items</span>()}
+
+<span class="comment"># Logits for next token after "Every effort moves you"</span>
+next_token_logits <span class="operator">=</span> torch.<span class="function">tensor</span>(
+    [<span class="number">4.51</span>, <span class="number">0.89</span>, <span class="number">-1.90</span>, <span class="number">6.75</span>, <span class="number">1.63</span>, <span class="number">-1.62</span>, <span class="number">-1.89</span>, <span class="number">6.28</span>, <span class="number">1.79</span>]
+)
+
+<span class="comment"># Compare different temperatures</span>
+temperatures <span class="operator">=</span> [<span class="number">0.1</span>, <span class="number">1</span>, <span class="number">5</span>]
+scaled_probas <span class="operator">=</span> [<span class="function">softmax_with_temperature</span>(next_token_logits, T) 
+                 <span class="keyword">for</span> T <span class="keyword">in</span> temperatures]
+
+<span class="keyword">for</span> T, probs <span class="keyword">in</span> <span class="function">zip</span>(temperatures, scaled_probas):
+    <span class="function">print</span>(<span class="string">f"\nTemperature = {T}"</span>)
+    <span class="keyword">for</span> i, prob <span class="keyword">in</span> <span class="function">enumerate</span>(probs):
+        <span class="function">print</span>(<span class="string">f"  {inverse_vocab[i]}: {prob.item():.4f}"</span>)</pre>
+                </div>
+                
+                <div class="code-section">
+                    <div class="code-section-title">Greedy vs. Probabilistic Decoding</div>
+                    <pre class="code-block"><span class="comment"># GREEDY DECODING (deterministic)</span>
+<span class="comment"># Always selects the highest probability token</span>
+probas <span class="operator">=</span> torch.<span class="function">softmax</span>(next_token_logits, dim<span class="operator">=</span><span class="number">0</span>)
+next_token_id <span class="operator">=</span> torch.<span class="function">argmax</span>(probas).<span class="function">item</span>()
+<span class="function">print</span>(inverse_vocab[next_token_id])  <span class="comment"># "forward"</span>
+
+<span class="comment"># PROBABILISTIC SAMPLING (with temperature)</span>
+<span class="comment"># Samples from the probability distribution</span>
+torch.<span class="function">manual_seed</span>(<span class="number">123</span>)
+next_token_id <span class="operator">=</span> torch.<span class="function">multinomial</span>(probas, num_samples<span class="operator">=</span><span class="number">1</span>).<span class="function">item</span>()
+<span class="function">print</span>(inverse_vocab[next_token_id])  <span class="comment"># Could be "toward" or others</span></pre>
+                </div>
+                
+                <div class="code-section">
+                    <div class="code-section-title">Integration in Generate Function</div>
+                    <pre class="code-block"><span class="keyword">def</span> <span class="function">generate</span>(model, idx, max_new_tokens, context_size,
+             temperature<span class="operator">=</span><span class="number">0.0</span>, top_k<span class="operator">=</span><span class="keyword">None</span>, eos_id<span class="operator">=</span><span class="keyword">None</span>):
+    <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(max_new_tokens):
+        <span class="comment"># ... (context handling code)</span>
+        logits <span class="operator">=</span> <span class="function">model</span>(idx_cond)
+        logits <span class="operator">=</span> logits[:, <span class="number">-1</span>, :]  <span class="comment"># Focus on last position</span>
+        
+        <span class="comment"># Apply top-k filtering if specified</span>
+        <span class="keyword">if</span> top_k <span class="keyword">is not</span> <span class="keyword">None</span>:
+            <span class="comment"># ... (top-k code)</span>
+        
+        <span class="comment"># Temperature scaling - THE KEY LINE!</span>
+        <span class="keyword">if</span> temperature <span class="operator">></span> <span class="number">0.0</span>:
+            logits <span class="operator">=</span> logits <span class="operator">/</span> temperature  <span class="comment"># ← Scale logits</span>
+            probs <span class="operator">=</span> torch.<span class="function">softmax</span>(logits, dim<span class="operator">=</span><span class="number">-1</span>)
+            idx_next <span class="operator">=</span> torch.<span class="function">multinomial</span>(probs, num_samples<span class="operator">=</span><span class="number">1</span>)
+        <span class="keyword">else</span>:
+            <span class="comment"># Greedy decoding</span>
+            idx_next <span class="operator">=</span> torch.<span class="function">argmax</span>(logits, dim<span class="operator">=</span><span class="number">-1</span>, keepdim<span class="operator">=</span><span class="keyword">True</span>)
+        
+        idx <span class="operator">=</span> torch.<span class="function">cat</span>((idx, idx_next), dim<span class="operator">=</span><span class="number">1</span>)
+    <span class="keyword">return</span> idx</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Token data from the book
+        const tokens = [
+            { word: "forward", logit: 6.75 },
+            { word: "toward", logit: 6.28 },
+            { word: "closer", logit: 4.51 },
+            { word: "you", logit: 1.79 },
+            { word: "inches", logit: 1.63 },
+            { word: "every", logit: 0.89 },
+            { word: "moves", logit: -1.62 },
+            { word: "pizza", logit: -1.89 },
+            { word: "effort", logit: -1.90 }
+        ];
+        
+        // Softmax with temperature (numerically stable)
+        function softmaxWithTemperature(logits, temperature) {
+            const scaledLogits = logits.map(l => l / temperature);
+            const maxLogit = Math.max(...scaledLogits);
+            const expValues = scaledLogits.map(l => Math.exp(l - maxLogit));
+            const sumExp = expValues.reduce((a, b) => a + b, 0);
+            return expValues.map(e => e / sumExp);
+        }
+        
+        // Calculate entropy
+        function calculateEntropy(probs) {
+            return -probs.reduce((sum, p) => {
+                if (p > 0) return sum + p * Math.log2(p);
+                return sum;
+            }, 0);
+        }
+        
+        // Format probability for display
+        function formatProb(prob) {
+            if (prob >= 0.01) {
+                return (prob * 100).toFixed(1) + '%';
+            } else if (prob >= 0.0001) {
+                return (prob * 100).toFixed(2) + '%';
+            } else {
+                return '<0.01%';
+            }
+        }
+        
+        // DOM elements
+        const slider = document.getElementById('temp-slider');
+        const tempValue = document.getElementById('temp-value');
+        const barsContainer = document.getElementById('bars-container');
+        const regimeBadge = document.getElementById('regime-badge');
+        const regimeIcon = document.getElementById('regime-icon');
+        const regimeText = document.getElementById('regime-text');
+        const greedySelection = document.getElementById('greedy-selection');
+        const top3Coverage = document.getElementById('top3-coverage');
+        const entropyDisplay = document.getElementById('entropy');
+        const logitsColumn = document.getElementById('logits-column');
+        const scaledColumn = document.getElementById('scaled-column');
+        const probsColumn = document.getElementById('probs-column');
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const viewCodeBtn = document.getElementById('view-code-btn');
+        const modalClose = document.getElementById('modal-close');
+        
+        // Initialize bars
+        function initBars() {
+            barsContainer.innerHTML = '';
+            tokens.forEach((token, index) => {
+                const row = document.createElement('div');
+                row.className = 'bar-row';
+                row.innerHTML = `
+                    <span class="bar-label">${token.word}</span>
+                    <div class="bar-track">
+                        <div class="bar-fill" id="bar-${index}" style="width: 0%"></div>
+                    </div>
+                    <span class="bar-value" id="value-${index}">0%</span>
+                `;
+                barsContainer.appendChild(row);
+            });
+        }
+        
+        // Initialize math columns
+        function initMathColumns() {
+            logitsColumn.innerHTML = '';
+            tokens.forEach(token => {
+                const row = document.createElement('div');
+                row.className = 'math-row';
+                row.innerHTML = `
+                    <span class="math-token">${token.word}</span>
+                    <span class="math-value logit">${token.logit.toFixed(2)}</span>
+                `;
+                logitsColumn.appendChild(row);
+            });
+        }
+        
+        // Update visualization
+        function updateVisualization(temperature) {
+            const logits = tokens.map(t => t.logit);
+            const probs = softmaxWithTemperature(logits, temperature);
+            const maxProb = Math.max(...probs);
+            
+            // Update bars
+            tokens.forEach((token, index) => {
+                const bar = document.getElementById(`bar-${index}`);
+                const value = document.getElementById(`value-${index}`);
+                const prob = probs[index];
+                
+                // Scale bar width (max 100%)
+                const width = (prob / maxProb) * 100;
+                bar.style.width = `${width}%`;
+                
+                // Update value text
+                value.textContent = formatProb(prob);
+                
+                // Apply styling based on rank
+                bar.classList.remove('top-1', 'top-2', 'top-3');
+                value.classList.remove('highlight');
+                
+                if (index === 0) {
+                    bar.classList.add('top-1');
+                    value.classList.add('highlight');
+                } else if (index === 1) {
+                    bar.classList.add('top-2');
+                } else if (index === 2) {
+                    bar.classList.add('top-3');
+                }
+            });
+            
+            // Update regime badge
+            let regime, icon;
+            if (temperature < 0.5) {
+                regime = 'sharp';
+                icon = '🎯';
+                regimeText.textContent = 'Sharp';
+            } else if (temperature <= 1.2) {
+                regime = 'normal';
+                icon = '⚖️';
+                regimeText.textContent = 'Normal';
+            } else {
+                regime = 'flat';
+                icon = '🌊';
+                regimeText.textContent = 'Flat';
+            }
+            regimeBadge.className = `regime-badge ${regime}`;
+            regimeIcon.textContent = icon;
+            
+            // Update metrics
+            greedySelection.textContent = tokens[0].word;
+            const top3Sum = probs.slice(0, 3).reduce((a, b) => a + b, 0);
+            top3Coverage.textContent = (top3Sum * 100).toFixed(1) + '%';
+            const entropy = calculateEntropy(probs);
+            entropyDisplay.textContent = entropy.toFixed(2);
+            
+            // Update math columns
+            // Scaled logits
+            scaledColumn.innerHTML = '';
+            tokens.forEach(token => {
+                const scaled = token.logit / temperature;
+                const row = document.createElement('div');
+                row.className = 'math-row';
+                row.innerHTML = `
+                    <span class="math-token">${token.word}</span>
+                    <span class="math-value scaled">${scaled.toFixed(2)}</span>
+                `;
+                scaledColumn.appendChild(row);
+            });
+            
+            // Probabilities
+            probsColumn.innerHTML = '';
+            tokens.forEach((token, index) => {
+                const row = document.createElement('div');
+                row.className = 'math-row';
+                row.innerHTML = `
+                    <span class="math-token">${token.word}</span>
+                    <span class="math-value prob">${formatProb(probs[index])}</span>
+                `;
+                probsColumn.appendChild(row);
+            });
+            
+            // Update preset button active states
+            presetBtns.forEach(btn => {
+                const btnTemp = parseFloat(btn.dataset.temp);
+                if (Math.abs(temperature - btnTemp) < 0.05) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        
+        // Event listeners
+        slider.addEventListener('input', (e) => {
+            const temp = parseFloat(e.target.value);
+            tempValue.textContent = temp.toFixed(2);
+            updateVisualization(temp);
+        });
+        
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const temp = parseFloat(btn.dataset.temp);
+                slider.value = temp;
+                tempValue.textContent = temp.toFixed(2);
+                updateVisualization(temp);
+            });
+        });
+        
+        // Modal controls
+        viewCodeBtn.addEventListener('click', () => {
+            modalOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        
+        modalClose.addEventListener('click', () => {
+            modalOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+        
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+                modalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+        
+        // Initialize
+        initBars();
+        initMathColumns();
+        updateVisualization(1.0);
+        
+        // Sampling simulation
+        const samplingVisual = document.getElementById('sampling-visual');
+        const samplingResults = document.getElementById('sampling-results');
+        const samplingLegend = document.getElementById('sampling-legend');
+        const sampleBtn = document.getElementById('sample-btn');
+        
+        let currentProbs = [];
+        
+        // Generate legend once
+        function initLegend() {
+            samplingLegend.innerHTML = '';
+            tokens.forEach(token => {
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                item.innerHTML = `
+                    <span class="legend-dot ${token.word}"></span>
+                    <span>${token.word}</span>
+                `;
+                samplingLegend.appendChild(item);
+            });
+        }
+        
+        function sampleFromDistribution(probs, n = 100) {
+            const samples = [];
+            for (let i = 0; i < n; i++) {
+                const r = Math.random();
+                let cumulative = 0;
+                for (let j = 0; j < probs.length; j++) {
+                    cumulative += probs[j];
+                    if (r < cumulative) {
+                        samples.push(j);
+                        break;
+                    }
+                }
+            }
+            return samples;
+        }
+        
+        function runSampling() {
+            const logits = tokens.map(t => t.logit);
+            const temp = parseFloat(slider.value);
+            currentProbs = softmaxWithTemperature(logits, temp);
+            
+            const samples = sampleFromDistribution(currentProbs);
+            
+            // Count occurrences
+            const counts = {};
+            tokens.forEach((t, i) => counts[t.word] = 0);
+            samples.forEach(idx => {
+                counts[tokens[idx].word]++;
+            });
+            
+            // Clear and render visual dots (no letters, just colored squares)
+            samplingVisual.innerHTML = '';
+            samples.forEach((idx, i) => {
+                const dot = document.createElement('div');
+                dot.className = `sample-dot ${tokens[idx].word}`;
+                dot.title = tokens[idx].word;
+                dot.style.animationDelay = `${i * 5}ms`;
+                samplingVisual.appendChild(dot);
+            });
+            
+            // Sort by count and render chips
+            const sortedCounts = Object.entries(counts)
+                .sort((a, b) => b[1] - a[1])
+                .filter(([_, count]) => count > 0);
+            
+            samplingResults.innerHTML = '';
+            sortedCounts.forEach(([word, count], idx) => {
+                const chip = document.createElement('div');
+                chip.className = `sample-chip${idx === 0 ? ' top-token' : ''}`;
+                chip.innerHTML = `
+                    <span class="token">${word}</span>
+                    <span class="count">${count}×</span>
+                `;
+                samplingResults.appendChild(chip);
+            });
+        }
+        
+        sampleBtn.addEventListener('click', runSampling);
+        
+        // Update sampling when temperature changes
+        const originalUpdateVisualization = updateVisualization;
+        updateVisualization = function(temperature) {
+            originalUpdateVisualization(temperature);
+            runSampling();
+        };
+        
+        // Initial sampling
+        initLegend();
+        runSampling();
+    </script>
+</body>
+</html>

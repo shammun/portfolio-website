@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q/K/V Weight Splitting in GPT-2</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --q-primary: #3b82f6; --q-light: #dbeafe; --q-dark: #1e40af;
+            --k-primary: #10b981; --k-light: #d1fae5; --k-dark: #047857;
+            --v-primary: #f97316; --v-light: #ffedd5; --v-dark: #c2410c;
+            --purple-primary: #8b5cf6; --purple-light: #ede9fe; --purple-dark: #6d28d9;
+            --text-primary: #1e293b; --text-secondary: #64748b;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(180deg, #fafbff 0%, #f0f4ff 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            padding: 1.5rem;
+            line-height: 1.5;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        h1 { font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: 0.25rem; }
+        .subtitle { font-size: 0.875rem; color: var(--text-secondary); text-align: center; margin-bottom: 1.25rem; }
+        
+        .main-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        
+        .controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .nav-btn {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--purple-light);
+            background: white;
+            color: var(--purple-primary);
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .nav-btn:hover:not(:disabled) { background: var(--purple-light); }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        .progress-dots { display: flex; gap: 6px; }
+        .dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .dot:hover { transform: scale(1.2); }
+        .dot.active { background: var(--purple-primary); box-shadow: 0 0 0 2px var(--purple-light); }
+        .dot.done { background: var(--purple-primary); }
+        .dot[data-s="3"].active { background: var(--q-primary); }
+        .dot[data-s="4"].active { background: var(--k-primary); }
+        .dot[data-s="5"].active { background: var(--v-primary); }
+        
+        .step-label { font-size: 0.75rem; color: var(--text-secondary); min-width: 60px; text-align: center; }
+        .step-label strong { color: var(--purple-primary); }
+        
+        .play-btn {
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            border: none;
+            background: var(--purple-primary);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .play-btn:hover { background: var(--purple-dark); }
+        .play-btn.playing { background: #ef4444; }
+        
+        .step-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            min-height: 280px;
+        }
+        @media (max-width: 700px) { .step-area { grid-template-columns: 1fr; } }
+        
+        .anim-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            min-height: 240px;
+        }
+        
+        .matrix-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .matrix {
+            height: 65px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.65rem;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            line-height: 1.3;
+        }
+        
+        .matrix.combined {
+            width: 260px;
+            background: linear-gradient(135deg, var(--purple-primary), var(--purple-dark));
+        }
+        
+        .matrix.q { background: linear-gradient(135deg, var(--q-primary), #2563eb); }
+        .matrix.k { background: linear-gradient(135deg, var(--k-primary), #059669); }
+        .matrix.v { background: linear-gradient(135deg, var(--v-primary), #ea580c); }
+        
+        .matrix.highlight { box-shadow: 0 0 0 3px rgba(255,255,255,0.6), 0 4px 20px rgba(0,0,0,0.2); transform: scale(1.02); }
+        .matrix.dim { opacity: 0.25; }
+        
+        .split-visual {
+            display: flex;
+            gap: 0;
+            transition: gap 0.5s ease;
+        }
+        .split-visual.expanded { gap: 6px; }
+        .split-visual .matrix { width: 82px; }
+        
+        .arrow {
+            margin: 0.5rem 0;
+            font-size: 0.58rem;
+            color: var(--text-secondary);
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-family: 'Source Code Pro', monospace;
+        }
+        .arrow.show { opacity: 1; }
+        .arrow svg { width: 16px; height: 16px; color: var(--purple-primary); display: block; margin: 0 auto 3px; }
+        
+        .shape-label {
+            font-size: 0.55rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+            font-family: 'Source Code Pro', monospace;
+            text-align: center;
+        }
+        
+        .info-box { display: flex; flex-direction: column; }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.4rem;
+        }
+        .step-num {
+            width: 28px; height: 28px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            font-size: 0.85rem;
+        }
+        .step-num.s1, .step-num.s2 { background: var(--purple-primary); }
+        .step-num.s3 { background: var(--q-primary); }
+        .step-num.s4 { background: var(--k-primary); }
+        .step-num.s5 { background: var(--v-primary); }
+        .step-num.s6 { background: var(--purple-dark); }
+        
+        .step-title { font-weight: 600; font-size: 0.9rem; }
+        .step-desc {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+        .step-desc code {
+            background: #f1f5f9;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.7rem;
+            color: var(--purple-dark);
+        }
+        
+        .code-box {
+            background: #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
+            font-size: 0.68rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .code-head {
+            background: #334155;
+            padding: 0.35rem 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .code-dot { width: 7px; height: 7px; border-radius: 50%; }
+        .code-dot:nth-child(1) { background: #ef4444; }
+        .code-dot:nth-child(2) { background: #fbbf24; }
+        .code-dot:nth-child(3) { background: #22c55e; }
+        .code-head span { margin-left: auto; color: #64748b; font-size: 0.6rem; }
+        
+        .code-body { padding: 0.5rem; overflow-y: auto; flex: 1; }
+        .code-line {
+            display: flex;
+            font-family: 'Source Code Pro', monospace;
+            line-height: 1.5;
+            white-space: pre;
+        }
+        .code-line.hl { background: rgba(139,92,246,0.3); margin: 0 -0.5rem; padding: 0 0.5rem; border-left: 2px solid var(--purple-primary); }
+        .code-line.hl-q { background: rgba(59,130,246,0.3); margin: 0 -0.5rem; padding: 0 0.5rem; border-left: 2px solid var(--q-primary); }
+        .code-line.hl-k { background: rgba(16,185,129,0.3); margin: 0 -0.5rem; padding: 0 0.5rem; border-left: 2px solid var(--k-primary); }
+        .code-line.hl-v { background: rgba(249,115,22,0.3); margin: 0 -0.5rem; padding: 0 0.5rem; border-left: 2px solid var(--v-primary); }
+        
+        .ln { color: #475569; width: 14px; text-align: right; margin-right: 8px; user-select: none; flex-shrink: 0; }
+        .lc { color: #e2e8f0; }
+        .kw { color: #c084fc; }
+        .fn { color: #38bdf8; }
+        .str { color: #4ade80; }
+        .cmt { color: #64748b; font-style: italic; }
+        .num { color: #fbbf24; }
+        .op { color: #f472b6; }
+        .vr { color: #fb923c; }
+        
+        .full-code-btn {
+            margin-top: 0.5rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 5px;
+            border: 1px solid #475569;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.65rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .full-code-btn:hover { background: #334155; color: white; }
+        
+        .bottom-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+        @media (max-width: 700px) { .bottom-row { grid-template-columns: 1fr; } }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 0.75rem;
+            box-shadow: 0 2px 10px rgba(139,92,246,0.08);
+        }
+        .card-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--purple-primary);
+            margin-bottom: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .why3 { background: linear-gradient(135deg, var(--purple-light), #faf5ff); }
+        .role {
+            display: flex;
+            gap: 0.4rem;
+            padding: 0.3rem;
+            background: white;
+            border-radius: 5px;
+            margin-bottom: 0.3rem;
+            align-items: center;
+        }
+        .role:last-child { margin-bottom: 0; }
+        .role-icon {
+            width: 18px; height: 18px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.55rem;
+            font-weight: 600;
+            color: white;
+        }
+        .role-icon.q { background: var(--q-primary); }
+        .role-icon.k { background: var(--k-primary); }
+        .role-icon.v { background: var(--v-primary); }
+        .role-text { font-size: 0.65rem; }
+        .role-text strong { display: block; }
+        .role-text strong.q { color: var(--q-dark); }
+        .role-text strong.k { color: var(--k-dark); }
+        .role-text strong.v { color: var(--v-dark); }
+        .role-text span { color: var(--text-secondary); }
+        
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0.35rem;
+            background: #f8fafc;
+            border-radius: 4px;
+            margin-bottom: 0.25rem;
+            font-size: 0.65rem;
+            border-left: 2px solid transparent;
+        }
+        .calc-row:last-child { margin-bottom: 0; }
+        .calc-row.comb { border-left-color: var(--purple-primary); }
+        .calc-row.cq { border-left-color: var(--q-primary); }
+        .calc-row.ck { border-left-color: var(--k-primary); }
+        .calc-row.cv { border-left-color: var(--v-primary); }
+        .calc-row span:first-child { font-weight: 600; }
+        .calc-row span:last-child { font-family: 'Source Code Pro', monospace; color: var(--text-secondary); }
+        
+        .calc-input {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.7rem;
+        }
+        .calc-input input {
+            width: 60px;
+            padding: 0.2rem 0.3rem;
+            border: 1px solid var(--purple-light);
+            border-radius: 4px;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.7rem;
+            text-align: center;
+        }
+        
+        .axis-box { text-align: center; font-size: 0.65rem; color: var(--text-secondary); }
+        .axis-matrix {
+            width: 100px; height: 38px;
+            background: linear-gradient(135deg, var(--purple-light), #e9d5ff);
+            border: 2px solid var(--purple-primary);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0.3rem auto;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.6rem;
+            color: var(--purple-dark);
+        }
+        .axis-box code {
+            background: #f1f5f9;
+            padding: 0px 2px;
+            border-radius: 2px;
+            font-family: 'Source Code Pro', monospace;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal {
+            background: #1e293b;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 750px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.show .modal {
+            transform: translateY(0);
+        }
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #334155;
+        }
+        .modal-head h3 {
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .modal-close {
+            width: 28px; height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: #334155;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .modal-close:hover { background: #475569; color: white; }
+        .modal-body {
+            padding: 0.75rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-body .code-line {
+            font-size: 0.7rem;
+            line-height: 1.6;
+        }
+        .modal-body .ln {
+            width: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Q/K/V Weight Splitting in GPT-2</h1>
+        <p class="subtitle">How one tensor becomes three separate Query, Key, and Value matrices</p>
+        
+        <div class="main-card">
+            <div class="controls-row">
+                <button class="nav-btn" id="prev">←</button>
+                <div class="progress-dots" id="dots"></div>
+                <button class="nav-btn" id="next">→</button>
+                <span class="step-label">Step <strong id="stepNum">1</strong>/6</span>
+                <button class="play-btn" id="playBtn">▶ Auto</button>
+            </div>
+            
+            <div class="step-area">
+                <div class="anim-box">
+                    <div class="matrix-container">
+                        <div id="combinedView">
+                            <div class="matrix combined highlight" id="comb">Combined<br>(768, 2304)</div>
+                            <div class="shape-label">params["blocks"][b]["attn"]["c_attn"]["w"]</div>
+                        </div>
+                        
+                        <div id="splitView" style="display: none;">
+                            <div class="split-visual" id="splitVisual">
+                                <div class="matrix q" id="mq">Q<br>(768, 768)</div>
+                                <div class="matrix k" id="mk">K<br>(768, 768)</div>
+                                <div class="matrix v" id="mv">V<br>(768, 768)</div>
+                            </div>
+                            <div class="shape-label" id="splitLabel">q_w, k_w, v_w</div>
+                        </div>
+                        
+                        <div class="arrow" id="arrow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                            np.split(..., 3, axis=-1)
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <div class="step-header">
+                        <div class="step-num s1" id="badge">1</div>
+                        <div class="step-title" id="title">Access the Combined Matrix</div>
+                    </div>
+                    <div class="step-desc" id="desc">
+                        GPT-2 stores Q, K, V weights together in a single tensor for efficiency.
+                    </div>
+                    <div class="code-box">
+                        <div class="code-head">
+                            <div class="code-dot"></div>
+                            <div class="code-dot"></div>
+                            <div class="code-dot"></div>
+                            <span>load_weights_into_gpt.py</span>
+                        </div>
+                        <div class="code-body" id="code"></div>
+                    </div>
+                    <button class="full-code-btn" id="openModal">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        View Full Code
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bottom-row">
+            <div class="card why3">
+                <div class="card-title">❓ Why Split into 3?</div>
+                <div class="role"><div class="role-icon q">Q</div><div class="role-text"><strong class="q">Query</strong><span>"What am I looking for?"</span></div></div>
+                <div class="role"><div class="role-icon k">K</div><div class="role-text"><strong class="k">Key</strong><span>"What do I contain?"</span></div></div>
+                <div class="role"><div class="role-icon v">V</div><div class="role-text"><strong class="v">Value</strong><span>"My actual content"</span></div></div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">🧮 Dimensions</div>
+                <div class="calc-input"><label>n_embd:</label><input type="number" id="embd" value="768" step="64"></div>
+                <div class="calc-row comb"><span>Combined</span><span id="cs">(768, 2304)</span></div>
+                <div class="calc-row cq"><span>Q</span><span id="qs">(768, 768)</span></div>
+                <div class="calc-row ck"><span>K</span><span id="ks">(768, 768)</span></div>
+                <div class="calc-row cv"><span>V</span><span id="vs">(768, 768)</span></div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">📐 axis=-1</div>
+                <div class="axis-box">
+                    <div>↓ axis=0 (rows)</div>
+                    <div class="axis-matrix">(768, 2304)</div>
+                    <div>→ axis=-1 (cols)</div>
+                    <div style="margin-top:0.25rem">Split along columns<br><code>axis=-1</code> = <code>axis=1</code></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for Full Code -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-head">
+                <h3>load_weights_into_gpt.py — Full Code</h3>
+                <button class="modal-close" id="closeModal">×</button>
+            </div>
+            <div class="modal-body" id="modalCode"></div>
+        </div>
+    </div>
+
+    <script>
+        const steps = [
+            { 
+                title: "Access the Combined Matrix", 
+                desc: "GPT-2 stores Q, K, V weights together in a single tensor. Shape is <code>(768, 2304)</code> where 2304 = 3 × 768.", 
+                hl: [2, 3], 
+                hlc: "hl",
+                code: [
+                    [1, '<span class="cmt"># Split combined QKV weights</span>'],
+                    [2, '<span class="vr">q_w</span>, <span class="vr">k_w</span>, <span class="vr">v_w</span> <span class="op">=</span> np.<span class="fn">split</span>('],
+                    [3, '    (params[<span class="str">"blocks"</span>][b][<span class="str">"attn"</span>][<span class="str">"c_attn"</span>])[<span class="str">"w"</span>],'],
+                    [4, '    <span class="num">3</span>, axis<span class="op">=</span><span class="num">-1</span>)'],
+                ]
+            },
+            { 
+                title: "Split into Three Parts", 
+                desc: "<code>np.split()</code> divides the matrix into 3 equal parts along axis=-1 (columns). Each result is <code>(768, 768)</code>.", 
+                hl: [2, 3, 4], 
+                hlc: "hl",
+                code: [
+                    [1, '<span class="cmt"># Split combined QKV weights</span>'],
+                    [2, '<span class="vr">q_w</span>, <span class="vr">k_w</span>, <span class="vr">v_w</span> <span class="op">=</span> np.<span class="fn">split</span>('],
+                    [3, '    (params[<span class="str">"blocks"</span>][b][<span class="str">"attn"</span>][<span class="str">"c_attn"</span>])[<span class="str">"w"</span>],'],
+                    [4, '    <span class="num">3</span>, axis<span class="op">=</span><span class="num">-1</span>)'],
+                ]
+            },
+            { 
+                title: "Extract Query Weights", 
+                desc: "First 768 columns become <strong>Query</strong> weights <code>q_w</code>. Transforms inputs into \"what am I looking for?\" vectors.", 
+                hl: [2, 3], 
+                hlc: "hl-q",
+                code: [
+                    [1, '<span class="cmt"># Assign Query Weight (transposed for PyTorch)</span>'],
+                    [2, 'gpt.trf_blocks[b].att.W_query.weight <span class="op">=</span> assign('],
+                    [3, '    gpt.trf_blocks[b].att.W_query.weight, <span class="vr">q_w</span>.T)'],
+                ]
+            },
+            { 
+                title: "Extract Key Weights", 
+                desc: "Columns 768-1535 become <strong>Key</strong> weights <code>k_w</code>. Creates \"what do I contain?\" vectors.", 
+                hl: [2, 3], 
+                hlc: "hl-k",
+                code: [
+                    [1, '<span class="cmt"># Assign Key Weight</span>'],
+                    [2, 'gpt.trf_blocks[b].att.W_key.weight <span class="op">=</span> assign('],
+                    [3, '    gpt.trf_blocks[b].att.W_key.weight, <span class="vr">k_w</span>.T)'],
+                ]
+            },
+            { 
+                title: "Extract Value Weights", 
+                desc: "Final 768 columns become <strong>Value</strong> weights <code>v_w</code>. Carries actual content weighted by attention.", 
+                hl: [2, 3], 
+                hlc: "hl-v",
+                code: [
+                    [1, '<span class="cmt"># Assign Value Weight</span>'],
+                    [2, 'gpt.trf_blocks[b].att.W_value.weight <span class="op">=</span> assign('],
+                    [3, '    gpt.trf_blocks[b].att.W_value.weight, <span class="vr">v_w</span>.T)'],
+                ]
+            },
+            { 
+                title: "Assign to PyTorch", 
+                desc: "Each matrix is <strong>transposed</strong> (<code>.T</code>) for PyTorch's <code>(out, in)</code> convention. Biases split similarly.", 
+                hl: [2, 3, 5, 6, 8, 9], 
+                hlc: "hl",
+                code: [
+                    [1, '<span class="cmt"># All Q/K/V assignments with transpose</span>'],
+                    [2, 'gpt...W_query.weight <span class="op">=</span> assign(..., <span class="vr">q_w</span>.T)'],
+                    [3, 'gpt...W_key.weight <span class="op">=</span> assign(..., <span class="vr">k_w</span>.T)'],
+                    [4, 'gpt...W_value.weight <span class="op">=</span> assign(..., <span class="vr">v_w</span>.T)'],
+                    [5, ''],
+                    [6, '<span class="cmt"># Biases (same split pattern, no transpose)</span>'],
+                    [7, '<span class="vr">q_b</span>, <span class="vr">k_b</span>, <span class="vr">v_b</span> <span class="op">=</span> np.<span class="fn">split</span>(...[<span class="str">"b"</span>], <span class="num">3</span>, axis<span class="op">=</span><span class="num">-1</span>)'],
+                    [8, 'gpt...W_query.bias <span class="op">=</span> assign(..., <span class="vr">q_b</span>)'],
+                    [9, 'gpt...W_key.bias <span class="op">=</span> assign(..., <span class="vr">k_b</span>)'],
+                    [10, 'gpt...W_value.bias <span class="op">=</span> assign(..., <span class="vr">v_b</span>)'],
+                ]
+            }
+        ];
+        
+        // Full code for modal
+        const fullCode = [
+            [1,  '<span class="kw">import</span> numpy <span class="kw">as</span> np'],
+            [2,  ''],
+            [3,  '<span class="kw">def</span> <span class="fn">load_weights_into_gpt</span>(gpt, params):'],
+            [4,  '    <span class="cmt"># Assign Positional Embedding Weights</span>'],
+            [5,  '    gpt.pos_emb.weight <span class="op">=</span> assign(gpt.pos_emb.weight, params[<span class="str">\'wpe\'</span>])'],
+            [6,  ''],
+            [7,  '    <span class="cmt"># Assign Token Embedding Weights</span>'],
+            [8,  '    gpt.tok_emb.weight <span class="op">=</span> assign(gpt.tok_emb.weight, params[<span class="str">\'wte\'</span>])'],
+            [9,  ''],
+            [10, '    <span class="cmt"># Loop Through Each Transformer Block</span>'],
+            [11, '    <span class="kw">for</span> b <span class="kw">in</span> <span class="fn">range</span>(<span class="fn">len</span>(params[<span class="str">"blocks"</span>])):'],
+            [12, ''],
+            [13, '        <span class="cmt"># Assign Attention Weights and Biases</span>'],
+            [14, '        <span class="cmt"># Split combined QKV weights into separate</span>'],
+            [15, '        <span class="cmt"># Query, Key, and Value weights</span>'],
+            [16, '        <span class="vr">q_w</span>, <span class="vr">k_w</span>, <span class="vr">v_w</span> <span class="op">=</span> np.<span class="fn">split</span>('],
+            [17, '            (params[<span class="str">"blocks"</span>][b][<span class="str">"attn"</span>][<span class="str">"c_attn"</span>])[<span class="str">"w"</span>], <span class="num">3</span>, axis<span class="op">=</span><span class="num">-1</span>)'],
+            [18, ''],
+            [19, '        <span class="cmt"># Assign Query Weight</span>'],
+            [20, '        gpt.trf_blocks[b].att.W_query.weight <span class="op">=</span> assign('],
+            [21, '            gpt.trf_blocks[b].att.W_query.weight, <span class="vr">q_w</span>.T)'],
+            [22, ''],
+            [23, '        <span class="cmt"># Assign Key Weight</span>'],
+            [24, '        gpt.trf_blocks[b].att.W_key.weight <span class="op">=</span> assign('],
+            [25, '            gpt.trf_blocks[b].att.W_key.weight, <span class="vr">k_w</span>.T)'],
+            [26, ''],
+            [27, '        <span class="cmt"># Assign Value Weight</span>'],
+            [28, '        gpt.trf_blocks[b].att.W_value.weight <span class="op">=</span> assign('],
+            [29, '            gpt.trf_blocks[b].att.W_value.weight, <span class="vr">v_w</span>.T)'],
+            [30, ''],
+            [31, '        <span class="cmt"># Split combined QKV biases</span>'],
+            [32, '        <span class="vr">q_b</span>, <span class="vr">k_b</span>, <span class="vr">v_b</span> <span class="op">=</span> np.<span class="fn">split</span>('],
+            [33, '            (params[<span class="str">"blocks"</span>][b][<span class="str">"attn"</span>][<span class="str">"c_attn"</span>])[<span class="str">"b"</span>], <span class="num">3</span>, axis<span class="op">=</span><span class="num">-1</span>)'],
+            [34, ''],
+            [35, '        <span class="cmt"># Assign Query Bias</span>'],
+            [36, '        gpt.trf_blocks[b].att.W_query.bias <span class="op">=</span> assign('],
+            [37, '            gpt.trf_blocks[b].att.W_query.bias, <span class="vr">q_b</span>)'],
+            [38, ''],
+            [39, '        <span class="cmt"># Assign Key Bias</span>'],
+            [40, '        gpt.trf_blocks[b].att.W_key.bias <span class="op">=</span> assign('],
+            [41, '            gpt.trf_blocks[b].att.W_key.bias, <span class="vr">k_b</span>)'],
+            [42, ''],
+            [43, '        <span class="cmt"># Assign Value Bias</span>'],
+            [44, '        gpt.trf_blocks[b].att.W_value.bias <span class="op">=</span> assign('],
+            [45, '            gpt.trf_blocks[b].att.W_value.bias, <span class="vr">v_b</span>)'],
+            [46, ''],
+            [47, '        <span class="cmt"># Assign Output Projection Weights and Biases</span>'],
+            [48, '        gpt.trf_blocks[b].att.out_proj.weight <span class="op">=</span> assign('],
+            [49, '            gpt.trf_blocks[b].att.out_proj.weight,'],
+            [50, '            params[<span class="str">"blocks"</span>][b][<span class="str">"attn"</span>][<span class="str">"c_proj"</span>][<span class="str">"w"</span>].T)'],
+            [51, ''],
+            [52, '        gpt.trf_blocks[b].att.out_proj.bias <span class="op">=</span> assign('],
+            [53, '            gpt.trf_blocks[b].att.out_proj.bias,'],
+            [54, '            params[<span class="str">"blocks"</span>][b][<span class="str">"attn"</span>][<span class="str">"c_proj"</span>][<span class="str">"b"</span>])'],
+            [55, ''],
+            [56, '        <span class="cmt"># Assign Feed-Forward Network Weights and Biases</span>'],
+            [57, '        <span class="cmt"># First FFN Layer</span>'],
+            [58, '        gpt.trf_blocks[b].ff.layers[<span class="num">0</span>].weight <span class="op">=</span> assign('],
+            [59, '            gpt.trf_blocks[b].ff.layers[<span class="num">0</span>].weight,'],
+            [60, '            params[<span class="str">"blocks"</span>][b][<span class="str">"mlp"</span>][<span class="str">"c_fc"</span>][<span class="str">"w"</span>].T)'],
+            [61, ''],
+            [62, '        gpt.trf_blocks[b].ff.layers[<span class="num">0</span>].bias <span class="op">=</span> assign('],
+            [63, '            gpt.trf_blocks[b].ff.layers[<span class="num">0</span>].bias,'],
+            [64, '            params[<span class="str">"blocks"</span>][b][<span class="str">"mlp"</span>][<span class="str">"c_fc"</span>][<span class="str">"b"</span>])'],
+            [65, ''],
+            [66, '        <span class="cmt"># Second FFN Layer</span>'],
+            [67, '        gpt.trf_blocks[b].ff.layers[<span class="num">2</span>].weight <span class="op">=</span> assign('],
+            [68, '            gpt.trf_blocks[b].ff.layers[<span class="num">2</span>].weight,'],
+            [69, '            params[<span class="str">"blocks"</span>][b][<span class="str">"mlp"</span>][<span class="str">"c_proj"</span>][<span class="str">"w"</span>].T)'],
+            [70, ''],
+            [71, '        gpt.trf_blocks[b].ff.layers[<span class="num">2</span>].bias <span class="op">=</span> assign('],
+            [72, '            gpt.trf_blocks[b].ff.layers[<span class="num">2</span>].bias,'],
+            [73, '            params[<span class="str">"blocks"</span>][b][<span class="str">"mlp"</span>][<span class="str">"c_proj"</span>][<span class="str">"b"</span>])'],
+            [74, ''],
+            [75, '        <span class="cmt"># Assign Layer Normalization (Norm1)</span>'],
+            [76, '        gpt.trf_blocks[b].norm1.scale <span class="op">=</span> assign('],
+            [77, '            gpt.trf_blocks[b].norm1.scale,'],
+            [78, '            params[<span class="str">"blocks"</span>][b][<span class="str">"ln_1"</span>][<span class="str">"g"</span>])'],
+            [79, ''],
+            [80, '        gpt.trf_blocks[b].norm1.shift <span class="op">=</span> assign('],
+            [81, '            gpt.trf_blocks[b].norm1.shift,'],
+            [82, '            params[<span class="str">"blocks"</span>][b][<span class="str">"ln_1"</span>][<span class="str">"b"</span>])'],
+            [83, ''],
+            [84, '        <span class="cmt"># Assign Layer Normalization (Norm2)</span>'],
+            [85, '        gpt.trf_blocks[b].norm2.scale <span class="op">=</span> assign('],
+            [86, '            gpt.trf_blocks[b].norm2.scale,'],
+            [87, '            params[<span class="str">"blocks"</span>][b][<span class="str">"ln_2"</span>][<span class="str">"g"</span>])'],
+            [88, ''],
+            [89, '        gpt.trf_blocks[b].norm2.shift <span class="op">=</span> assign('],
+            [90, '            gpt.trf_blocks[b].norm2.shift,'],
+            [91, '            params[<span class="str">"blocks"</span>][b][<span class="str">"ln_2"</span>][<span class="str">"b"</span>])'],
+            [92, ''],
+            [93, '    <span class="cmt"># Assign Final Layer Normalization</span>'],
+            [94, '    gpt.final_norm.scale <span class="op">=</span> assign(gpt.final_norm.scale, params[<span class="str">"g"</span>])'],
+            [95, '    gpt.final_norm.shift <span class="op">=</span> assign(gpt.final_norm.shift, params[<span class="str">"b"</span>])'],
+            [96, ''],
+            [97, '    <span class="cmt"># Assign Output Head Weights</span>'],
+            [98, '    gpt.out_head.weight <span class="op">=</span> assign(gpt.out_head.weight, params[<span class="str">"wte"</span>])'],
+        ];
+        
+        let cur = 1, playing = false, timer = null;
+        const $ = id => document.getElementById(id);
+        
+        // Init dots
+        const dotsEl = $('dots');
+        for (let i = 1; i <= 6; i++) {
+            const d = document.createElement('div');
+            d.className = 'dot' + (i === 1 ? ' active' : '');
+            d.dataset.s = i;
+            d.onclick = () => go(i);
+            dotsEl.appendChild(d);
+        }
+        
+        // Init modal code
+        const modalCode = $('modalCode');
+        fullCode.forEach(([n, c]) => {
+            const line = document.createElement('div');
+            line.className = 'code-line';
+            line.dataset.n = n;
+            line.innerHTML = `<span class="ln">${n}</span><span class="lc">${c}</span>`;
+            modalCode.appendChild(line);
+        });
+        
+        function renderCode(codeArr, hlLines, hlClass) {
+            const codeEl = $('code');
+            codeEl.innerHTML = '';
+            codeArr.forEach(([n, c]) => {
+                const line = document.createElement('div');
+                line.className = 'code-line' + (hlLines.includes(n) ? ' ' + hlClass : '');
+                line.innerHTML = `<span class="ln">${n}</span><span class="lc">${c}</span>`;
+                codeEl.appendChild(line);
+            });
+        }
+        
+        function go(s) {
+            if (s < 1 || s > 6) return;
+            cur = s;
+            $('stepNum').textContent = s;
+            $('prev').disabled = s === 1;
+            $('next').disabled = s === 6;
+            
+            // Dots
+            document.querySelectorAll('.dot').forEach((d, i) => {
+                d.classList.remove('active', 'done');
+                if (i + 1 === s) d.classList.add('active');
+                else if (i + 1 < s) d.classList.add('done');
+            });
+            
+            // Info
+            const st = steps[s - 1];
+            $('badge').className = 'step-num s' + s;
+            $('badge').textContent = s;
+            $('title').textContent = st.title;
+            $('desc').innerHTML = st.desc;
+            
+            // Code snippet
+            renderCode(st.code, st.hl, st.hlc);
+            
+            // Animation
+            const combinedView = $('combinedView');
+            const splitView = $('splitView');
+            const comb = $('comb');
+            const arrow = $('arrow');
+            const mq = $('mq'), mk = $('mk'), mv = $('mv');
+            const splitVisual = $('splitVisual');
+            const splitLabel = $('splitLabel');
+            
+            [mq, mk, mv].forEach(el => el.classList.remove('highlight', 'dim'));
+            comb.classList.remove('highlight', 'dim');
+            arrow.classList.remove('show');
+            splitVisual.classList.remove('expanded');
+            
+            if (s === 1) {
+                combinedView.style.display = 'block';
+                splitView.style.display = 'none';
+                comb.classList.add('highlight');
+            } else if (s === 2) {
+                combinedView.style.display = 'none';
+                splitView.style.display = 'block';
+                arrow.classList.add('show');
+                splitLabel.textContent = 'q_w, k_w, v_w = np.split(...)';
+                setTimeout(() => splitVisual.classList.add('expanded'), 100);
+            } else if (s >= 3 && s <= 5) {
+                combinedView.style.display = 'none';
+                splitView.style.display = 'block';
+                arrow.classList.add('show');
+                splitVisual.classList.add('expanded');
+                [mq, mk, mv].forEach(el => el.classList.add('dim'));
+                
+                if (s === 3) {
+                    mq.classList.remove('dim');
+                    mq.classList.add('highlight');
+                    splitLabel.textContent = 'q_w → W_query.weight';
+                } else if (s === 4) {
+                    mk.classList.remove('dim');
+                    mk.classList.add('highlight');
+                    splitLabel.textContent = 'k_w → W_key.weight';
+                } else {
+                    mv.classList.remove('dim');
+                    mv.classList.add('highlight');
+                    splitLabel.textContent = 'v_w → W_value.weight';
+                }
+            } else {
+                combinedView.style.display = 'none';
+                splitView.style.display = 'block';
+                arrow.classList.add('show');
+                splitVisual.classList.add('expanded');
+                [mq, mk, mv].forEach(el => el.classList.add('highlight'));
+                splitLabel.textContent = 'All assigned with .T transpose';
+            }
+        }
+        
+        $('prev').onclick = () => go(cur - 1);
+        $('next').onclick = () => go(cur + 1);
+        
+        $('playBtn').onclick = function() {
+            if (playing) {
+                playing = false;
+                clearInterval(timer);
+                this.textContent = '▶ Auto';
+                this.classList.remove('playing');
+            } else {
+                playing = true;
+                this.textContent = '■ Stop';
+                this.classList.add('playing');
+                if (cur === 6) go(1);
+                timer = setInterval(() => {
+                    if (cur < 6) go(cur + 1);
+                    else { 
+                        clearInterval(timer);
+                        playing = false;
+                        $('playBtn').textContent = '▶ Auto';
+                        $('playBtn').classList.remove('playing');
+                    }
+                }, 2500);
+            }
+        };
+        
+        // Modal
+        $('openModal').onclick = () => $('modalOverlay').classList.add('show');
+        $('closeModal').onclick = () => $('modalOverlay').classList.remove('show');
+        $('modalOverlay').onclick = (e) => {
+            if (e.target === $('modalOverlay')) $('modalOverlay').classList.remove('show');
+        };
+        
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') $('modalOverlay').classList.remove('show');
+            if (e.key === 'ArrowLeft') go(cur - 1);
+            else if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(cur + 1); }
+        });
+        
+        $('embd').oninput = function() {
+            const n = +this.value || 768;
+            $('cs').textContent = `(${n}, ${3*n})`;
+            $('qs').textContent = $('ks').textContent = $('vs').textContent = `(${n}, ${n})`;
+        };
+        
+        go(1);
+    </script>
+</body>
+</html>
