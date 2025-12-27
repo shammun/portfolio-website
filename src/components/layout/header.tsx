@@ -10,8 +10,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const navigation = [
   { name: "Home", href: "/" },
   { name: "About", href: "/about" },
-  { name: "AI Papers", href: "/blog/ai-paper-implementations", highlight: true },
-  { name: "Books", href: "/books", highlight: true },
+  { name: "AI Tutorials", href: "/blog/ai-paper-implementations", highlight: true },
+  { name: "Book Tutorials", href: "/books", highlight: true },
   { name: "Research", href: "/research" },
   { name: "Projects", href: "/projects" },
   { name: "CV", href: "/cv" },
