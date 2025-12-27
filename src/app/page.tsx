@@ -6,33 +6,40 @@ import {
   FlaskConical,
   Sparkles,
 } from "lucide-react";
+import ClimateAIBackground from "@/components/ClimateAIBackground";
 
 export default function HomePage() {
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Background gradient - subtle violet */}
-        <div className="absolute inset-0 gradient-hero opacity-5" />
+      {/* Hero Section with Animated Background */}
+      <section className="relative min-h-[80vh] overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#f5f7ff] to-[#fdfeff]">
+        {/* Background Animation Layer */}
+        <div className="absolute inset-0 z-0">
+          <ClimateAIBackground />
+        </div>
 
-        <div className="container-default relative py-20 md:py-32">
+        {/* Glass Overlay */}
+        <div className="absolute inset-0 z-0 bg-white/40 pointer-events-none backdrop-blur-[1px]" />
+
+        {/* Content Layer */}
+        <div className="relative z-10 container-default py-20 md:py-32 flex items-center min-h-[80vh]">
           <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-800">
               Hi, I&apos;m{" "}
               <span className="text-primary">Shammunul Islam</span>
             </h1>
 
-            <p className="mt-6 text-xl md:text-2xl text-muted-foreground leading-relaxed">
+            <p className="mt-6 text-xl md:text-2xl text-slate-600 leading-relaxed">
               Exploring Climate Dynamics and AI
             </p>
 
-            <p className="mt-4 text-lg text-muted-foreground leading-relaxed max-w-2xl">
+            <p className="mt-4 text-lg text-slate-600 leading-relaxed max-w-2xl">
               I am studying{" "}
-              <strong className="text-foreground">
+              <strong className="text-slate-800">
                 Climate Science
               </strong>{" "}
               and exploring how{" "}
-              <strong className="text-foreground">
+              <strong className="text-slate-800">
                 AI
               </strong>{" "}
               can be used to build better climate models and solutions. Author of
