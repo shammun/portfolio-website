@@ -896,17 +896,30 @@ def forward(inputs):
                 // Position logic
                 const rect = el.getBoundingClientRect();
                 const panelRect = document.querySelector('.viz-panel').getBoundingClientRect();
+                const tooltipWidth = 280; 
                 
-                // Calculate position relative to panel container
-                let top = rect.top - panelRect.top;
+                // 1. Try Right Side first
                 let left = rect.right - panelRect.left + 20;
 
-                // Edge detection (if goes off right edge)
-                if (left + 280 > panelRect.width) {
-                    left = rect.left - panelRect.left - 300; // Show on left side
+                // 2. Check if it overflows the right edge
+                if (left + tooltipWidth > panelRect.width) {
+                    // 3. Try Left Side
+                    let leftOption = rect.left - panelRect.left - tooltipWidth - 20;
+                    
+                    if (leftOption > 10) {
+                        // If left side fits, use it
+                        left = leftOption;
+                    } else {
+                        // 4. If neither fits comfortably, align to the right edge of the panel
+                        // to ensure visibility, even if it overlaps the element.
+                        left = panelRect.width - tooltipWidth - 10;
+                        
+                        // 5. If that puts us negative (extremely small screen), clamp to 10
+                        if (left < 10) left = 10;
+                    }
                 }
 
-                tooltip.style.top = Math.max(10, top) + 'px'; // Prevent top overflow
+                tooltip.style.top = Math.max(10, rect.top - panelRect.top) + 'px'; 
                 tooltip.style.left = left + 'px';
                 tooltip.classList.add('active');
             }
