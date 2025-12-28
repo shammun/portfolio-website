@@ -505,7 +505,84 @@
             font-size: 0.9em !important;
             color: #d73a49 !important;
         }
-    </style>
+    
+    /* ===== MOBILE RESPONSIVENESS ===== */
+    html, body {
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    img, iframe, canvas, video {
+      max-width: 100%;
+      height: auto;
+    }
+
+    pre, code {
+      max-width: 100%;
+      overflow-x: auto;
+      word-wrap: break-word;
+    }
+
+    table {
+      display: block;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    @media (max-width: 768px) {
+      .jp-InputPrompt, .jp-OutputPrompt {
+        display: none !important;
+      }
+
+      .jp-Cell {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+      }
+
+      .jp-RenderedHTMLCommon {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+      }
+
+      .highlight {
+        font-size: 11px !important;
+      }
+
+      h1 {
+        font-size: 1.75rem !important;
+      }
+
+      h2 {
+        font-size: 1.5rem !important;
+      }
+
+      h3 {
+        font-size: 1.25rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .highlight {
+        font-size: 10px !important;
+      }
+
+      h1 {
+        font-size: 1.5rem !important;
+      }
+
+      h2 {
+        font-size: 1.25rem !important;
+      }
+
+      h3 {
+        font-size: 1.1rem !important;
+      }
+    }
+</style>
     <style type="text/css">
         /*-----------------------------------------------------------------------------
 | Copyright (c) Jupyter Development Team.
@@ -7425,117 +7502,83 @@ all of MD as it is not optimized for dense, information rich UIs.
     </div>
 
     <!-- Toggle Button -->
-    <button id="toc-toggle"
-        style="position: fixed; top: 20px; left: 20px; z-index: 10001; background: rgba(102, 126, 234, 0.15); backdrop-filter: blur(10px); color: rgba(102, 126, 234, 0.8); border: 2px solid rgba(102, 126, 234, 0.3); padding: 12px 16px; border-radius: 8px; cursor: pointer; font-size: 16px; box-shadow: 0 2px 10px rgba(102, 126, 234, 0.1); transition: all 0.3s ease; font-weight: 600; user-select: none;">
-        ☰ Contents
-    </button>
+    <button id="toc-toggle" style="position: fixed; top: 80px; right: 20px; z-index: 10001; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 20px; border-radius: 25px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;">
+    ☰ Contents
+</button>
 
-    <!-- Minimal inline styles -->
-    <style>
-        #toc-toggle:hover {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            color: white !important;
-            border-color: transparent !important;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
+<!-- TOC Styles and JavaScript -->
+<style>
+    #toc-container a:hover { background: rgba(255,255,255,0.15) !important; }
+    #toc-container::-webkit-scrollbar { width: 6px; }
+    #toc-container::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); }
+    #toc-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+    #toc-toggle.scrolled {
+        opacity: 0.15 !important;
+    }
+    #toc-toggle.scrolled:hover {
+        opacity: 1 !important;
+    }
+    @media (max-width: 768px) {
+        #toc-toggle { top: 70px; right: 10px; padding: 10px 16px; font-size: 13px; }
+    }
+</style>
+<script>
+    (function() {
+        const tocContainer = document.getElementById('toc-container');
+        const tocToggle = document.getElementById('toc-toggle');
+        const tocOverlay = document.getElementById('toc-overlay');
+        let isOpen = false;
 
-        #toc-container.toc-open {
-            left: 0 !important;
-        }
-
-        #toc-overlay.show {
-            display: block !important;
-            opacity: 1 !important;
-        }
-
-        #toc-container a:hover {
-            background: rgba(255, 255, 255, 0.25) !important;
-            transform: translateX(5px);
-        }
-
-        #toc-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        #toc-container::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        #toc-container::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
-        }
-
-        @media (max-width: 768px) {
-            #toc-container {
-                width: 280px !important;
-                left: -280px !important;
+        function toggleTOC() {
+            isOpen = !isOpen;
+            if (isOpen) {
+                tocContainer.style.left = '0';
+                tocOverlay.style.opacity = '1';
+                tocOverlay.style.pointerEvents = 'auto';
+            } else {
+                tocContainer.style.left = '-320px';
+                tocOverlay.style.opacity = '0';
+                tocOverlay.style.pointerEvents = 'none';
             }
         }
-    </style>
 
-    <!-- Simplified JavaScript -->
-    <script>
-        (function () {
-            'use strict';
+        tocToggle.addEventListener('click', toggleTOC);
+        tocOverlay.addEventListener('click', toggleTOC);
 
-            window.addEventListener('load', function () {
-                const tocContainer = document.getElementById('toc-container');
-                const tocToggle = document.getElementById('toc-toggle');
-                const tocOverlay = document.getElementById('toc-overlay');
-
-                if (!tocContainer || !tocToggle || !tocOverlay) return;
-
-                // Toggle TOC
-                tocToggle.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const isOpen = tocContainer.classList.contains('toc-open');
-
-                    if (isOpen) {
-                        tocContainer.classList.remove('toc-open');
-                        tocOverlay.classList.remove('show');
-                        tocToggle.textContent = '☰ Contents';
-                    } else {
-                        tocContainer.classList.add('toc-open');
-                        tocOverlay.classList.add('show');
-                        tocToggle.textContent = '✕ Close';
-                    }
-                });
-
-                // Close on overlay click
-                tocOverlay.addEventListener('click', function () {
-                    tocContainer.classList.remove('toc-open');
-                    tocOverlay.classList.remove('show');
-                    tocToggle.textContent = '☰ Contents';
-                });
-
-                // Close on link click
-                const links = tocContainer.querySelectorAll('a');
-                links.forEach(function (link) {
-                    link.addEventListener('click', function () {
-                        setTimeout(function () {
-                            tocContainer.classList.remove('toc-open');
-                            tocOverlay.classList.remove('show');
-                            tocToggle.textContent = '☰ Contents';
-                        }, 300);
-                    });
-                });
+        // Close TOC when clicking a link
+        tocContainer.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (isOpen) toggleTOC();
             });
+        });
 
-            // Custom scroll function
-            window.scrollToSection = function (keyword) {
-                const headings = document.querySelectorAll('h4, h3');
-                for (let i = 0; i < headings.length; i++) {
-                    if (headings[i].textContent.indexOf(keyword) !== -1) {
-                        headings[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        break;
-                    }
-                }
-            };
-        })();
-    </script>
+        // Close TOC on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isOpen) toggleTOC();
+        });
+
+        // Scroll-based transparency
+        let lastScrollY = 0;
+        const scrollThreshold = 100; // pixels from top before becoming transparent
+
+        function handleScroll() {
+            const currentScrollY = window.scrollY;
+
+            if (currentScrollY > scrollThreshold) {
+                tocToggle.classList.add('scrolled');
+            } else {
+                tocToggle.classList.remove('scrolled');
+            }
+
+            lastScrollY = currentScrollY;
+        }
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+
+        // Initial check
+        handleScroll();
+    })();
+</script>
 
     
 <!-- Scroll to top fix -->

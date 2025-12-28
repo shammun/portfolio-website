@@ -10,7 +10,7 @@ import ClimateAIBackground from "@/components/ClimateAIBackground";
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col overflow-x-hidden">
       {/* Hero Section with Animated Background */}
       <section className="relative min-h-[80vh] overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#f5f7ff] to-[#fdfeff]">
         {/* Background Animation Layer */}

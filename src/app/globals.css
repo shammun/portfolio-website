@@ -222,10 +222,17 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -322,6 +329,8 @@
     background-color: var(--color-code-bg);
     color: var(--color-code-text);
     @apply p-4 rounded-lg overflow-x-auto;
+    max-width: 100%;
+    word-wrap: break-word;
   }
 
   pre code {
@@ -830,4 +839,126 @@ pre, code {
   filter: blur(24px);
   opacity: 0.2;
   background-color: var(--primary);
+}
+
+/* ===== MOBILE RESPONSIVENESS ===== */
+
+/* Prevent horizontal overflow */
+main,
+section,
+article,
+div,
+header,
+footer,
+nav {
+  max-width: 100%;
+}
+
+/* Ensure all images are responsive */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Ensure tables don't overflow */
+table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Canvas elements - constrain to viewport */
+canvas {
+  max-width: 100%;
+}
+
+/* iframes - constrain to viewport */
+iframe {
+  max-width: 100%;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  /* Reduce padding on mobile */
+  .container-narrow,
+  .container-default,
+  .container-wide {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  /* Smaller typography on mobile */
+  h1 {
+    font-size: 1.875rem !important;
+    line-height: 1.2;
+  }
+
+  h2 {
+    font-size: 1.5rem !important;
+  }
+
+  h3 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Code blocks on mobile */
+  pre {
+    padding: 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  code {
+    font-size: 0.8em;
+    word-break: break-word;
+  }
+
+  /* Cards on mobile */
+  .card,
+  .card-static,
+  .card-featured {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  /* Buttons on mobile */
+  .btn {
+    padding: 0.625rem 1rem;
+  }
+
+  /* Math blocks on mobile */
+  .math-block {
+    padding: 0.75rem;
+  }
+
+  .katex-display {
+    font-size: 0.9em;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.5rem !important;
+  }
+
+  h2 {
+    font-size: 1.25rem !important;
+  }
+
+  h3 {
+    font-size: 1.125rem !important;
+  }
+
+  pre {
+    font-size: 0.7rem;
+    padding: 0.5rem;
+  }
+
+  .card,
+  .card-static,
+  .card-featured {
+    padding: 0.75rem;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+  }
 }

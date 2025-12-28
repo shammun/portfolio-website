@@ -75,9 +75,9 @@ export default function RootLayout({
           <a href="#main-content" className="skip-link">
             Skip to main content
           </a>
-          <div className="flex min-h-screen flex-col">
+          <div className="flex min-h-screen flex-col overflow-x-hidden">
             <Header />
-            <main id="main-content" className="flex-1">
+            <main id="main-content" className="flex-1 overflow-x-hidden">
               {children}
             </main>
             <Footer />
