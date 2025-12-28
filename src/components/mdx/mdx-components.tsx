@@ -145,15 +145,15 @@ function CodeBlock({ children, className, ...props }: { children?: ReactNode; cl
   const displayLang = langConfig?.name || language?.toUpperCase() || "CODE";
 
   return (
-    <div className="my-6 group">
+    <div className="my-6 group max-w-full overflow-hidden">
       {/* Code Container with Clean Educational shadow */}
-      <div className="rounded-[16px] overflow-hidden border border-border shadow-soft">
+      <div className="rounded-[16px] sm:rounded-[16px] overflow-hidden border border-border shadow-soft">
         {/* Header Bar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
-          <div className="flex items-center gap-3">
-            <FileCode className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 bg-muted border-b border-border">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <FileCode className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <span
-              className="text-xs font-semibold px-2 py-0.5 rounded-[8px]"
+              className="text-xs font-semibold px-2 py-0.5 rounded-[8px] truncate"
               style={{
                 backgroundColor: langConfig?.color ? `${langConfig.color}20` : 'var(--muted)',
                 color: langConfig?.color || 'var(--muted-foreground)'
@@ -161,25 +161,25 @@ function CodeBlock({ children, className, ...props }: { children?: ReactNode; cl
             >
               {displayLang}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
               {lineCount} {lineCount === 1 ? 'line' : 'lines'}
             </span>
           </div>
 
           <button
             onClick={() => navigator.clipboard.writeText(codeContent)}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-card hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-card hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
             title="Copy code"
           >
             <Copy className="h-3.5 w-3.5" />
-            <span>Copy</span>
+            <span className="hidden sm:inline">Copy</span>
           </button>
         </div>
 
         {/* Code Content - Render children directly to preserve syntax highlighting */}
         <div className="overflow-x-auto code-block-content">
           <pre
-            className="p-4 text-sm leading-6 font-mono bg-card"
+            className="p-3 sm:p-4 text-xs sm:text-sm leading-5 sm:leading-6 font-mono bg-card"
             {...props}
           >
             {children}
