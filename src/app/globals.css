@@ -734,6 +734,102 @@ pre, code {
   color: #64748b;
 }
 
+/* Dark mode syntax highlighting overrides for rehype-pretty-code */
+.dark .code-block-content [data-line] {
+  color: #e2e8f0;
+}
+
+/* Keywords (if, for, def, class, return, etc.) */
+.dark .code-block-content .hljs-keyword,
+.dark .code-block-content [style*="color:#d73a49"],
+.dark .code-block-content [style*="color:#cf222e"],
+.dark .code-block-content [style*="color: #d73a49"],
+.dark .code-block-content [style*="color: #cf222e"] {
+  color: #ff7b72 !important;
+}
+
+/* Strings */
+.dark .code-block-content .hljs-string,
+.dark .code-block-content [style*="color:#032f62"],
+.dark .code-block-content [style*="color:#0a3069"],
+.dark .code-block-content [style*="color: #032f62"],
+.dark .code-block-content [style*="color: #0a3069"] {
+  color: #a5d6ff !important;
+}
+
+/* Comments */
+.dark .code-block-content .hljs-comment,
+.dark .code-block-content [style*="color:#6a737d"],
+.dark .code-block-content [style*="color:#57606a"],
+.dark .code-block-content [style*="color: #6a737d"],
+.dark .code-block-content [style*="color: #57606a"] {
+  color: #8b949e !important;
+}
+
+/* Functions and methods */
+.dark .code-block-content .hljs-function,
+.dark .code-block-content .hljs-title,
+.dark .code-block-content [style*="color:#6f42c1"],
+.dark .code-block-content [style*="color:#8250df"],
+.dark .code-block-content [style*="color: #6f42c1"],
+.dark .code-block-content [style*="color: #8250df"] {
+  color: #d2a8ff !important;
+}
+
+/* Numbers */
+.dark .code-block-content .hljs-number,
+.dark .code-block-content [style*="color:#005cc5"],
+.dark .code-block-content [style*="color:#0550ae"],
+.dark .code-block-content [style*="color: #005cc5"],
+.dark .code-block-content [style*="color: #0550ae"] {
+  color: #79c0ff !important;
+}
+
+/* Variables and parameters */
+.dark .code-block-content .hljs-variable,
+.dark .code-block-content .hljs-params,
+.dark .code-block-content [style*="color:#e36209"],
+.dark .code-block-content [style*="color:#953800"],
+.dark .code-block-content [style*="color: #e36209"],
+.dark .code-block-content [style*="color: #953800"] {
+  color: #ffa657 !important;
+}
+
+/* Built-ins and constants */
+.dark .code-block-content .hljs-built_in,
+.dark .code-block-content .hljs-literal,
+.dark .code-block-content [style*="color:#22863a"],
+.dark .code-block-content [style*="color:#116329"],
+.dark .code-block-content [style*="color: #22863a"],
+.dark .code-block-content [style*="color: #116329"] {
+  color: #7ee787 !important;
+}
+
+/* Operators and punctuation */
+.dark .code-block-content .hljs-operator,
+.dark .code-block-content .hljs-punctuation {
+  color: #c9d1d9 !important;
+}
+
+/* Class names and types */
+.dark .code-block-content .hljs-class,
+.dark .code-block-content .hljs-type {
+  color: #ffa657 !important;
+}
+
+/* Attributes */
+.dark .code-block-content .hljs-attr {
+  color: #79c0ff !important;
+}
+
+/* Fallback for any remaining dark text */
+.dark .code-block-content span[style*="color:#24292e"],
+.dark .code-block-content span[style*="color:#1f2328"],
+.dark .code-block-content span[style*="color: #24292e"],
+.dark .code-block-content span[style*="color: #1f2328"] {
+  color: #c9d1d9 !important;
+}
+
 /* ===== TIMELINE STYLING ===== */
 .timeline-item {
   @apply relative pl-6;
