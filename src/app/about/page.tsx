@@ -145,7 +145,7 @@ export default function AboutPage() {
 
             <div className="prose prose-lg max-w-none text-muted-foreground space-y-4">
               <p className="!mb-0">
-                I am a graduate student completing my MS in Climate Dynamics at{" "}
+                I am a graduate student completing MSc in Climate Science at{" "}
                 <Link
                   href="https://www.gmu.edu/"
                   target="_blank"
@@ -154,7 +154,7 @@ export default function AboutPage() {
                   George Mason University
                 </Link>
                 , with over a decade of experience in statistics, spatial data
-                science, and climate research. My career has spanned roles as a
+                science, and climate consulting and research. My career has spanned roles as a
                 statistician, spatial data scientist, and climate researcher - now
                 converging on a single goal: building AI-driven solutions for
                 climate and environmental challenges.
