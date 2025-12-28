@@ -196,9 +196,7 @@ export default function HomePage() {
               <p className="mt-4 text-lg text-muted-foreground">
                 My learning journey through Sebastian Raschka&apos;s book with
                 interactive visualizations, detailed explanations, and hands-on
-                code examples. All chapters completed with interactive visualizations
-                up to Chapter 2: Working with Text Data. Working on adding interactive
-                components for all the remaining chapters.
+                code examples. All chapters completed with interactive visualizations and detailed explanations of every concept and code block that I found difficult to follow on the first or even subsequent attempts.
               </p>
 
               <ul className="mt-6 space-y-3">
@@ -334,10 +332,10 @@ export default function HomePage() {
 
         {/* Content Layer */}
         <div className="relative z-10 container-default text-center pointer-events-none">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground dark:text-slate-800">
             Let&apos;s Connect
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="mt-4 text-lg text-muted-foreground dark:text-slate-700 max-w-2xl mx-auto">
             I&apos;m always interested in collaborations, research
             opportunities, and discussions about climate science and ML.
           </p>
