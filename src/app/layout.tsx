@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: "%s | Shammunul Islam",
   },
   description:
-    "Climate scientist and ML researcher. Interactive tutorials on AI papers with runnable code. Specializing in physics-informed machine learning, neural operators, and urban climate prediction.",
+    "Climate Science and AI Explorer. Interactive tutorials on AI papers with runnable code. Specializing in physics-informed machine learning, neural operators, and urban climate prediction.",
   keywords: [
     "climate science",
     "machine learning",
@@ -42,13 +42,13 @@ export const metadata: Metadata = {
     siteName: "Shammunul Islam",
     title: "Shammunul Islam | Climate Science & AI Explorer",
     description:
-      "Climate scientist and ML researcher. Interactive tutorials on AI papers with runnable code.",
+      "Climate Science and AI Explorer. Interactive tutorials on AI papers with runnable code.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Shammunul Islam | Climate Science & AI Explorer",
     description:
-      "Climate scientist and ML researcher. Interactive tutorials on AI papers with runnable code.",
+      "Climate Science and AI Explorer. Interactive tutorials on AI papers with runnable code.",
   },
   robots: {
     index: true,
