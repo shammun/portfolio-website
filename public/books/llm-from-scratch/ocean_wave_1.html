@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ocean Waves Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="oceanCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('oceanCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Wave parameters
+        let waveHeight = 60;
+        let waveSpeed = 0.8;
+        let turbulence = 5;
+        let time = 0;
+
+        // Lightning system
+        class Lightning {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.segments = this.generateSegments();
+                this.brightness = 1;
+                this.fadeSpeed = 0.15;
+                this.active = true;
+            }
+
+            generateSegments() {
+                const segments = [];
+                let x = this.x;
+                let y = 0;
+                const targetY = canvas.height * (0.5 + Math.random() * 0.3);
+
+                while (y < targetY) {
+                    const nextY = y + 20 + Math.random() * 40;
+                    const nextX = x + (Math.random() - 0.5) * 60;
+                    segments.push({ x1: x, y1: y, x2: nextX, y2: nextY });
+
+                    // Branch occasionally
+                    if (Math.random() > 0.7) {
+                        const branchX = nextX + (Math.random() - 0.5) * 40;
+                        const branchY = nextY + 20 + Math.random() * 30;
+                        segments.push({ x1: nextX, y1: nextY, x2: branchX, y2: branchY });
+                    }
+
+                    x = nextX;
+                    y = nextY;
+                }
+
+                return segments;
+            }
+
+            update() {
+                this.brightness -= this.fadeSpeed;
+                if (this.brightness <= 0) {
+                    this.active = false;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.brightness * 0.85; // Much more visible
+
+                // Strong glow effect
+                ctx.shadowBlur = 40;
+                ctx.shadowColor = '#8b5cf6'; // Darker purple for stronger glow
+
+                // Main bolt - highly visible
+                ctx.strokeStyle = '#a78bfa';
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+
+                this.segments.forEach(seg => {
+                    ctx.beginPath();
+                    ctx.moveTo(seg.x1, seg.y1);
+                    ctx.lineTo(seg.x2, seg.y2);
+                    ctx.stroke();
+                });
+
+                // Inner bright core - white for maximum contrast
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                this.segments.forEach(seg => {
+                    ctx.beginPath();
+                    ctx.moveTo(seg.x1, seg.y1);
+                    ctx.lineTo(seg.x2, seg.y2);
+                    ctx.stroke();
+                });
+
+                ctx.restore();
+            }
+        }
+
+        let lightningBolts = [];
+        let nextLightningTime = Math.random() * 3000 + 2000; // 2-5 seconds
+        let lastLightningTime = 0;
+        let backgroundDarkness = 0; // 0 = light, 1 = dark
+
+        // Rain system
+        class Raindrop {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * -canvas.height;
+                this.length = Math.random() * 15 + 10;
+                this.speed = Math.random() * 3 + 4;
+                this.opacity = Math.random() * 0.3 + 0.2;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.x += Math.sin(time * 0.5) * 0.5; // Slight wind effect
+
+                if (this.y > canvas.height) {
+                    this.y = -this.length;
+                    this.x = Math.random() * canvas.width;
+                }
+            }
+
+            draw() {
+                ctx.globalAlpha = this.opacity * 0.15; // Much lighter for background use
+                ctx.strokeStyle = '#c4b5fd'; // Very light purple
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x, this.y + this.length);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Create raindrops - fewer for lighter background effect
+        const raindrops = [];
+        for (let i = 0; i < 80; i++) {
+            raindrops.push(new Raindrop());
+        }
+
+        // Wave layers for depth - using very light cool teal colors for background use
+        const waveLayers = [
+            { amplitude: 1, frequency: 0.005, speed: 1, yOffset: 0.6, alpha: 0.08, color: '#ecfdf5' },
+            { amplitude: 0.8, frequency: 0.008, speed: 1.2, yOffset: 0.65, alpha: 0.1, color: '#d1fae5' },
+            { amplitude: 1.2, frequency: 0.006, speed: 0.9, yOffset: 0.7, alpha: 0.12, color: '#a7f3d0' },
+            { amplitude: 1, frequency: 0.01, speed: 1.5, yOffset: 0.75, alpha: 0.15, color: '#6ee7b7' },
+            { amplitude: 1.3, frequency: 0.007, speed: 1.1, yOffset: 0.8, alpha: 0.18, color: '#6ee7b7' }
+        ];
+
+        // Particle system for foam/spray
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 3;
+                this.vy = -Math.random() * 4 - 2;
+                this.life = 1;
+                this.decay = Math.random() * 0.02 + 0.01;
+                this.size = Math.random() * 4 + 2;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.15; // gravity
+                this.life -= this.decay;
+            }
+
+            draw() {
+                ctx.globalAlpha = this.life * 0.15; // Much lighter
+                ctx.fillStyle = '#e9d5ff'; // Very light purple
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        let particles = [];
+
+        // Generate wave points
+        function generateWavePoints(layer, layerTime) {
+            const points = [];
+            const step = 5;
+
+            for (let x = -10; x <= canvas.width + 10; x += step) {
+                // Multiple sine waves combined for natural look
+                let y = Math.sin(x * layer.frequency + layerTime * layer.speed) * waveHeight * layer.amplitude;
+                y += Math.sin(x * layer.frequency * 1.5 - layerTime * layer.speed * 0.7) * waveHeight * layer.amplitude * 0.5;
+                y += Math.sin(x * layer.frequency * 0.5 + layerTime * layer.speed * 1.3) * waveHeight * layer.amplitude * 0.3;
+
+                // Add turbulence
+                y += Math.sin(x * 0.02 + layerTime * 2) * turbulence;
+
+                // Position relative to canvas
+                y += canvas.height * layer.yOffset;
+
+                points.push({ x, y });
+            }
+
+            return points;
+        }
+
+        // Draw wave layer
+        function drawWave(points, layer, isTopLayer) {
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+
+            // Create smooth curve through points
+            for (let i = 0; i < points.length - 1; i++) {
+                const xc = (points[i].x + points[i + 1].x) / 2;
+                const yc = (points[i].y + points[i + 1].y) / 2;
+                ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+            }
+
+            // Complete the shape
+            ctx.lineTo(canvas.width + 10, canvas.height + 10);
+            ctx.lineTo(-10, canvas.height + 10);
+            ctx.closePath();
+
+            // Create gradient for depth - very light for background use
+            const gradient = ctx.createLinearGradient(0, points[0].y - 50, 0, canvas.height);
+            gradient.addColorStop(0, layer.color);
+            gradient.addColorStop(0.6, '#fafbff'); // Background color
+            gradient.addColorStop(1, '#ffffff'); // Pure white at bottom
+
+            ctx.globalAlpha = layer.alpha;
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // No stroke on top layer - removed for cleaner look
+
+            ctx.globalAlpha = 1;
+        }
+
+        // Animation loop
+        function animate() {
+            // Update time
+            time += 0.016 * waveSpeed;
+
+            // Lightning logic
+            const currentTime = Date.now();
+            if (currentTime - lastLightningTime > nextLightningTime) {
+                // Create 1-3 lightning bolts
+                const numBolts = Math.floor(Math.random() * 3) + 1;
+                for (let i = 0; i < numBolts; i++) {
+                    lightningBolts.push(new Lightning());
+                }
+                lastLightningTime = currentTime;
+                nextLightningTime = Math.random() * 4000 + 2000; // 2-6 seconds
+            }
+
+            // Update background darkness based on lightning
+            if (lightningBolts.length > 0) {
+                // Lightning is active - darken background
+                backgroundDarkness = Math.min(backgroundDarkness + 0.15, 0.3);
+            } else {
+                // No lightning - gradually return to light
+                backgroundDarkness = Math.max(backgroundDarkness - 0.02, 0);
+            }
+
+            // Clear with background gradient - adjusted for darkness
+            const skyGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            const darkenAmount = backgroundDarkness * 0.4; // Max 40% darkening
+            skyGradient.addColorStop(0, interpolateColor('#fafbff', '#e0e7ff', darkenAmount));
+            skyGradient.addColorStop(1, interpolateColor('#f5f7ff', '#ddd6fe', darkenAmount));
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw rain
+            raindrops.forEach(drop => {
+                drop.update();
+                drop.draw();
+            });
+
+            // Update and draw lightning
+            lightningBolts = lightningBolts.filter(bolt => bolt.active);
+            lightningBolts.forEach(bolt => {
+                bolt.update();
+                bolt.draw();
+            });
+
+            // Draw wave layers from back to front
+            waveLayers.forEach((layer, index) => {
+                const points = generateWavePoints(layer, time);
+                const isTopLayer = index === waveLayers.length - 1;
+                drawWave(points, layer, isTopLayer);
+            });
+
+            // Update and draw particles
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Helper function to interpolate between two colors
+        function interpolateColor(color1, color2, factor) {
+            const c1 = hexToRgb(color1);
+            const c2 = hexToRgb(color2);
+            const r = Math.round(c1.r + (c2.r - c1.r) * factor);
+            const g = Math.round(c1.g + (c2.g - c1.g) * factor);
+            const b = Math.round(c1.b + (c2.b - c1.b) * factor);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        // Start animation
+        animate();
+    </script>
+</body>
+
+</html>

@@ -7279,16 +7279,13 @@ a.anchor-link {
 </script>
 
 <!-- Climate AI Animation Background -->
-<div class="font-display" style="position: relative; min-height: 60vh; overflow: hidden; background: linear-gradient(to bottom right, #f0f9ff, #f5f7ff, #fdfeff);">
-    <!-- Canvas Animation Layer -->
-    <canvas id="climate-ai-canvas" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0;"></canvas>
-
-    <!-- Glass Overlay -->
-    <div style="position: absolute; inset: 0; z-index: 1; background: rgba(255,255,255,0.4); pointer-events: none; backdrop-filter: blur(1px);"></div>
+<div class="font-display" style="position: relative; min-height: 60vh; overflow: hidden;">
+    <!-- Animation Layer - iframe -->
+    <iframe src="header_nn_climate_lightning_2.html" style="position: absolute; inset: 0; width: 100%; height: 100%; border: 0; z-index: 0;" title="Climate AI Animation"></iframe>
 
     <!-- Content Layer -->
-    <div style="position: relative; z-index: 10;">
-<header class="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-[#ece7f3]">
+    <div style="position: relative; z-index: 10; pointer-events: none;">
+<header class="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-[#ece7f3]" style="pointer-events: auto;">
 <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
 <div class="flex items-center justify-between h-16">
 <div class="flex items-center gap-4">
@@ -7311,7 +7308,7 @@ a.anchor-link {
 <div class="bg-card-light/90 backdrop-blur-sm rounded-2xl shadow-purple-glow border border-white/50 relative overflow-hidden">
 <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
 <div class="px-6 py-10 md:px-12 md:py-12 text-center">
-<div class="flex flex-wrap justify-center items-center gap-3 mb-6">
+<div class="flex flex-wrap justify-center items-center gap-3 mb-6" style="pointer-events: auto;">
 <a class="group flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-slate-100 text-text-main text-xs font-medium hover:bg-slate-200 transition-colors" href="chapter_6.html">
 <span class="material-symbols-outlined text-[16px] group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
 Previous Chapter
@@ -7341,7 +7338,7 @@ Based on <span class="font-semibold text-text-main">"Build a Large Language Mode
 </p>
 </div>
 </div>
-<div class="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto">
+<div class="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto" style="pointer-events: auto;">
 <a href="https://colab.research.google.com/drive/1E20YxSBQVY4cSeHhjmFLmqsloxShfQms" target="_blank" rel="noopener noreferrer" class="w-full sm:w-auto flex items-center justify-center gap-2 h-11 px-8 bg-white border border-gray-200 hover:border-primary/50 hover:bg-primary/5 text-text-main rounded-lg text-sm font-medium transition-all duration-200 group shadow-sm">
 <img alt="Google Colab Logo" class="w-5 h-5 opacity-80 group-hover:opacity-100 grayscale group-hover:grayscale-0 transition-all" src="https://colab.research.google.com/img/colab_favicon_256px.png"/>
 Open in Colab
@@ -7365,190 +7362,6 @@ Python &amp; PyTorch
 </div>
     </div>
 </div>
-
-<!-- Animation Script -->
-<script>
-(function() {
-    const canvas = document.getElementById('climate-ai-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let particlesArray = [];
-    let animationId;
-
-    const PARTICLE_COUNT = 120;
-    const CONNECTION_DISTANCE = 140;
-    const MOUSE_RADIUS = 250;
-    const SPEED_SCALE = 0.5;
-
-    const COLOR_CLIMATE = '20, 184, 166';
-    const COLOR_AI = '99, 102, 241';
-
-    const mouse = { x: null, y: null };
-    let time = 0;
-
-    function resizeCanvas() {
-        const container = canvas.parentElement;
-        canvas.width = container.offsetWidth;
-        canvas.height = container.offsetHeight;
-    }
-
-    function getAtmosphericVelocity(x, y, t) {
-        const scale = 0.0012;
-        const uvX = x * scale;
-        const uvY = y * scale;
-        const eps = 0.1;
-
-        const psi1 = calculateStreamFunction(uvX, uvY - eps, t);
-        const psi2 = calculateStreamFunction(uvX, uvY + eps, t);
-        const psi3 = calculateStreamFunction(uvX - eps, uvY, t);
-        const psi4 = calculateStreamFunction(uvX + eps, uvY, t);
-
-        const u = -(psi2 - psi1) / (2 * eps);
-        const v = (psi4 - psi3) / (2 * eps);
-
-        return { vx: u, vy: v };
-    }
-
-    function calculateStreamFunction(x, y, t) {
-        let psi = 0;
-        psi += 2.5 * Math.sin(y * 3.0) * Math.cos(x * 2.2 + t * 0.15);
-        psi += 2.0 * Math.sin(x * 1.2 + t * 0.05) * Math.sin(y * 1.5);
-        psi += 0.6 * Math.sin(x * 4.0 - t * 0.3) * Math.cos(y * 3.5 + t * 0.2);
-        psi -= 0.4 * y;
-        return psi;
-    }
-
-    class Particle {
-        constructor() { this.init(true); }
-
-        init(randomScreenPos = false) {
-            this.x = Math.random() * canvas.width;
-            this.y = Math.random() * canvas.height;
-            this.type = Math.random() > 0.5 ? 'CLIMATE' : 'AI';
-            this.size = this.type === 'CLIMATE' ? (Math.random() * 2.5 + 2.0) : (Math.random() * 2.0 + 1.5);
-            this.life = 0;
-            this.maxLife = Math.random() * 500 + 300;
-            this.vx = 0;
-            this.vy = 0;
-            this.alpha = 0;
-        }
-
-        update() {
-            this.life++;
-            if (this.life < 80) this.alpha += 0.01;
-            if (this.life > this.maxLife - 80) this.alpha -= 0.01;
-            if (this.alpha < 0) this.alpha = 0;
-            if (this.alpha > 0.9) this.alpha = 0.9;
-
-            if (this.life > this.maxLife) { this.init(false); return; }
-
-            const velocity = getAtmosphericVelocity(this.x, this.y, time);
-            const inertia = this.type === 'CLIMATE' ? 0.03 : 0.02;
-
-            this.vx = this.vx * (1 - inertia) + velocity.vx * SPEED_SCALE * inertia;
-            this.vy = this.vy * (1 - inertia) + velocity.vy * SPEED_SCALE * inertia;
-
-            this.x += this.vx;
-            this.y += this.vy;
-
-            if (mouse.x != null) {
-                const dx = this.x - mouse.x;
-                const dy = this.y - mouse.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < MOUSE_RADIUS) {
-                    const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS;
-                    this.x += (dy / dist) * force * 1.5;
-                    this.y -= (dx / dist) * force * 1.5;
-                }
-            }
-
-            if (this.x > canvas.width + 20) this.x = -20;
-            if (this.x < -20) this.x = canvas.width + 20;
-            if (this.y > canvas.height + 20) this.y = -20;
-            if (this.y < -20) this.y = canvas.height + 20;
-        }
-
-        draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
-            const color = this.type === 'CLIMATE' ? COLOR_CLIMATE : COLOR_AI;
-            ctx.fillStyle = `rgba(${color}, ${this.alpha * 0.15})`;
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${color}, ${this.alpha})`;
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size * 0.3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha * 0.8})`;
-            ctx.fill();
-        }
-    }
-
-    function init() {
-        particlesArray = [];
-        const count = Math.min(PARTICLE_COUNT, (canvas.width * canvas.height) / 9000);
-        for (let i = 0; i < count; i++) {
-            particlesArray.push(new Particle());
-        }
-    }
-
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        time += 0.001;
-
-        for (let i = 0; i < particlesArray.length; i++) {
-            particlesArray[i].update();
-            particlesArray[i].draw();
-
-            for (let j = i + 1; j < particlesArray.length; j++) {
-                const dx = particlesArray[i].x - particlesArray[j].x;
-                const dy = particlesArray[i].y - particlesArray[j].y;
-                const distSq = dx*dx + dy*dy;
-                const connDistSq = CONNECTION_DISTANCE * CONNECTION_DISTANCE;
-
-                if (distSq < connDistSq) {
-                    const dist = Math.sqrt(distSq);
-                    let opacity = 1 - (dist / CONNECTION_DISTANCE);
-                    opacity = opacity * opacity;
-                    opacity *= Math.min(particlesArray[i].alpha, particlesArray[j].alpha);
-
-                    if (opacity > 0.05) {
-                        ctx.beginPath();
-                        const gradient = ctx.createLinearGradient(
-                            particlesArray[i].x, particlesArray[i].y,
-                            particlesArray[j].x, particlesArray[j].y
-                        );
-
-                        const c1 = particlesArray[i].type === 'CLIMATE' ? COLOR_CLIMATE : COLOR_AI;
-                        const c2 = particlesArray[j].type === 'CLIMATE' ? COLOR_CLIMATE : COLOR_AI;
-
-                        gradient.addColorStop(0, `rgba(${c1}, ${opacity * 0.4})`);
-                        gradient.addColorStop(1, `rgba(${c2}, ${opacity * 0.4})`);
-
-                        ctx.strokeStyle = gradient;
-                        ctx.lineWidth = 1.2;
-                        ctx.moveTo(particlesArray[i].x, particlesArray[i].y);
-                        ctx.lineTo(particlesArray[j].x, particlesArray[j].y);
-                        ctx.stroke();
-                    }
-                }
-            }
-        }
-        animationId = requestAnimationFrame(animate);
-    }
-
-    window.addEventListener('resize', () => { resizeCanvas(); init(); });
-    window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
-    window.addEventListener('mouseout', () => { mouse.x = null; mouse.y = null; });
-
-    resizeCanvas();
-    init();
-    animate();
-})();
-</script>
 
 <!-- End New Chapter Header -->
 

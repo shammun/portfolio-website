@@ -6,23 +6,21 @@ import {
   FlaskConical,
   Sparkles,
 } from "lucide-react";
-import ClimateAIBackground from "@/components/ClimateAIBackground";
 
 export default function HomePage() {
   return (
     <div className="flex flex-col overflow-x-hidden">
       {/* Hero Section with Animated Background */}
-      <section className="relative min-h-[80vh] overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#f5f7ff] to-[#fdfeff]">
-        {/* Background Animation Layer */}
-        <div className="absolute inset-0 z-0">
-          <ClimateAIBackground />
-        </div>
-
-        {/* Glass Overlay */}
-        <div className="absolute inset-0 z-0 bg-white/40 pointer-events-none backdrop-blur-[1px]" />
+      <section className="relative min-h-[80vh] overflow-hidden">
+        {/* Background Animation Layer - iframe */}
+        <iframe
+          src="/books/llm-from-scratch/header_nn_climate_lightning_2.html"
+          className="absolute inset-0 w-full h-full border-0 z-0"
+          title="Climate AI Animation"
+        />
 
         {/* Content Layer */}
-        <div className="relative z-10 container-default py-20 md:py-32 flex items-center min-h-[80vh]">
+        <div className="relative z-10 container-default py-20 md:py-32 flex items-center min-h-[80vh] pointer-events-none">
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-800">
               Hi, I&apos;m{" "}
@@ -46,7 +44,7 @@ export default function HomePage() {
               2 books on geospatial analysis, now researching urban climate.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-4">
+            <div className="mt-8 flex flex-wrap gap-4 pointer-events-auto">
               <Link href="/blog/ai-paper-implementations" className="btn btn-primary">
                 <BookOpen className="h-5 w-5" />
                 Explore AI Tutorials
@@ -69,7 +67,7 @@ export default function HomePage() {
               Bridging AI Research &amp; Climate Science
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Bridging the gap between cutting-edge AI research and climate
+              Trying to bridge the gap between cutting-edge AI research and climate
               science applications
             </p>
           </div>
@@ -325,9 +323,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-card">
-        <div className="container-default text-center">
+      {/* CTA Section with Ocean Wave Animation */}
+      <section className="relative py-16 md:py-24 min-h-[50vh] overflow-hidden">
+        {/* Ocean Wave Animation Background */}
+        <iframe
+          src="/books/llm-from-scratch/ocean_wave_1.html"
+          className="absolute inset-0 w-full h-full border-0 z-0"
+          title="Ocean Wave Animation"
+        />
+
+        {/* Content Layer */}
+        <div className="relative z-10 container-default text-center pointer-events-none">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
             Let&apos;s Connect
           </h2>
@@ -335,7 +341,7 @@ export default function HomePage() {
             I&apos;m always interested in collaborations, research
             opportunities, and discussions about climate science and ML.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <div className="mt-8 flex flex-wrap justify-center gap-4 pointer-events-auto">
             <Link href="/contact" className="btn btn-primary">
               Get in Touch
             </Link>

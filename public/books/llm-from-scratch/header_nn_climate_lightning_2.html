@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoIntelligence: AI & Climate</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter for that clean tech look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased text-slate-800">
+
+    <!-- Main Container with Gradient Background -->
+    <div
+        class="relative w-full min-h-screen overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#f5f7ff] to-[#fdfeff]">
+
+        <!-- BACKGROUND ANIMATION LAYER (z-0) -->
+        <!-- Added a wrapper for shake effect -->
+        <div id="canvas-wrapper" class="absolute inset-0 z-0 transition-transform duration-75">
+            <canvas id="climate-ai-canvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- GLASS OVERLAY (z-0) -->
+        <div class="absolute inset-0 z-0 bg-white/40 pointer-events-none backdrop-blur-[1px]"></div>
+
+        <!-- MAIN CONTENT LAYER (z-10) -->
+        <div class="relative z-10 flex flex-col min-h-screen pointer-events-none">
+            <!-- Navigation (Visual Anchor) -->
+            <nav class="w-full h-24 flex items-center justify-between px-8 sm:px-12">
+            </nav>
+
+            <!-- Hero Section (Empty) -->
+            <main class="flex-grow flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 -mt-20">
+            </main>
+        </div>
+    </div>
+
+    <!-- Animation Logic -->
+    <script>
+        (function () {
+            const canvas = document.getElementById('climate-ai-canvas');
+            const canvasWrapper = document.getElementById('canvas-wrapper');
+            const ctx = canvas.getContext('2d');
+            let particlesArray = [];
+
+            // CONFIGURATION
+            const PARTICLE_COUNT = 160;
+            const CONNECTION_DISTANCE = 140;
+            const MOUSE_RADIUS = 250;
+            const SPEED_SCALE = 0.5;
+
+            // Colors
+            const COLOR_CLIMATE = '20, 184, 166'; // Teal
+            const COLOR_AI = '99, 102, 241';      // Indigo
+
+            const mouse = { x: null, y: null };
+            let time = 0;
+
+            // Lightning & Atmospheric State
+            let lightningBolts = [];
+            // Initial delay: wait 3-6 seconds before the first strike
+            let nextLightningTime = Math.random() * 3000 + 3000;
+            let lastLightningTime = 0;
+            let flashOpacity = 0;
+            let shakeIntensity = 0;
+
+            // Resize Handling
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            // --- LIGHTNING SYSTEM ---
+            class Lightning {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.segments = this.generateSegments();
+                    this.life = 0;
+                    this.totalLife = 40 + Math.random() * 20; // Lasts ~0.6-1.0 seconds
+                    this.opacity = 0;
+                    this.active = true;
+                }
+
+                generateSegments() {
+                    const segments = [];
+                    let x = this.x;
+                    let y = 0;
+                    const targetY = canvas.height * (0.6 + Math.random() * 0.3);
+
+                    while (y < targetY) {
+                        // Jagged movement
+                        const nextY = y + 10 + Math.random() * 30;
+                        const nextX = x + (Math.random() - 0.5) * 80; // More jagged
+                        segments.push({ x1: x, y1: y, x2: nextX, y2: nextY, width: 3 });
+
+                        // Branching logic - recursive-ish look
+                        if (Math.random() > 0.7) {
+                            let bx = nextX;
+                            let by = nextY;
+                            // Create a short multi-segment branch
+                            const branchLength = Math.random() * 3 + 1;
+                            for (let i = 0; i < branchLength; i++) {
+                                const bNextX = bx + (Math.random() - 0.5) * 60;
+                                const bNextY = by + 15 + Math.random() * 20;
+                                segments.push({ x1: bx, y1: by, x2: bNextX, y2: bNextY, width: 1.5 }); // Thinner branches
+                                bx = bNextX;
+                                by = bNextY;
+                            }
+                        }
+
+                        x = nextX;
+                        y = nextY;
+                    }
+
+                    return segments;
+                }
+
+                update() {
+                    this.life++;
+                    if (this.life > this.totalLife) {
+                        this.active = false;
+                        return;
+                    }
+
+                    // REALISTIC FLICKER PATTERN
+                    // 1. Initial Strike (Bright)
+                    // 2. Brief fade (Dim)
+                    // 3. Return Stroke (Brightest)
+                    // 4. Fade out
+                    const progress = this.life / this.totalLife;
+
+                    if (progress < 0.15) {
+                        this.opacity = 1.0; // Strike
+                    } else if (progress < 0.25) {
+                        this.opacity = 0.3; // Flicker dim
+                    } else if (progress < 0.40) {
+                        this.opacity = 1.0; // Return stroke
+                    } else {
+                        // Exponential decay
+                        this.opacity = Math.max(0, 1 - (progress - 0.4) * 1.8);
+                    }
+                }
+
+                draw() {
+                    if (this.opacity <= 0.01) return;
+
+                    ctx.save();
+                    ctx.globalAlpha = this.opacity;
+
+                    // Strong Glow effect
+                    ctx.shadowBlur = 35;
+                    ctx.shadowColor = '#6366f1';
+
+                    this.segments.forEach(seg => {
+                        // Main bolt - Darker indigo to show against light background
+                        ctx.beginPath();
+                        ctx.moveTo(seg.x1, seg.y1);
+                        ctx.lineTo(seg.x2, seg.y2);
+                        ctx.strokeStyle = '#4338ca';
+                        ctx.lineWidth = seg.width + 1;
+                        ctx.lineCap = 'round';
+                        ctx.stroke();
+
+                        // Inner bright core
+                        ctx.beginPath();
+                        ctx.moveTo(seg.x1, seg.y1);
+                        ctx.lineTo(seg.x2, seg.y2);
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = seg.width * 0.5;
+                        ctx.stroke();
+                    });
+
+                    ctx.restore();
+                }
+            }
+
+            // --- FLUID DYNAMICS ENGINE (Stream Function) ---
+            function getAtmosphericVelocity(x, y, t) {
+                const scale = 0.0012;
+                const uvX = x * scale;
+                const uvY = y * scale;
+                const eps = 0.1;
+                const psi1 = calculateStreamFunction(uvX, uvY - eps, t);
+                const psi2 = calculateStreamFunction(uvX, uvY + eps, t);
+                const psi3 = calculateStreamFunction(uvX - eps, uvY, t);
+                const psi4 = calculateStreamFunction(uvX + eps, uvY, t);
+                const u = -(psi2 - psi1) / (2 * eps);
+                const v = (psi4 - psi3) / (2 * eps);
+                return { vx: u, vy: v };
+            }
+
+            function calculateStreamFunction(x, y, t) {
+                let psi = 0;
+                psi += 2.5 * Math.sin(y * 3.0) * Math.cos(x * 2.2 + t * 0.15);
+                psi += 2.0 * Math.sin(x * 1.2 + t * 0.05) * Math.sin(y * 1.5);
+                psi += 0.6 * Math.sin(x * 4.0 - t * 0.3) * Math.cos(y * 3.5 + t * 0.2);
+                psi -= 0.4 * y;
+                return psi;
+            }
+
+            // Particle Class
+            class Particle {
+                constructor() {
+                    this.init(true);
+                }
+
+                init(randomScreenPos = false) {
+                    if (randomScreenPos) {
+                        this.x = Math.random() * canvas.width;
+                        this.y = Math.random() * canvas.height;
+                    } else {
+                        this.x = Math.random() * canvas.width;
+                        this.y = Math.random() * canvas.height;
+                    }
+
+                    this.type = Math.random() > 0.5 ? 'CLIMATE' : 'AI';
+                    this.size = this.type === 'CLIMATE' ? (Math.random() * 2.5 + 2.0) : (Math.random() * 2.0 + 1.5);
+
+                    this.life = 0;
+                    this.maxLife = Math.random() * 500 + 300;
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.alpha = 0;
+                }
+
+                update() {
+                    this.life++;
+                    if (this.life < 80) this.alpha += 0.01;
+                    if (this.life > this.maxLife - 80) this.alpha -= 0.01;
+                    if (this.alpha < 0) this.alpha = 0;
+                    if (this.alpha > 0.9) this.alpha = 0.9;
+                    if (this.life > this.maxLife) {
+                        this.init(false);
+                        return;
+                    }
+
+                    const velocity = getAtmosphericVelocity(this.x, this.y, time);
+                    const inertia = this.type === 'CLIMATE' ? 0.03 : 0.02;
+                    this.vx = this.vx * (1 - inertia) + velocity.vx * SPEED_SCALE * inertia;
+                    this.vy = this.vy * (1 - inertia) + velocity.vy * SPEED_SCALE * inertia;
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    if (mouse.x != null) {
+                        const dx = this.x - mouse.x;
+                        const dy = this.y - mouse.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < MOUSE_RADIUS) {
+                            const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS;
+                            this.x += (dy / dist) * force * 1.5;
+                            this.y -= (dx / dist) * force * 1.5;
+                        }
+                    }
+
+                    if (this.x > canvas.width + 20) this.x = -20;
+                    if (this.x < -20) this.x = canvas.width + 20;
+                    if (this.y > canvas.height + 20) this.y = -20;
+                    if (this.y < -20) this.y = canvas.height + 20;
+                }
+
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+                    const color = this.type === 'CLIMATE' ? COLOR_CLIMATE : COLOR_AI;
+                    ctx.fillStyle = `rgba(${color}, ${this.alpha * 0.15})`;
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${color}, ${this.alpha})`;
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 0.3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha * 0.8})`;
+                    ctx.fill();
+                }
+            }
+
+            function init() {
+                particlesArray = [];
+                const count = Math.min(PARTICLE_COUNT, (window.innerWidth * window.innerHeight) / 9000);
+                for (let i = 0; i < count; i++) {
+                    particlesArray.push(new Particle());
+                }
+            }
+
+            // Animation Loop
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                time += 0.001;
+
+                // --- GLOBAL EFFECTS LAYER ---
+                // 1. FLASH: Draw white overlay if flash is active
+                if (flashOpacity > 0.01) {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${flashOpacity})`;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    flashOpacity *= 0.85; // Rapid decay
+                }
+
+                // 2. SHAKE: Apply transform to wrapper
+                if (shakeIntensity > 0) {
+                    const dx = (Math.random() - 0.5) * shakeIntensity;
+                    const dy = (Math.random() - 0.5) * shakeIntensity;
+                    canvasWrapper.style.transform = `translate(${dx}px, ${dy}px)`;
+                    shakeIntensity -= 0.5; // Decay
+                } else {
+                    canvasWrapper.style.transform = 'none';
+                }
+
+                // --- LIGHTNING UPDATE LOOP ---
+                const currentTime = Date.now();
+                if (currentTime - lastLightningTime > nextLightningTime) {
+                    // Start sequence
+                    const numBolts = Math.floor(Math.random() * 2) + 1;
+                    for (let i = 0; i < numBolts; i++) {
+                        lightningBolts.push(new Lightning());
+                    }
+
+                    // Trigger Global Effects
+                    flashOpacity = 0.5; // Bright flash
+                    shakeIntensity = 8; // Rumble screen
+
+                    lastLightningTime = currentTime;
+                    // RANDOM INTERVAL: 6 to 16 seconds
+                    nextLightningTime = Math.random() * 10000 + 6000;
+                }
+
+                lightningBolts = lightningBolts.filter(bolt => bolt.active);
+                lightningBolts.forEach(bolt => {
+                    bolt.update();
+                    bolt.draw();
+                });
+
+                // --- PARTICLE UPDATE LOOP ---
+                for (let i = 0; i < particlesArray.length; i++) {
+                    particlesArray[i].update();
+                    particlesArray[i].draw();
+
+                    for (let j = i + 1; j < particlesArray.length; j++) {
+                        const dx = particlesArray[i].x - particlesArray[j].x;
+                        const dy = particlesArray[i].y - particlesArray[j].y;
+                        const distSq = dx * dx + dy * dy;
+                        const connDistSq = CONNECTION_DISTANCE * CONNECTION_DISTANCE;
+
+                        if (distSq < connDistSq) {
+                            const dist = Math.sqrt(distSq);
+                            let opacity = 1 - (dist / CONNECTION_DISTANCE);
+                            opacity = opacity * opacity;
+                            opacity *= Math.min(particlesArray[i].alpha, particlesArray[j].alpha);
+
+                            if (opacity > 0.05) {
+                                ctx.beginPath();
+                                const gradient = ctx.createLinearGradient(
+                                    particlesArray[i].x, particlesArray[i].y,
+                                    particlesArray[j].x, particlesArray[j].y
+                                );
+
+                                const c1 = particlesArray[i].type === 'CLIMATE' ? COLOR_CLIMATE : COLOR_AI;
+                                const c2 = particlesArray[j].type === 'CLIMATE' ? COLOR_CLIMATE : COLOR_AI;
+
+                                gradient.addColorStop(0, `rgba(${c1}, ${opacity * 0.4})`);
+                                gradient.addColorStop(1, `rgba(${c2}, ${opacity * 0.4})`);
+
+                                ctx.strokeStyle = gradient;
+                                ctx.lineWidth = 1.2;
+                                ctx.moveTo(particlesArray[i].x, particlesArray[i].y);
+                                ctx.lineTo(particlesArray[j].x, particlesArray[j].y);
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                }
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                init();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                mouse.x = e.x;
+                mouse.y = e.y;
+            });
+
+            window.addEventListener('mouseout', () => {
+                mouse.x = null;
+                mouse.y = null;
+            });
+
+            resizeCanvas();
+            init();
+            animate();
+
+        })();
+    </script>
+</body>
+
+</html>
